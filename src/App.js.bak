@@ -1,0 +1,86 @@
+import React, { useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import Sidebar from './sidebar';
+import Company from './Admin/Company.js';
+import Login from './Login.js';
+import Signup from './Admin/Company.js';
+import CompanyMapping from './Admin/CompanyMapping.js';
+import Location from './Admin/Locations.js';
+import AddCompany from './Admin/AddScreens/AddCompany.js'; 
+import AddCompanyMappings from './Admin/AddScreens/AddCompanyMappings.js'; 
+import AddLocation from './Admin/AddScreens/AddLocation.js'; 
+import AddRole from './Admin/AddScreens/AddRole.js'; 
+import Role from './Admin/Role.js';
+import AddRoleMapping from './Admin/AddScreens/AddRoleMapping.js'; 
+import RoleMapping from './Admin/RoleMapping.js';
+import RoleRights from './Admin/RoleRights.js';
+import AddRoleRights from './Admin/AddScreens/AddRoleRights.js'; 
+import User from './Admin/User.js';
+import AddUser from './Admin/AddScreens/AddUser.js'; 
+
+const AppRouter = () => {
+  const [isSidebarMinimized, setIsSidebarMinimized] = useState(false);
+
+  return (
+    <Router>
+      <Routes>
+        <Route
+          path="*"
+          element={
+            <Layout
+              isSidebarMinimized={isSidebarMinimized}
+              setIsSidebarMinimized={setIsSidebarMinimized}
+            />
+          }
+        />
+      </Routes>
+    </Router>
+  );
+};
+
+const Layout = ({ isSidebarMinimized, setIsSidebarMinimized }) => {
+  const location = useLocation();
+
+  const hideSidebarRoutes = ['/', '/signup'];
+  const shouldHideSidebar = hideSidebarRoutes.includes(location.pathname.toLowerCase());
+
+  return (
+    <>
+      {!shouldHideSidebar && (
+        <Sidebar
+          isMinimized={isSidebarMinimized}
+          setIsMinimized={setIsSidebarMinimized}
+        />
+      )}
+
+      <div
+        style={{
+          marginLeft: shouldHideSidebar ? '0' : (isSidebarMinimized ? '90px' : '280px'),
+          padding: '20px',
+          transition: 'margin-left 0.3s',
+        }}
+      >
+        <Routes>
+          <Route path="/" element={<Login />} />
+          <Route path="/Company" element={<Company />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/AddCompany" element={<AddCompany />} />
+          <Route path="/CompanyMapping" element={<CompanyMapping />} />
+          <Route path="/AddCompanyMappings" element={<AddCompanyMappings />} />
+          <Route path="/Location" element={<Location />} />
+          <Route path="/AddLocation" element={<AddLocation />} />
+          <Route path="/AddRole" element={<AddRole />} />
+          <Route path="/Role" element={<Role />} />
+          <Route path="/RoleMapping" element={<RoleMapping />} />
+          <Route path="/AddRoleMapping" element={<AddRoleMapping />} />
+          <Route path="/RoleRights" element={<RoleRights />} />
+          <Route path="/AddRoleRights" element={<AddRoleRights />} />
+          <Route path="/User" element={<User />} />
+          <Route path="/AddUser" element={<AddUser />} />
+        </Routes>
+      </div>
+    </>
+  );
+};
+
+export default AppRouter;

@@ -1,0 +1,211 @@
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { FaHome, FaInbox, FaFolder, FaChevronDown, FaChevronUp, FaCalendar, FaFileExcel, FaCog, FaQuestionCircle, FaBars, FaArrowLeft } from 'react-icons/fa';
+import { FaBuilding  } from "react-icons/fa";
+const Sidebar = ({ isMinimized, setIsMinimized }) => {  // Use setIsMinimized to modify the state
+  const [isProjectsOpen, setIsProjectsOpen] = useState(true);
+
+  const toggleProjects = () => {
+    setIsProjectsOpen(!isProjectsOpen);
+  };
+
+  const toggleSidebar = () => {
+    setIsMinimized(!isMinimized);  // Toggle the minimized state
+  };
+
+  return (
+    <div style={isMinimized ? styles.sidebarMinimized : styles.sidebar}>
+      {/* Toggle Button */}
+      <div style={styles.toggleButtonContainer}>
+        <button onClick={toggleSidebar} style={styles.toggleButton}>
+          {isMinimized ? <FaBars /> : <FaArrowLeft />}
+        </button>
+      </div>
+
+      {/* Logo Section */}
+      {!isMinimized && (
+        <div style={styles.logoContainer}>
+          <span style={styles.logo}>YJK</span>
+        </div>
+      )}
+
+      {/* Main Menu Section */}
+      {/* {!isMinimized && <div style={styles.sectionHeader}>ADMIN</div>} */}
+      <ul style={styles.sidebarList}>
+       
+       
+        {/* <li style={styles.listItem}>
+         
+        </li>
+       */}
+
+        <li style={styles.listItem}>
+          <div style={isMinimized ? styles.linkMinimized : styles.link} onClick={toggleProjects}>
+            <FaFolder style={styles.icon} /> {!isMinimized && 'Admin'} {!isMinimized && (isProjectsOpen ? <FaChevronUp style={styles.chevron} /> : <FaChevronDown style={styles.chevron} />)}
+          </div>
+          {isProjectsOpen && !isMinimized && (
+            <ul style={styles.nestedList}>
+               <Link to="/Company" style={isMinimized ? styles.linkMinimized : styles.link}>
+            <FaBuilding style={styles.icon} /> {!isMinimized && 'Company'}
+          </Link>
+          <li style={styles.listItem}>
+          <Link to="/CompanyMapping" style={isMinimized ? styles.linkMinimized : styles.link}>
+            <FaInbox style={styles.icon} /> {!isMinimized && 'Company Mapping'}
+          </Link>
+          </li> 
+          <li style={styles.listItem}>
+          <Link to="/Location" style={isMinimized ? styles.linkMinimized : styles.link}>
+            <FaInbox style={styles.icon} /> {!isMinimized && 'Location'}
+          </Link>
+          </li> 
+          <li style={styles.listItem}>
+          <Link to="/Role" style={isMinimized ? styles.linkMinimized : styles.link}>
+            <FaInbox style={styles.icon} /> {!isMinimized && 'Role'}
+          </Link>
+          </li> 
+          <li style={styles.listItem}>
+          <Link to="/RoleMapping" style={isMinimized ? styles.linkMinimized : styles.link}>
+            <FaInbox style={styles.icon} /> {!isMinimized && 'Role Mapping'}
+          </Link>
+          </li> 
+          <li style={styles.listItem}>
+          <Link to="/RoleRights" style={isMinimized ? styles.linkMinimized : styles.link}>
+            <FaInbox style={styles.icon} /> {!isMinimized && 'Role Rights'}
+          </Link>
+          </li> 
+          <li style={styles.listItem}>
+          <Link to="/User" style={isMinimized ? styles.linkMinimized : styles.link}>
+            <FaInbox style={styles.icon} /> {!isMinimized && 'User'}
+          </Link>
+          </li> 
+            </ul>
+          )}
+        </li>
+       
+       
+      </ul>
+
+     
+    </div>
+  );
+};
+
+const styles = {
+  sidebar: {
+    width: '280px',
+    height: '100vh',
+    backgroundColor: '#d83500',
+    padding: '20px',
+    color: 'white',
+    position: 'fixed',
+    borderRadius: '30px',
+    margin: '10px',
+    marginBottom: '10px',
+    fontFamily: 'Arial, sans-serif',
+    transition: 'width 0.3s ease',
+  },
+  sidebarMinimized: {
+    width: '80px',
+    height: '100vh',
+    backgroundColor: '#d83500',
+    padding: '20px',
+    color: 'white',
+    position: 'fixed',
+    borderRadius: '30px',
+    margin: '10px',
+    marginBottom: '10px',
+    fontFamily: 'Arial, sans-serif',
+    transition: 'width 0.3s ease',
+  },
+  toggleButtonContainer: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    marginBottom: '20px',
+  },
+  toggleButton: {
+    background: 'none',
+    border: 'none',
+    color: 'white',
+    cursor: 'pointer',
+    fontSize: '18px',
+  },
+  logoContainer: {
+    display: 'flex',
+    alignItems: 'center',
+    marginBottom: '20px',
+  },
+  logo: {
+    fontSize: '24px',
+    fontWeight: 'bold',
+  },
+  sectionHeader: {
+    fontSize: '12px',
+    color: '#FFD1B2',
+    margin: '20px 0 10px',
+    fontWeight: 'bold',
+  },
+  sidebarList: {
+    listStyleType: 'none',
+    padding: 0,
+  },
+  listItem: {
+    marginBottom: '5px',
+  },
+  link: {
+    color: 'white',
+    textDecoration: 'none',
+    display: 'flex',
+    alignItems: 'center',
+    padding: '10px 15px',
+    borderRadius: '10px',
+    cursor: 'pointer',
+  },
+  linkMinimized: {
+    color: 'white',
+    textDecoration: 'none',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '10px',
+    borderRadius: '10px',
+    cursor: 'pointer',
+  },
+  icon: {
+    marginRight: '10px',
+  },
+  badge: {
+    backgroundColor: '#FFD1B2',
+    color: '#F15A29',
+    borderRadius: '10px',
+    padding: '2px 8px',
+    fontSize: '12px',
+    marginLeft: 'auto',
+  },
+  nestedList: {
+    listStyleType: 'none',
+    padding: '0 0 0 30px',
+  },
+  nestedItem: {
+    marginBottom: '5px',
+  },
+  nestedLink: {
+    color: 'white',
+    textDecoration: 'none',
+    display: 'block',
+    padding: '8px 15px',
+    borderRadius: '10px',
+  },
+  nestedBadge: {
+    backgroundColor: '#FFD1B2',
+    color: '#F15A29',
+    borderRadius: '50%',
+    padding: '2px 6px',
+    fontSize: '10px',
+    marginLeft: 'auto',
+  },
+  chevron: {
+    marginLeft: 'auto',
+  },
+};
+
+export default Sidebar;

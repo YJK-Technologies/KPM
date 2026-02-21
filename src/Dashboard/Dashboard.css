@@ -1,0 +1,55 @@
+
+
+.stat-card {
+    position: relative;
+    color: white;
+    border-radius: 15px;
+    padding: 20px;
+    height: 120px;
+    overflow: hidden;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .stat-label {
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+    margin: 0;
+  }
+  
+  .stat-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin: 0;
+  }
+  
+  .stat-icon {
+    font-size: 3rem;
+    opacity: 0.1;
+    position: absolute;
+    right: 20px;
+    bottom: 10px;
+  }
+  
+  .gradient-blue {
+    background: #30E8BF;  /* fallback for old browsers */
+background: -webkit-linear-gradient(to right, #d83500, #df9637);  /* Chrome 10-25, Safari 5.1-6 */
+background: linear-gradient(to right, #d83500, #df9637); /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */
+
+  }
+  
+  .gradient-purple {
+    background: #30E8BF;  /* fallback for old browsers */
+    background: -webkit-linear-gradient(to right, #d83500, #df9637);  /* Chrome 10-25, Safari 5.1-6 */
+    background: linear-gradient(to right, #d83500, #df9637); /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */
+    
+  }
+  
+  .gradient-indigo {
+    background: #30E8BF;  /* fallback for old browsers */
+    background: -webkit-linear-gradient(to right, #d83500, #df9637);  /* Chrome 10-25, Safari 5.1-6 */
+    background: linear-gradient(to right, #d83500, #df9637); /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */
+    
+  }
+  

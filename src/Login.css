@@ -1,0 +1,19 @@
+.custom-input {
+  background-color: #fff;
+  border-radius: 0;
+  border: none;
+  border-bottom: 2px solid #ccc;
+  color: #000;
+}
+
+.custom-input:focus {
+  border-color: gold;
+  box-shadow: none;
+}
+
+@font-face {
+  font-family: 'Gluon Light';
+  src: url('./Assets/Fonts/Gluon-Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}

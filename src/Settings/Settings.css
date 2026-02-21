@@ -1,0 +1,18 @@
+.template-preview-box {
+  min-width: 300px;
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.placeholder-text {
+  color: #999;
+  font-style: italic;
+}
+
+.preview-image {
+  max-width: 100%;
+  max-height: 100px;
+  object-fit: contain;
+}

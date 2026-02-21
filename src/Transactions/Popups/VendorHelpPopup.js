@@ -1,0 +1,406 @@
+import { useState, useEffect } from 'react';
+import '../../App.css';
+import { AgGridReact } from 'ag-grid-react';
+import Select from 'react-select';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import {
+  ModuleRegistry,
+  ClientSideRowModelModule,
+  PaginationModule,
+  TextFilterModule,
+  NumberFilterModule,
+  DateFilterModule,
+  CustomFilterModule,
+  CellStyleModule,
+  ValidationModule
+} from 'ag-grid-community';
+import LoadingScreen from '../../BookLoader';
+import secureLocalStorage from "react-secure-storage"; 
+
+// Register necessary modules
+ModuleRegistry.registerModules([
+  ClientSideRowModelModule,
+  PaginationModule,
+  TextFilterModule,
+  NumberFilterModule,
+  DateFilterModule,
+  CustomFilterModule,
+  CellStyleModule,
+  ValidationModule,
+]);
+
+const config = require('../../ApiConfig');
+
+const columnDefs = [
+  {
+    checkboxSelection: true,
+    headerName: "Vendor Code",
+    field: "vendor_code",
+    editable: false,
+    cellStyle: { textAlign: "left" },
+    valueFormatter: (params) => {
+      return params.value ? params.value.toUpperCase() : '';
+    },
+  },
+  {
+    headerName: "Vendor Name",
+    field: "vendor_name",
+    editable: false,
+    cellStyle: { textAlign: "left" },
+    valueFormatter: (params) => {
+      return params.value ? params.value.toUpperCase() : '';
+    },
+  },
+  {
+    headerName: "Vendor Address 1",
+    field: "vendor_addr_1",
+    editable: false,
+    cellStyle: { textAlign: "left" },
+    valueFormatter: (params) => {
+      return params.value ? params.value.toUpperCase() : '';
+    },
+  },
+  {
+    headerName: "Vendor Address 2",
+    field: "vendor_addr_2",
+    editable: false,
+    cellStyle: { textAlign: "left" },
+    valueFormatter: (params) => {
+      return params.value ? params.value.toUpperCase() : '';
+    },
+  },
+  {
+    headerName: "Vendor Address 3",
+    field: "vendor_addr_3",
+    editable: false,
+    cellStyle: { textAlign: "left" },
+    valueFormatter: (params) => {
+      return params.value ? params.value.toUpperCase() : '';
+    },
+  },
+  {
+    headerName: "Vendor Address 4",
+    field: "vendor_addr_4",
+    editable: false,
+    cellStyle: { textAlign: "left" },
+    valueFormatter: (params) => {
+      return params.value ? params.value.toUpperCase() : '';
+    },
+  },
+  {
+    headerName: "Vendor Area Code",
+    field: "vendor_area_code",
+    editable: false,
+    cellStyle: { textAlign: "left" },
+    valueFormatter: (params) => {
+      return params.value ? params.value.toUpperCase() : '';
+    },
+  },
+  {
+    headerName: "Vendor State Code",
+    field: "vendor_state_code",
+    editable: false,
+    cellStyle: { textAlign: "left" },
+    valueFormatter: (params) => {
+      return params.value ? params.value.toUpperCase() : '';
+    },
+  },
+  {
+    headerName: "Vendor Country Code",
+    field: "vendor_country_code",
+    editable: false,
+    cellStyle: { textAlign: "left" },
+    valueFormatter: (params) => {
+      return params.value ? params.value.toUpperCase() : '';
+    },
+  },
+  {
+    headerName: "Status",
+    field: "status",
+    editable: false,
+    cellStyle: { textAlign: "left" },
+    valueFormatter: (params) => {
+      return params.value ? params.value.toUpperCase() : '';
+    },
+  },
+  {
+    headerName: "PAN No",
+    field: "panno",
+    editable: false,
+    cellStyle: { textAlign: "left" },
+  },
+  {
+    headerName: "GST No",
+    field: "vendor_gst_no",
+    editable: false,
+    cellStyle: { textAlign: "left" },
+  },
+
+  {
+    headerName: "Vendor Office No",
+    field: "vendor_office_no",
+    editable: false,
+    cellStyle: { textAlign: "left" },
+  },
+  {
+    headerName: "Vendor Resi No",
+    field: "vendor_resi_no",
+    editable: false,
+    cellStyle: { textAlign: "left" },
+    valueFormatter: (params) => {
+      return params.value ? params.value.toUpperCase() : '';
+    },
+  },
+  {
+    headerName: "Mobile No",
+    field: "vendor_mobile_no",
+    editable: false,
+    cellStyle: { textAlign: "left" },
+  },
+
+  {
+    headerName: "Email",
+    field: "vendor_email_id",
+    editable: false,
+    cellStyle: { textAlign: "left" },
+    valueFormatter: (params) => {
+      return params.value ? params.value.toLowerCase() : '';
+    },
+  },
+  {
+    headerName: "Salesman Code",
+    field: "vendor_salesman_code",
+    editable: false,
+    cellStyle: { textAlign: "left" },
+    valueFormatter: (params) => {
+      return params.value ? params.value.toUpperCase() : '';
+    },
+  },
+  {
+    headerName: "Contact Person",
+    field: "contact_person",
+    editable: false,
+    cellStyle: { textAlign: "left" },
+    valueFormatter: (params) => {
+      return params.value ? params.value.toUpperCase() : '';
+    },
+  },
+];
+
+const defaultColDef = {
+  resizable: true,
+  wrapText: true,
+  sortable: true,
+  editable: false,
+};
+
+const VendorProductTable = ({ open, handleClose, handleVendor }) => {
+  const [rowData, setRowData] = useState([]);
+  const [vendor_code, setVendorCode] = useState("");
+  const [vendor_name, setVendorName] = useState("");
+  const [status, setStatus] = useState("");
+  const [vendor_country_code, setCountryCode] = useState("");
+  const [statusdrop, setStatusdrop] = useState([]);
+  const [selectedStatus, setSelectedStatus] = useState('');
+  const [loading, setLoading] = useState('');
+
+  useEffect(() => {
+    const company_code = sessionStorage.getItem('selectedCompanyCode');
+
+    fetch(`${config.apiBaseUrl}/status`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ company_code })
+    })
+      .then((data) => data.json())
+      .then((val) => setStatusdrop(val))
+      .catch((error) => console.error('Error fetching data:', error));
+  }, []);
+
+  const handleChangeStatus = (selectedStatus) => {
+    setSelectedStatus(selectedStatus);
+    setStatus(selectedStatus ? selectedStatus.value : '');
+  };
+
+  const filteredOptionStatus = statusdrop.map((option) => ({
+    value: option.attributedetails_name,
+    label: option.attributedetails_name,
+  }));
+
+  const handleSearchItem = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${config.apiBaseUrl}/vendorsearchdata`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ company_code: sessionStorage.getItem('selectedCompanyCode'), vendor_code, vendor_name, status, vendor_country_code })
+      });
+      if (response.ok) {
+        const searchData = await response.json();
+        setRowData(searchData);
+        console.log("data fetched successfully")
+      } else if (response.status === 404) {
+        toast.warning('Data not found!', {
+          onClose: () => {
+            setRowData([]);
+            clearInputs([])
+          }
+        })
+      } else {
+        console.log("Bad request");
+      }
+    } catch (error) {
+      console.error("Error fetching search data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReload = () => {
+    clearInputs([])
+    setRowData([])
+  };
+
+  const clearInputs = () => {
+    setVendorCode("");
+    setVendorName("");
+    setStatus("");
+    setSelectedStatus('');
+    setCountryCode("");
+  };
+
+  const [selectedRows, setSelectedRows] = useState([]);
+
+  const handleRowSelected = (event) => {
+    setSelectedRows(event.api.getSelectedRows());
+  };
+
+  const handleConfirm = () => {
+    const selectedData = selectedRows.map(row => ({
+      VendorCode: row.vendor_code,
+      VendorName: row.vendor_name,
+      Address1: row.vendor_addr_1,
+      Address2: row.vendor_addr_2,
+      Address3: row.vendor_addr_3,
+      Address4: row.vendor_addr_4,
+      State: row.vendor_state_code,
+      Country: row.vendor_country_code,
+      MobileNo: row.vendor_mobile_no,
+      ContactPerson: row.contact_person,
+      GSTNo: row.vendor_gst_no
+    }));
+
+    handleVendor(selectedData);
+    handleClose();
+    clearInputs([]);
+    setRowData([]);
+    setSelectedRows([]);
+  }
+
+  return (
+    <div>
+      {loading && <LoadingScreen />}
+      {open && (
+        <div className="container-fluid mt-0  m-5">
+          <div className={`modal fade show d-block`} tabIndex="-1" role="dialog" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
+            <div className="modal-dialog modal-dialog-centered modal-lg mt-0" role="document">
+              <div className="modal-content rounded-4 shadow-lg">
+                <div className="modal-header">
+                  <h5 className="modal-title fw-bold fs-3">Vendor Help</h5>
+                  <button type="button" className="btn-close" onClick={handleClose}></button>
+                </div>
+                <div className="modal-body">
+                  <div className="row">
+                    <div className="col-md-3 mb-2">
+                      <label className="fw-bold">Vendor Code</label>
+                      <div className="">
+                        <input type="text"
+                          className="form-control pe-5"
+                          id='Vendor_code'
+                          value={vendor_code}
+                          onChange={(e) => setVendorCode(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && handleSearchItem()}
+                          autoComplete="off"
+                        />
+                      </div>
+                    </div>
+                    <div className="col-md-3 mb-2">
+                      <label className="fw-bold">Vendor Name </label>
+                      <input type="text"
+                        className="form-control"
+                        id='Vendor Name'
+                        value={vendor_name}
+                        onChange={(e) => setVendorName(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleSearchItem()}
+                        autoComplete="off"
+                      />
+                    </div>
+                    <div className="col-md-3 mb-2">
+                      <label className="fw-bold">Status</label>
+                      <div title="Please select the status">
+                      <Select
+                        type="text"
+                        id="status"
+                        value={selectedStatus}
+                        onChange={handleChangeStatus}
+                        options={filteredOptionStatus}
+                        classNamePrefix="react-select"
+                        placeholder=""
+                      />
+                    </div>
+                    </div>
+                    <div className="col-md-3 mb-2">
+                      <label className="fw-bold">Country</label>
+                      <input type="text" className="form-control"
+                        id='ShortName'
+                        value={vendor_country_code}
+                        onChange={(e) => setCountryCode(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleSearchItem()}
+                        autoComplete="off"
+                      />
+                    </div>
+                    <div className="col-md-3 mb-2 mt-4 ">
+                      <button onClick={handleSearchItem} title="Search" className="btn btn-primary pt-1"> <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
+                        <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0" />
+                      </svg>
+                      </button>
+                      <button className="btn btn-primary pt-1 ms-2" onClick={handleReload} title="Reload">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" className="bi bi-arrow-clockwise" viewBox="0 0 16 16">
+                          <path fillRule="evenodd" d="M8 3a5 5 0 1 1-4.546 2.914.5.5 0 1 0-.908-.418A6 6 0 1 0 8 2v1z" />
+                          <path d="M8 1a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-.5.5H5a.5.5 0 0 1 0-1h2.5V1.5A.5.5 0 0 1 8 1z" />
+                        </svg>
+                      </button>
+                      <button className='btn btn-primary pt-1 ms-2' onClick={handleConfirm} title="Confirm">
+                       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" className="bi bi-check" viewBox="0 0 16 16">
+                          <path d="M13.854 3.646a.5.5 0 0 1 0 .708L6.707 11.5l-3.5-3.5a.5.5 0 0 1 .708-.708L6.707 10.293l6.439-6.439a.5.5 0 0 1 .708 0z" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                  <div className="ag-theme-alpine mt-4" style={{ height: 330, width: '100%' }}>
+                    <AgGridReact
+                      rowData={rowData}
+                      columnDefs={columnDefs}
+                      defaultColDef={defaultColDef}
+                      rowSelection="multiple"
+                      pagination
+                      onSelectionChanged={handleRowSelected}
+                      paginationPageSize={5}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default VendorProductTable;
