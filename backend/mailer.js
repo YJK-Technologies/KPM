@@ -1,14 +1,17 @@
-// mailer.js
+//mailer.js
 const nodemailer = require("nodemailer");
 
 const transporter = nodemailer.createTransport({
-  host: 'yjktechnologies.com',
-  port: 465,
-  secure: true,
+  host: "smtp.zoho.com",            
+  port: 587,                       
+  secure: false,                   
   auth: {
-    user: 'harishkumar.s@yjktechnologies.com',
-    pass: 'P@ss1234',
+    user: "alert@yjktechnologies.com",
+    pass: "W3iug&sl",
   },
+  tls: {
+    rejectUnauthorized: false
+  }
 });
 
 module.exports = transporter;
