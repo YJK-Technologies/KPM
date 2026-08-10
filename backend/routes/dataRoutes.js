@@ -411,6 +411,10 @@ router.post("/Item_Category_MasterUpdateRow",dataController.Item_Category_Master
 router.post("/openingitemhdr",dataController.openingitemhdr)
 router.post("/getCurrentStockItemCode",dataController.getCurrentStockItemCode)
 router.post("/getTotalStockValueDetails",dataController.getTotalStockValueDetails)
+router.post("/getDefaultScreens",dataController.getDefaultScreens)
+router.post("/userSettingsInsert",dataController.userSettingsInsert)
+router.post("/getUserSettings",dataController.getUserSettings)
+router.post("/getDefaultUserCompany",dataController.getDefaultUserCompany)
 
 
 
