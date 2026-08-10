@@ -27,6 +27,9 @@ export default function Topbar() {
   const handleSettings = () => {
     navigate('/Settings');
   };
+  const handleUserSettings = () => {
+    navigate('/UserSettings');
+  };
 
   useEffect(() => {
     const isLoggedIn = sessionStorage.getItem('isLoggedIn');
@@ -252,6 +255,7 @@ export default function Topbar() {
                       )}
                     </Dropdown.Item>
                     <Dropdown.Item onClick={handleSettings}>Settings</Dropdown.Item>
+                    <Dropdown.Item onClick={handleUserSettings}>User Settings</Dropdown.Item>
                     <Dropdown.Item onClick={handleLogout}>Logout</Dropdown.Item>
                   </Dropdown.Menu>
                 </Dropdown>

@@ -57,6 +57,7 @@ import Dashboard from './Dashboard/Dashboard.js';
 import ItemDashboard from './Dashboard/ItemDashboard/ItemDashboard.js'
 import Topbar from './Topbar.js'
 import Settings from './Settings/Settings.js'
+import UserSettings from './UserSettings.js';
 import LOC from './ListOfCompanies.js'
 import TSD from './Dashboard/Total_stock.js';
 import CSD from './Dashboard/CurrentStock.js';
@@ -244,6 +245,7 @@ const Layout = ({ screenTypes, isSidebarMinimized, setIsSidebarMinimized }) => {
             { path: "/Dashboard", element: <Dashboard /> },
             { path: "/ItemDashboard", element: <ItemDashboard /> },
             { path: "/Settings", element: <Settings /> },
+            { path: "/UserSettings", element: <UserSettings /> },
             { path: "/TotalStock", element: <TSD /> },
             { path: "/CurrentStock", element: <CSD /> },
             // { path: "/PurchaseTemplate1", element: <PurchaseTemplate1 /> },
