@@ -59,35 +59,66 @@ const App = () => {
       sessionStorage.setItem('selectedShortName', data.short_name);
       sessionStorage.setItem('selectedUserName', data.user_name);
       sessionStorage.setItem('selectedUserCode', data.user_code);
+      sessionStorage.setItem( "DefaultScreenId", data.DefaultScreenId || "" );
     }
   };
 
-  const fetchUserData = async () => {
-    try {
-      const response = await fetch(`${config.apiBaseUrl}/getusercompany`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ user_code })
-      });
+  const fetchUserData = async (userCode) => {
+  try {
+    const res = await fetch(`${config.apiBaseUrl}/getDefaultUserCompany`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ user_code: userCode }),
+    });
 
-      if (response.ok) {
-        const searchData = await response.json();
-        if (searchData.length > 0) {
-          handleSave(searchData[0]);
-          navigate('/Dashboard');
+    if (res.ok) {
+      const data = await res.json();
+
+      if (data.length > 0) {
+       handleSave(data[0]);
+
+        const defaultScreen = data[0].DefaultScreenId?.trim();
+              
+        if (defaultScreen) {
+          navigate(`/${defaultScreen}`);
         } else {
-          setErrorMessage("User data not found.");
+          navigate("/AccountInformation");
         }
-      } else {
-        const errorData = await response.json();
-        setErrorMessage(errorData.message || 'Failed to fetch user company.');
       }
-    } catch (error) {
-      setErrorMessage("Error fetching user data: " + error.message);
+    } else {
+      console.error("No company mapping found.");
     }
+  } catch (err) {
+    console.error("Error fetching default user company:", err);
+  }
   };
+
+  // const fetchUserData = async () => {
+  //   try {
+  //     const response = await fetch(`${config.apiBaseUrl}/getusercompany`, {
+  //       method: "POST",
+  //       headers: {
+  //         "Content-Type": "application/json"
+  //       },
+  //       body: JSON.stringify({ user_code })
+  //     });
+
+  //     if (response.ok) {
+  //       const searchData = await response.json();
+  //       if (searchData.length > 0) {
+  //         handleSave(searchData[0]);
+  //         navigate('/Dashboard');
+  //       } else {
+  //         setErrorMessage("User data not found.");
+  //       }
+  //     } else {
+  //       const errorData = await response.json();
+  //       setErrorMessage(errorData.message || 'Failed to fetch user company.');
+  //     }
+  //   } catch (error) {
+  //     setErrorMessage("Error fetching user data: " + error.message);
+  //   }
+  // };
 
   const arrayBufferToBase64 = (arrayBuffer) => {
     let binary = '';
