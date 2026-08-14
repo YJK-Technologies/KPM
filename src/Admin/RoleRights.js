@@ -150,6 +150,7 @@ const VendorProductTable = () => {
       headerName: "Role ID",
       field: "role_id",
       editable: true,
+      cellClass: "ag-link-cell",
       cellStyle: { textAlign: "left" },
       cellEditor: "agSelectCellEditor",
       cellEditorParams: {

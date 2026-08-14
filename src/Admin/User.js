@@ -292,6 +292,7 @@ const VendorProductTable = () => {
       checkboxSelection: true,
       headerName: "User Code",
       field: "user_code",
+      cellClass: "ag-link-cell",
       cellStyle: { textAlign: "left" },
       cellEditorParams: {
         maxLength: 18,
@@ -410,14 +411,6 @@ const VendorProductTable = () => {
       field: "dob",
       editable: true,
       cellStyle: { textAlign: "left" },
-      valueFormatter: (params) => {
-        if (!params.value) return "";
-        const date = new Date(params.value);
-        const day = date.getDate().toString().padStart(2, "0");
-        const month = (date.getMonth() + 1).toString().padStart(2, "0");
-        const year = date.getFullYear();
-        return `${day}/${month}/${year}`;
-      },
     },
     {
       headerName: "Gender",

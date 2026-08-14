@@ -286,6 +286,7 @@ const Category = () => {
       checkboxSelection: true,
       headerName: "Item Category Code",
       field: "Item_Category_Code",
+      cellClass: "ag-link-cell",
       cellStyle: { textAlign: "center" },
       cellEditorParams: {
         maxLength: 18,

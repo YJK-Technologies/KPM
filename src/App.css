@@ -287,3 +287,11 @@ Code added by pavun 30_04_25 for react select*/
 .list-group-item:hover {
   background-color:rgb(109, 175, 194);
 }
+
+/* GLOBAL AG GRID NAVIGATE CELL COLOR CHANGE 10-06-2026 */
+.ag-link-cell {
+  color: #1976d2;
+  cursor: pointer;
+  text-decoration: underline;
+  font-weight: 500;
+}

@@ -168,6 +168,7 @@ const VendorProductTable = () => {
       checkboxSelection: true,
       headerName: "Tax Type Header",
       field: "tax_type_header",
+      cellClass: "ag-link-cell",
       cellStyle: { textAlign: "center" },
       cellRenderer: (params) => {
         const handleClick = () => {

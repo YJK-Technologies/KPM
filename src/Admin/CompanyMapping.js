@@ -187,6 +187,7 @@ const VendorProductTable = () => {
       headerName: "User Code",
       field: "user_code",
       editable: true,
+      cellClass: "ag-link-cell",
       cellStyle: { textAlign: "left" },
       cellEditor: "agSelectCellEditor",
       cellEditorParams: {

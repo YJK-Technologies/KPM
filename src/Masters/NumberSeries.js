@@ -17,7 +17,7 @@ import '../App.css';
 import { showConfirmationToast } from '../ToastConfirmation';
 import { ToastContainer, toast } from 'react-toastify';
 import LoadingScreen from '../BookLoader';
-import sessionStorage from "react-secure-storage"; 
+import secureLocalStorage from "react-secure-storage"; 
 
 // Register necessary modules
 ModuleRegistry.registerModules([
@@ -52,8 +52,7 @@ const VendorProductTable = () => {
   const [modifiedDate, setModifiedDate] = useState("");
   const navigate = useNavigate();
 
-const permissions = JSON.parse(sessionStorage.getItem('permissions')) || [];
-
+const permissions = JSON.parse(sessionStorage.getItem('permissions')) || {};
 const numberSeriesPermissions = permissions
   .filter(permission => permission.screen_type === 'NumberSeries')
   .map(permission => permission.permission_type.toLowerCase());
@@ -165,6 +164,7 @@ const numberSeriesPermissions = permissions
       checkboxSelection: true,
       headerName: "Screen Type",
       field: "Screen_Type",
+      cellClass: "ag-link-cell",
       cellStyle: { textAlign: "left" },
       cellRenderer: (params) => {
         const handleClick = () => {
@@ -572,6 +572,7 @@ const numberSeriesPermissions = permissions
   const hasPermission = (perm) =>
     numberSeriesPermissions.includes(perm) || numberSeriesPermissions.includes('all permission');
 
+  console.log(numberSeriesPermissions)
 
 
   return (
