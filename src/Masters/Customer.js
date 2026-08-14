@@ -17,7 +17,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import { showConfirmationToast } from '../ToastConfirmation';
 import '../App.css';
 import LoadingScreen from '../BookLoader';
-import secureLocalStorage from "react-secure-storage"; 
+import secureLocalStorage from "react-secure-storage";
 
 // Register necessary modules
 ModuleRegistry.registerModules([
@@ -313,6 +313,7 @@ const VendorProductTable = () => {
       headerCheckboxSelection: true,
       checkboxSelection: true,
       headerName: "Code",
+      cellClass: "ag-link-cell",
       field: "customer_code",
       cellStyle: { textAlign: "left" },
       cellEditorParams: {
@@ -463,7 +464,7 @@ const VendorProductTable = () => {
           params.data.customer_office_no = newValue;
           return true;
         }
-        return false; 
+        return false;
       },
       // cellEditor: "agNumberCellEditor",
     },
@@ -482,7 +483,7 @@ const VendorProductTable = () => {
           params.data.customer_resi_no = newValue;
           return true;
         }
-        return false; 
+        return false;
       },
       // cellEditor: "agNumberCellEditor",
     },
@@ -501,7 +502,7 @@ const VendorProductTable = () => {
           params.data.customer_mobile_no = newValue;
           return true;
         }
-        return false; 
+        return false;
       },
       // cellEditor: "agNumberCellEditor",
     },
@@ -604,7 +605,7 @@ const VendorProductTable = () => {
         row.customer_state,
         row.customer_country,
       ].map(safeValue);
-  
+
       const formattedAddress = `
         ${addressParts[0]},
         ${addressParts[1]},
@@ -754,16 +755,16 @@ const VendorProductTable = () => {
     const rowIndex = updatedRowData.findIndex(
       (row) => row.customer_code === params.data.customer_code && row.company_code === params.data.company_code && row.keyfield == params.data.keyfield
     );
-  
+
     if (rowIndex !== -1) {
       updatedRowData[rowIndex][params.colDef.field] = params.newValue;
       setRowData(updatedRowData);
-  
+
       setEditedData((prevData) => {
         const existingIndex = prevData.findIndex(
           (item) => item.customer_code === params.data.customer_code && item.company_code === params.data.company_code && item.keyfield == params.data.keyfield
         );
-  
+
         if (existingIndex !== -1) {
           const updatedEdited = [...prevData];
           updatedEdited[existingIndex] = updatedRowData[rowIndex];
@@ -919,7 +920,7 @@ const VendorProductTable = () => {
   const hasPermission = (perm) =>
     customerPermissions.includes(perm) || customerPermissions.includes('all permission');
 
-
+  console.log(customerPermissions)
 
 
   return (
@@ -1135,9 +1136,13 @@ const VendorProductTable = () => {
               type="text"
               className="form-control"
               placeholder=""
-              required title="Please fill the contact number here"
+              required
+              title="Please fill the contact number here"
               value={customer_mobile_no}
-              onChange={(e) => setcustomer_mobile_no(e.target.value)}
+              onChange={(e) => {
+                const onlyNumbers = e.target.value.replace(/\D/g, '');
+                setcustomer_mobile_no(onlyNumbers);
+              }}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               maxLength={20}
             />
@@ -1145,28 +1150,28 @@ const VendorProductTable = () => {
           <div className="col-md-3 mb-2">
             <label className='fw-bold'>Status</label>
             <div title="Please select the status">
-            <Select
-              value={selectedStatus}
-              onChange={handleChangeStatus}
-              // onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              options={filteredOptionStatus}
-              classNamePrefix="react-select"
-              placeholder=""
-            />
-          </div>
+              <Select
+                value={selectedStatus}
+                onChange={handleChangeStatus}
+                // onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                options={filteredOptionStatus}
+                classNamePrefix="react-select"
+                placeholder=""
+              />
+            </div>
           </div>
           <div className="col-md-3 mb-2">
             <label className='fw-bold'>Default Customer</label>
             <div title="Please select the default customer">
-            <Select
-              value={selectedCustomer}
-              onChange={handleChangeCustomer}
-              options={filteredOptioncustomer}
-              className=""
-              placeholder=""
-              classNamePrefix="react-select"
-            />
-          </div>
+              <Select
+                value={selectedCustomer}
+                onChange={handleChangeCustomer}
+                options={filteredOptioncustomer}
+                className=""
+                placeholder=""
+                classNamePrefix="react-select"
+              />
+            </div>
           </div>
           <div className="col-md-2 mb-2 mt-4">
             <button className="button2" onClick={handleSearch} title="Search">

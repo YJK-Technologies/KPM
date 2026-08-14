@@ -6,7 +6,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import PdfPreview from './PdfPreviewHelp'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faMagnifyingGlass, faPlus, faMinus, faRotateRight } from '@fortawesome/free-solid-svg-icons';
-import secureLocalStorage from "react-secure-storage"; 
+import secureLocalStorage from "react-secure-storage";
 
 const config = require('../ApiConfig');
 
@@ -59,12 +59,36 @@ function PrintTemplate({ }) {
         );
     };
 
-     const handlereload = () => {
+    const handlereload = () => {
         window.location.reload();
     }
 
+    const validateMember = (member) => {
+
+        if (!member.screenName || member.screenName.trim() === "" || !member.templatename || member.templatename.trim() === "" || !member.Templates) {
+            toast.warning("Error: Missing required fields");
+            setError(" ");
+            return false;
+        }
+
+        const maxSize = 1 * 1024 * 1024; // 1MB
+        if (member.Templates.size > maxSize) {
+            toast.warning("File size exceeds 1MB");
+            return false;
+        }
+
+        return true;
+    };
+
     const handleSave = async () => {
 
+        for (const relationGroup of Academic) {
+            for (const member of relationGroup.members) {
+                if (!validateMember(member)) {
+                    return;
+                }
+            }
+        }
 
         const employeeData = await Promise.all(
 
@@ -394,7 +418,7 @@ function PrintTemplate({ }) {
                                 </svg>
                                 </a>
                                 </div>
-                                  <div className='col-md-2 mt-1 mb-5 ms-4' ><a className='border-none text-dark p-1' title='Reload' onClick={handlereload} style={{ cursor: "pointer" }}>
+                                <div className='col-md-2 mt-1 mb-5 ms-4' ><a className='border-none text-dark p-1' title='Reload' onClick={handlereload} style={{ cursor: "pointer" }}>
                                     <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
                                         <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2z" />
                                         <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466" />
@@ -403,7 +427,7 @@ function PrintTemplate({ }) {
                                 </div>
 
                             </div>
-                            
+
 
                         </div>
 
@@ -491,7 +515,7 @@ function PrintTemplate({ }) {
                                             />
                                         </div>
                                         <div className="col-md-2 form-group mb-2">
-                                            <label className={`${error && !member.templatename ? 'red' : ''}`}>Template Name {showAsterisk && <span className="text-danger">*</span>}</label>
+                                            <label className={`${error && !member.templatename ? 'red' : ''}`}>Template Name{showAsterisk && <span className="text-danger">*</span>}</label>
                                             <input
                                                 type="text"
                                                 className="exp-input-field form-control"

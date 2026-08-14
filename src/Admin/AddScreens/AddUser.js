@@ -17,7 +17,7 @@ import {
   ValidationModule
 } from 'ag-grid-community';
 import LoadingScreen from '../../BookLoader';
-import secureLocalStorage from "react-secure-storage"; 
+import secureLocalStorage from "react-secure-storage";
 // Use a single modern theme
 
 import '../../App.css';
@@ -81,6 +81,8 @@ const VendorProductTable = () => {
   const [isUpdated, setIsUpdated] = useState(false);
   const location = useLocation();
   const { mode, selectedRow } = location.state || {};
+
+  const [showPassword, setShowPassword] = useState(false);
 
   function validateEmail(email) {
     const emailRegex = /^[A-Za-z\._\-0-9]*[@][A-Za-z]*[\.][a-z]{2,4}$/;
@@ -353,7 +355,8 @@ const VendorProductTable = () => {
       !user_status ||
       !role_id ||
       !email_id ||
-      !dob
+      !dob ||
+      !gender
     ) {
       setError(" ");
       toast.warning("Error: Missing required fields");
@@ -495,6 +498,15 @@ const VendorProductTable = () => {
     }
   };
 
+  const today = new Date();
+  const maxDob = new Date(
+    today.getFullYear() - 18,
+    today.getMonth(),
+    today.getDate()
+  )
+    .toISOString()
+    .split("T")[0];
+
   return (
     <div className="container-fluid sidenav">
       {loading && <LoadingScreen />}
@@ -573,72 +585,87 @@ const VendorProductTable = () => {
             />
           </div>
           <div className="col-md-3 mb-2">
-            <label className={`fw-bold ${error && !user_password ? 'text-danger' : ''}`}>Password<span className="text-danger">*</span></label>
-            <input
-              type="text"
-              className="form-control"
-              id="upass"
-              placeholder=""
-              required title="Please enter the password"
-              value={user_password}
-              onChange={(e) => setUser_password(e.target.value)}
-              maxLength={50}
-              ref={password}
-              onKeyDown={(e) => handleKeyDown(e, Status, password)}
-            />
+            <label className={`fw-bold ${error && !user_password ? 'text-danger' : ''}`}>
+              Password<span className="text-danger">*</span>
+            </label>
+
+            <div className="input-group">
+              <input
+                type={showPassword ? "text" : "password"} // Dynamic input type
+                className="form-control"
+                id="upass"
+                placeholder=""
+                required
+                title="Please enter the password"
+                value={user_password}
+                onChange={(e) => setUser_password(e.target.value)}
+                maxLength={50}
+                ref={password}
+                onKeyDown={(e) => handleKeyDown(e, Status, password)}
+              />
+
+              <button
+                className="btn btn-outline-secondary"
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                tabIndex="-1" // Prevents breaking keyboard navigation focus
+              >
+                <i className={`bi ${showPassword ? 'bi-eye-slash-fill' : 'bi-eye-fill'}`}></i>
+              </button>
+            </div>
           </div>
           <div className="col-md-3 mb-2">
             <label className={`fw-bold ${error && !selectedStatus ? 'text-danger' : ''}`}>Status<span className="text-danger">*</span></label>
             <div title="Please select the status">
-            <Select
-              id="status"
-              value={selectedStatus}
-              onChange={handleChangeStatus}
-              options={filteredOptionStatus}
-              className="exp-input-field"
-              classNamePrefix="react-select"
-              placeholder=""
-              maxLength={50}
-              ref={Status}
-              onKeyDown={(e) => handleKeyDown(e, loginlogout, Status)}
-            />
-          </div>
+              <Select
+                id="status"
+                value={selectedStatus}
+                onChange={handleChangeStatus}
+                options={filteredOptionStatus}
+                className="exp-input-field"
+                classNamePrefix="react-select"
+                placeholder=""
+                maxLength={50}
+                ref={Status}
+                onKeyDown={(e) => handleKeyDown(e, loginlogout, Status)}
+              />
+            </div>
           </div>
           <div className="col-md-3 mb-2">
-            <label className={`fw-bold ${error && !selectedLog ? 'text-danger' : ''}`}>Log In/Out<span className="text-danger">*</span></label>
+            <label className={`fw-bold`}>Log In/Out</label>
             <div title="Please select the log in/out">
-            <Select
-              id="loginout"
-              value={selectedLog}
-              onChange={handleChangeLog}
-              options={filteredOptionLog}
-              className="exp-input-field"
-              classNamePrefix="react-select"
-              placeholder=""
-              maxLength={3}
-              ref={loginlogout}
-              onKeyDown={(e) => handleKeyDown(e, usertype, loginlogout)}
-            />
+              <Select
+                id="loginout"
+                value={selectedLog}
+                onChange={handleChangeLog}
+                options={filteredOptionLog}
+                className="exp-input-field"
+                classNamePrefix="react-select"
+                placeholder=""
+                maxLength={3}
+                ref={loginlogout}
+                onKeyDown={(e) => handleKeyDown(e, usertype, loginlogout)}
+              />
+            </div>
           </div>
-          </div>  
           {mode !== 'update' && (
             <div className="col-md-3 mb-2">
               <label className={`fw-bold ${error && !selectedRole ? 'text-danger' : ''}`}>
                 Role ID<span className="text-danger">*</span>
               </label>
               <div title="Please select the role id">
-              <Select
-                id="usertype"
-                value={selectedRole}
-                onChange={handleChangeRole}
-                classNamePrefix="react-select"
-                options={filteredOptionRole}
-                className="exp-input-field"
-                placeholder=""
-                ref={usertype}
-                onKeyDown={(e) => handleKeyDown(e, email, usertype)}
-              />
-            </div>
+                <Select
+                  id="usertype"
+                  value={selectedRole}
+                  onChange={handleChangeRole}
+                  classNamePrefix="react-select"
+                  options={filteredOptionRole}
+                  className="exp-input-field"
+                  placeholder=""
+                  ref={usertype}
+                  onKeyDown={(e) => handleKeyDown(e, email, usertype)}
+                />
+              </div>
             </div>
           )}
           <div className="col-md-3 mb-2">
@@ -665,27 +692,28 @@ const VendorProductTable = () => {
               placeholder=""
               required title="Please enter the DOB"
               value={dob}
+              max={maxDob}
               onChange={(e) => setDob(e.target.value)}
               ref={Dob}
               onKeyDown={(e) => handleKeyDown(e, Gender, Dob)}
             />
           </div>
           <div className="col-md-3 mb-2">
-            <label className={`fw-bold ${error && !selectedGender ? 'text-danger' : ''}`}>Gender<span className="text-danger">*</span></label>
+            <label className={`fw-bold ${error && !gender ? 'text-danger' : ''}`}>Gender<span className="text-danger">*</span></label>
             <div title="Please select the gender">
-            <Select
-              id="gender"
-              value={selectedGender}
-              onChange={handleChangeGender}
-              options={filteredOptionGender}
-              className="exp-input-field"
-              classNamePrefix="react-select"
-              placeholder=""
-              maxLength={50}
-              ref={Gender}
-              onKeyDown={(e) => handleKeyDown(e, ImagE, Gender)}
-            />
-          </div>
+              <Select
+                id="gender"
+                value={selectedGender}
+                onChange={handleChangeGender}
+                options={filteredOptionGender}
+                className="exp-input-field"
+                classNamePrefix="react-select"
+                placeholder=""
+                maxLength={50}
+                ref={Gender}
+                onKeyDown={(e) => handleKeyDown(e, ImagE, Gender)}
+              />
+            </div>
           </div>
           <div className="col-md-3 mb-2">
             <label className='fw-bold'>Image  </label>
