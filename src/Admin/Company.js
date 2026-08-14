@@ -264,6 +264,7 @@ const VendorProductTable = () => {
       checkboxSelection: true,
       headerName: "Company No",
       field: "company_no",
+      cellClass: "ag-link-cell",
       cellStyle: { textAlign: "left" },
       cellEditorParams: {
         maxLength: 18,

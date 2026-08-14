@@ -87,6 +87,7 @@ const VendorProductTable = () => {
       headerCheckboxSelection: true,
       checkboxSelection: true,
       headerName: "Code",
+      cellClass: "ag-link-cell",
       field: "attributeheader_code",
       cellStyle: { textAlign: "center" },
       cellEditorParams: {
