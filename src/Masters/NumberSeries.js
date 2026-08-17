@@ -1,23 +1,14 @@
 import React, { useState, useEffect, useRef } from "react";
 import { AgGridReact } from 'ag-grid-react';
 import Select from 'react-select';
-import { useNavigate } from 'react-router-dom';
-import {
-  ModuleRegistry,
-  ClientSideRowModelModule,
-  PaginationModule,
-  TextFilterModule,
-  NumberFilterModule,
-  DateFilterModule,
-  CustomFilterModule,
-  CellStyleModule,
-  ValidationModule
-} from 'ag-grid-community';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { ModuleRegistry, ClientSideRowModelModule, PaginationModule, TextFilterModule, NumberFilterModule,
+  DateFilterModule, CustomFilterModule, CellStyleModule, ValidationModule} from 'ag-grid-community';
 import '../App.css';
 import { showConfirmationToast } from '../ToastConfirmation';
 import { ToastContainer, toast } from 'react-toastify';
 import LoadingScreen from '../BookLoader';
-import sessionStorage from "react-secure-storage"; 
+import secureLocalStorage from "react-secure-storage";
 
 // Register necessary modules
 ModuleRegistry.registerModules([
@@ -52,12 +43,30 @@ const VendorProductTable = () => {
   const [modifiedDate, setModifiedDate] = useState("");
   const navigate = useNavigate();
 
+  const location = useLocation();
+
 const permissions = JSON.parse(sessionStorage.getItem('permissions')) || [];
 
 const numberSeriesPermissions = permissions
   .filter(permission => permission.screen_type === 'NumberSeries')
   .map(permission => permission.permission_type.toLowerCase());
 
+  useEffect(() => {
+      if (location.state?.preservedRowData) {
+        setRowData(location.state.preservedRowData);
+      }
+    
+      if (location.state?.preservedInputs) {
+        setScreen_Type(location.state.preservedInputs.Screen_Type || "");
+    
+        if (location.state.preservedInputs.Screen_Type) {
+          setselectedscreentype({
+            label: location.state.preservedInputs.Screen_Type,
+            value: location.state.preservedInputs.Screen_Type,
+          });
+        }
+      }
+    }, [location.state]);
 
   // const permissions = JSON.parse(sessionStorage.getItem('permissions')) || {};
   // const numberSeriesPermissions = permissions
@@ -124,6 +133,12 @@ const numberSeriesPermissions = permissions
   const handleReload = () => {
     window.location.reload();
   };
+
+const clearInputFields = () => {
+  setScreen_Type("");
+  setselectedscreentype("");
+  setRowData([]);
+ };
 
   const handleSearch = async () => {
     setLoading(true);
@@ -378,8 +393,21 @@ const numberSeriesPermissions = permissions
     navigate('/AddNumberSeries', { state: { mode: "create" } });
   };
 
+  // const handleNavigateWithRowData = (selectedRow) => {
+  //   navigate("/AddNumberSeries", { state: { mode: "update", selectedRow } });
+  // };
+
   const handleNavigateWithRowData = (selectedRow) => {
-    navigate("/AddNumberSeries", { state: { mode: "update", selectedRow } });
+    navigate("/AddNumberSeries", {
+      state: {
+        mode: "update",
+        selectedRow,
+        preservedRowData: rowData,
+        preservedInputs: {
+          Screen_Type,
+        },
+      },
+    });
   };
 
   const onSelectionChanged = () => {
@@ -613,7 +641,7 @@ const numberSeriesPermissions = permissions
                 </div>
               )}
               <div className="col-md-2 mt-1 mb-5">
-                <a className='border-none text-dark p-1' title="Reload" onClick={handleReload} style={{ cursor: "pointer" }}> <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
+                <a className='border-none text-dark p-1' title="Reload" onClick={clearInputFields} style={{ cursor: "pointer" }}> <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
                   <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2z" />
                   <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466" />
                 </svg>
@@ -665,7 +693,7 @@ const numberSeriesPermissions = permissions
                         </svg>
                       </button>
                     )}
-                    <a className='border-none text-dark p-1 d-flex justify-content-center' onClick={handleReload} title="Reload" style={{ cursor: "pointer" }}> <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
+                    <a className='border-none text-dark p-1 d-flex justify-content-center' onClick={clearInputFields} title="Reload" style={{ cursor: "pointer" }}> <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
                       <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2z" />
                       <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466" />
                     </svg>

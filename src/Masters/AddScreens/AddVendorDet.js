@@ -1,22 +1,12 @@
 import { AgGridReact } from 'ag-grid-react';
 import React, { useState, useEffect, useRef } from "react";
 import Select from 'react-select';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import AttriHdrInputPopup from '../AddHdrScreens/AddVendorHdr.js';
-import { useLocation } from "react-router-dom";
 import 'react-toastify/dist/ReactToastify.css';
 import { ToastContainer,toast } from 'react-toastify';
-import {
-  ModuleRegistry,
-  ClientSideRowModelModule,
-  PaginationModule,
-  TextFilterModule,
-  NumberFilterModule,
-  DateFilterModule,
-  CustomFilterModule,
-  CellStyleModule,
-  ValidationModule
-} from 'ag-grid-community';
+import { ModuleRegistry, ClientSideRowModelModule, PaginationModule, TextFilterModule, NumberFilterModule,
+  DateFilterModule, CustomFilterModule, CellStyleModule, ValidationModule} from 'ag-grid-community';
 import LoadingScreen from '../../BookLoader';
 import '../../App.css';
 import secureLocalStorage from "react-secure-storage"; 
@@ -39,7 +29,16 @@ const VendorProductTable = () => {
   const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false);
 
-  const handleClick = () => { navigate('/Vendor'); };
+  // const handleClick = () => { navigate('/Vendor'); };
+
+    const handleClick = () => {
+  navigate("/Vendor", {
+    state: {
+      preservedRowData: location.state?.preservedRowData,
+      preservedInputs: location.state?.preservedInputs
+    }
+  });
+};
   
   const [open2, setOpen2] = React.useState(false);
   const [selectedCode, setSelectedCode] = useState('');

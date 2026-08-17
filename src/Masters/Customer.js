@@ -1,18 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import { AgGridReact } from 'ag-grid-react';
 import Select from 'react-select';
-import { useNavigate } from 'react-router-dom';
-import {
-  ModuleRegistry,
-  ClientSideRowModelModule,
-  PaginationModule,
-  TextFilterModule,
-  NumberFilterModule,
-  DateFilterModule,
-  CustomFilterModule,
-  CellStyleModule,
-  ValidationModule
-} from 'ag-grid-community';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { ModuleRegistry, ClientSideRowModelModule, PaginationModule, TextFilterModule, NumberFilterModule,
+  DateFilterModule, CustomFilterModule, CellStyleModule, ValidationModule} from 'ag-grid-community';
 import { ToastContainer, toast } from 'react-toastify';
 import { showConfirmationToast } from '../ToastConfirmation';
 import '../App.css';
@@ -69,11 +60,45 @@ const VendorProductTable = () => {
   const [agcustomerdrop, setagcustomerdrop] = useState([]);
   const navigate = useNavigate();
 
+  const location = useLocation();  
 
   const permissions = JSON.parse(sessionStorage.getItem('permissions')) || {};
   const customerPermissions = permissions
     .filter(permission => permission.screen_type === 'Customer')
     .map(permission => permission.permission_type.toLowerCase());
+
+        useEffect(() => {
+          if (location.state?.preservedRowData) {
+            setRowData(location.state.preservedRowData);
+          }
+        
+          if (location.state?.preservedInputs) {
+            setcustomer_code(location.state.preservedInputs.customer_code || "");
+            setcustomer_name(location.state.preservedInputs.customer_name || "");
+            setpanno(location.state.preservedInputs.panno || "");
+            setcustomer_gst_no(location.state.preservedInputs.customer_gst_no || "");
+            setcustomer_addr_1(location.state.preservedInputs.customer_addr_1 || "");
+            setcustomer_area(location.state.preservedInputs.customer_area || "");
+            setcustomer_state(location.state.preservedInputs.customer_state || "");
+            setcustomer_country(location.state.preservedInputs.customer_country || "");
+            setcustomer_mobile_no(location.state.preservedInputs.customer_mobile_no || "");
+            setstatus(location.state.preservedInputs.status || "");
+            setdefaultCust(location.state.preservedInputs.default_customer || "");
+
+            if (location.state.preservedInputs.status) {
+              setSelectedStatus({
+                label: location.state.preservedInputs.status,
+                value: location.state.preservedInputs.status,
+              });
+            }
+            if (location.state.preservedInputs.default_customer) {
+              setselectedCust({
+                label: location.state.preservedInputs.default_customer,
+                value: location.state.preservedInputs.default_customer,
+              });
+            }
+          }
+        }, [location.state]);
 
 
   useEffect(() => {
@@ -253,60 +278,109 @@ const VendorProductTable = () => {
     window.location.reload();
   };
 
-  const handleSearch = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch(`${config.apiBaseUrl}/customerSearchdata`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ company_code: sessionStorage.getItem('selectedCompanyCode'), customer_code, customer_name, panno, customer_gst_no, customer_addr_1, customer_area, customer_state, customer_country, customer_mobile_no, status, default_customer })
-      });
-      if (response.ok) {
-        const searchData = await response.json();
-        const newRows = searchData.map((matchedItem) => ({
-          customer_code: matchedItem.customer_code,
-          customer_name: matchedItem.customer_name,
-          company_code: matchedItem.company_code,
-          customer_addr_1: matchedItem.customer_addr_1,
-          customer_addr_2: matchedItem.customer_addr_2,
-          customer_addr_3: matchedItem.customer_addr_3,
-          customer_addr_4: matchedItem.customer_addr_4,
-          customer_area: matchedItem.customer_area,
-          customer_state: matchedItem.customer_state,
-          customer_country: matchedItem.customer_country,
-          status: matchedItem.status,
-          panno: matchedItem.panno,
-          customer_gst_no: matchedItem.customer_gst_no,
-          customer_office_no: matchedItem.customer_office_no,
-          customer_resi_no: matchedItem.customer_resi_no,
-          customer_mobile_no: matchedItem.customer_mobile_no,
-          customer_email_id: matchedItem.customer_email_id,
-          customer_credit_limit: Number(matchedItem.customer_credit_limit),
-          contact_person: matchedItem.contact_person,
-          office_type: matchedItem.office_type,
-          customer_salesman_code: matchedItem.customer_salesman_code,
-          default_customer: matchedItem.default_customer,
-          keyfield: matchedItem.keyfield,
-        }));
-        setRowData(newRows);
-        console.log("Data fetched successfully");
-      } else if (response.status === 404) {
-        console.log("Data not found");
-        toast.warning("Data not found")
-        setRowData([]);
-      } else {
-        const errorResponse = await response.json();
-        toast.warning(errorResponse.message || "Failed to insert sales data");
+    const clearInputFields = () => {
+    setcustomer_code("");
+    setcustomer_name("");
+    setpanno("");
+    setcustomer_gst_no("");
+    setcustomer_addr_1("");
+    setcustomer_area("");
+    setcustomer_state("");
+    setcustomer_country("");
+    setcustomer_mobile_no("");
+    setstatus("");
+    setdefaultCust("");
+    setSelectedStatus("");
+    setselectedCust("");
+    setRowData([]);
+  };
+
+    const handleSearch = async () => {
+      setLoading(true);
+  
+      try {
+        const response = await fetch(`${config.apiBaseUrl}/customerSearchdata`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ company_code: sessionStorage.getItem('selectedCompanyCode'), customer_code, customer_name, panno, customer_gst_no, customer_addr_1, customer_area, customer_state, customer_country, customer_mobile_no, status, default_customer })
+        });
+        if (response.ok) {
+          const searchData = await response.json();
+          setRowData(searchData);
+          console.log("Data fetched successfully");
+        } else if (response.status === 404) {
+          console.log("Data not found");
+          toast.warning("Data not found")
+          setRowData([]);
+        } else {
+          const errorResponse = await response.json();
+          toast.warning(errorResponse.message || "Failed to insert sales data");
+        }
+      } catch (error) {
+        console.error("Error saving data:", error);
+        toast.error("Error updating data: " + error.message);
       }
-    } catch (error) {
-      console.error("Error saving data:", error);
-      toast.error("Error updating data: " + error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+      finally {
+        setLoading(false);
+      }
+    };
+
+  // const handleSearch = async () => {
+  //   setLoading(true);
+  //   try {
+  //     const response = await fetch(`${config.apiBaseUrl}/customerSearchdata`, {
+  //       method: "POST",
+  //       headers: {
+  //         "Content-Type": "application/json"
+  //       },
+  //       body: JSON.stringify({ company_code: sessionStorage.getItem('selectedCompanyCode'), customer_code, customer_name, panno, customer_gst_no, customer_addr_1, customer_area, customer_state, customer_country, customer_mobile_no, status, default_customer })
+  //     });
+  //     if (response.ok) {
+  //       const searchData = await response.json();
+  //       const newRows = searchData.map((matchedItem) => ({
+  //         customer_code: matchedItem.customer_code,
+  //         customer_name: matchedItem.customer_name,
+  //         company_code: matchedItem.company_code,
+  //         customer_addr_1: matchedItem.customer_addr_1,
+  //         customer_addr_2: matchedItem.customer_addr_2,
+  //         customer_addr_3: matchedItem.customer_addr_3,
+  //         customer_addr_4: matchedItem.customer_addr_4,
+  //         customer_area: matchedItem.customer_area,
+  //         customer_state: matchedItem.customer_state,
+  //         customer_country: matchedItem.customer_country,
+  //         status: matchedItem.status,
+  //         panno: matchedItem.panno,
+  //         customer_gst_no: matchedItem.customer_gst_no,
+  //         customer_office_no: matchedItem.customer_office_no,
+  //         customer_resi_no: matchedItem.customer_resi_no,
+  //         customer_mobile_no: matchedItem.customer_mobile_no,
+  //         customer_email_id: matchedItem.customer_email_id,
+  //         customer_credit_limit: Number(matchedItem.customer_credit_limit),
+  //         contact_person: matchedItem.contact_person,
+  //         office_type: matchedItem.office_type,
+  //         customer_salesman_code: matchedItem.customer_salesman_code,
+  //         default_customer: matchedItem.default_customer,
+  //         keyfield: matchedItem.keyfield,
+  //       }));
+  //       setRowData(newRows);
+  //       console.log("Data fetched successfully");
+  //     } else if (response.status === 404) {
+  //       console.log("Data not found");
+  //       toast.warning("Data not found")
+  //       setRowData([]);
+  //     } else {
+  //       const errorResponse = await response.json();
+  //       toast.warning(errorResponse.message || "Failed to insert sales data");
+  //     }
+  //   } catch (error) {
+  //     console.error("Error saving data:", error);
+  //     toast.error("Error updating data: " + error.message);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   const columnDefs = [
     {
@@ -726,9 +800,34 @@ const VendorProductTable = () => {
     navigate('/AddCustomerDet', { state: { mode: "create" } });
   };
 
-  const handleNavigateWithRowData = (selectedRow) => {
-    navigate("/AddCustomerDet", { state: { mode: "update", selectedRow } });
-  };
+  // const handleNavigateWithRowData = (selectedRow) => {
+  //   navigate("/AddCustomerDet", { state: { mode: "update", selectedRow } });
+  // };
+
+    const handleNavigateWithRowData = (selectedRow) => {
+  navigate("/AddCustomerDet", {
+    state: {
+      mode: "update",
+      selectedRow,
+
+      preservedRowData: rowData,
+
+      preservedInputs: {
+        customer_code,
+        customer_name,
+        panno,
+        customer_gst_no,
+        customer_addr_1,
+        customer_area,
+        customer_state,
+        customer_country,
+        customer_mobile_no,
+        status,
+        default_customer
+      },
+    },
+  });
+};
 
   const onSelectionChanged = () => {
     const selectedNodes = gridApi.getSelectedNodes();
@@ -961,7 +1060,7 @@ const VendorProductTable = () => {
                 </div>
               )}
               <div className="col-md-2 mt-1 mb-5">
-                <a className='border-none text-dark p-1' title="Reload" onClick={handleReload} style={{ cursor: "pointer" }}> <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
+                <a className='border-none text-dark p-1' title="Reload" onClick={clearInputFields} style={{ cursor: "pointer" }}> <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
                   <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2z" />
                   <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466" />
                 </svg>
@@ -1013,7 +1112,7 @@ const VendorProductTable = () => {
                         </svg>
                       </button>
                     )}
-                    <a className='border-none text-dark p-1 d-flex justify-content-center' onClick={handleReload} title="Reload" style={{ cursor: "pointer" }}> <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
+                    <a className='border-none text-dark p-1 d-flex justify-content-center' onClick={clearInputFields} title="Reload" style={{ cursor: "pointer" }}> <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
                       <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2z" />
                       <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466" />
                     </svg>

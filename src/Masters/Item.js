@@ -1,21 +1,12 @@
 import { AgGridReact } from 'ag-grid-react';
 import React, { useState, useEffect, useRef } from "react";
 import Select from 'react-select';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Barcode from 'react-barcode';
 import { ToastContainer, toast } from 'react-toastify';
 import { showConfirmationToast } from '../ToastConfirmation';
-import {
-  ModuleRegistry,
-  ClientSideRowModelModule,
-  PaginationModule,
-  TextFilterModule,
-  NumberFilterModule,
-  DateFilterModule,
-  CustomFilterModule,
-  CellStyleModule,
-  ValidationModule
-} from 'ag-grid-community';
+import { ModuleRegistry, ClientSideRowModelModule, PaginationModule, TextFilterModule, NumberFilterModule,
+  DateFilterModule, CustomFilterModule, CellStyleModule, ValidationModule} from 'ag-grid-community';
 import 'react-toastify/dist/ReactToastify.css';
 import LoadingScreen from '../BookLoader';
 import '../App.css';
@@ -79,6 +70,8 @@ const VendorProductTable = () => {
   const [editedData, setEditedData] = useState([]);
   const [selectedRows, setSelectedRows] = useState([]);
 
+  const location = useLocation();
+  
   const handleChangeStatus = (selectedStatus) => {
     setSelectedStatus(selectedStatus);
     setstatus(selectedStatus ? selectedStatus.value : '');
@@ -94,6 +87,33 @@ const VendorProductTable = () => {
     .filter(permission => permission.screen_type === 'Item')
     .map(permission => permission.permission_type.toLowerCase());
 
+    useEffect(() => {
+        if (location.state?.preservedRowData) {
+          setRowData(location.state.preservedRowData);
+        }
+    
+        if (location.state?.preservedInputs) {
+          setItem_code(location.state.preservedInputs.Item_code || "");
+          setItem_variant(location.state.preservedInputs.Item_variant || "");
+          setItem_name(location.state.preservedInputs.Item_name || "");
+          setItem_short_name(location.state.preservedInputs.Item_short_name || "");
+          setItem_Our_Brand(location.state.preservedInputs.Item_Our_Brand || "");
+          setstatus(location.state.preservedInputs.status || "");
+    
+          if (location.state.preservedInputs.Item_Our_Brand) {
+            setSelectedBrand({
+              label: location.state.preservedInputs.Item_Our_Brand,
+              value: location.state.preservedInputs.Item_Our_Brand,
+            });
+          }
+          if (location.state.preservedInputs.status) {
+            setSelectedStatus({
+              label: location.state.preservedInputs.status,
+              value: location.state.preservedInputs.status,
+            });
+          }
+        }
+      }, [location.state]);
 
   useEffect(() => {
     const company_code = sessionStorage.getItem('selectedCompanyCode');
@@ -257,8 +277,28 @@ const VendorProductTable = () => {
     label: option.attributedetails_name,
   }));
 
+  // const handleNavigateWithRowData = (selectedRow) => {
+  //   navigate("/AddItem", { state: { mode: "update", selectedRow } });
+  // };
+
   const handleNavigateWithRowData = (selectedRow) => {
-    navigate("/AddItem", { state: { mode: "update", selectedRow } });
+    navigate("/AddItem", {
+      state: {
+        mode: "update",
+        selectedRow,
+
+        preservedRowData: rowData,
+
+        preservedInputs: {
+          Item_code,
+          Item_variant,
+          Item_name,
+          Item_short_name,
+          Item_Our_Brand,
+          status,
+        },
+      },
+    });
   };
 
   const arrayBufferToBase64 = (buffer) => {
@@ -871,6 +911,18 @@ const VendorProductTable = () => {
     wrapText: true,
   };
 
+  const clearInputFields = () => {
+    setItem_code("");
+    setItem_variant("");
+    setItem_name("");
+    setItem_short_name("");
+    setItem_Our_Brand("");
+    setstatus("");
+    setSelectedBrand("");
+    setSelectedStatus("");
+    setRowData([]);
+  };
+
   return (
     <div className="container-fluid ">
       {loading && <LoadingScreen />}
@@ -910,7 +962,7 @@ const VendorProductTable = () => {
                 </div>
               )}
               <div className="col-md-2 mt-1 mb-5">
-                <a className='border-none text-dark p-1' title="Reload" onClick={handleReload} style={{ cursor: "pointer" }}> <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
+                <a className='border-none text-dark p-1' title="Reload" onClick={clearInputFields} style={{ cursor: "pointer" }}> <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
                   <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2z" />
                   <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466" />
                 </svg>
@@ -962,7 +1014,7 @@ const VendorProductTable = () => {
                         </svg>
                       </button>
                     )}
-                    <a className='border-none text-dark p-1 d-flex justify-content-center' onClick={handleReload} title="Reload" style={{ cursor: "pointer" }}> <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
+                    <a className='border-none text-dark p-1 d-flex justify-content-center' onClick={clearInputFields} title="Reload" style={{ cursor: "pointer" }}> <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
                       <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2z" />
                       <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466" />
                     </svg>

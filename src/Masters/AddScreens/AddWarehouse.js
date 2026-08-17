@@ -2,17 +2,8 @@ import { AgGridReact } from 'ag-grid-react';
 import Select from 'react-select';
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from 'react-router-dom';
-import {
-  ModuleRegistry,
-  ClientSideRowModelModule,
-  PaginationModule,
-  TextFilterModule,
-  NumberFilterModule,
-  DateFilterModule,
-  CustomFilterModule,
-  CellStyleModule,
-  ValidationModule
-} from 'ag-grid-community';
+import { ModuleRegistry, ClientSideRowModelModule, PaginationModule, TextFilterModule, NumberFilterModule,
+  DateFilterModule, CustomFilterModule, CellStyleModule, ValidationModule} from 'ag-grid-community';
 import { ToastContainer, toast } from 'react-toastify';
 import { useLocation } from "react-router-dom";
 import '../../App.css';
@@ -59,8 +50,17 @@ const VendorProductTable = () => {
   const WarehouseName = useRef(null);
 
 
+  // const handleClick = () => {
+  //   navigate('/warehouse');
+  // };
+
   const handleClick = () => {
-    navigate('/warehouse');
+    navigate("/warehouse", {
+      state: {
+        preservedRowData: location.state?.preservedRowData,
+        preservedInputs: location.state?.preservedInputs
+      }
+    });
   };
 
   const clearInputFields = () => {

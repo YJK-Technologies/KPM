@@ -1,17 +1,8 @@
 import { AgGridReact } from 'ag-grid-react';
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigate } from 'react-router-dom';
-import {
-  ModuleRegistry,
-  ClientSideRowModelModule,
-  PaginationModule,
-  TextFilterModule,
-  NumberFilterModule,
-  DateFilterModule,
-  CustomFilterModule,
-  CellStyleModule,
-  ValidationModule
-} from 'ag-grid-community';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { ModuleRegistry, ClientSideRowModelModule, PaginationModule, TextFilterModule, NumberFilterModule,
+  DateFilterModule, CustomFilterModule, CellStyleModule, ValidationModule} from 'ag-grid-community';
 import { showConfirmationToast } from '../ToastConfirmation';
 import { ToastContainer, toast } from 'react-toastify';
 import '../App.css';
@@ -47,20 +38,74 @@ const VendorProductTable = () => {
   const [modifiedDate, setModifiedDate] = useState("");
   const navigate = useNavigate();
 
+  const location = useLocation();
+  
   const permissions = JSON.parse(sessionStorage.getItem('permissions')) || {};
   const attributePermission = permissions
     .filter(permission => permission.screen_type === 'Attribute')
     .map(permission => permission.permission_type.toLowerCase());
 
-  const handleSearch = async () => {
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      const isReloadShortcut =
+        (event.ctrlKey && event.key.toLowerCase() === "r") ||
+        (event.altKey && event.key.toLowerCase() === "r") ||
+        event.key === "F5";
+
+      if (isReloadShortcut) {
+        event.preventDefault();
+        clearInputFields();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  useEffect(() => {
+    // if (location.state?.preservedRowData) {
+    //   setRowData(location.state.preservedRowData);
+    // }
+
+    if (location.state?.preservedInputs) {
+      const inputs = location.state.preservedInputs;
+
+      setattributeheader_code(inputs.attributeheader_code || "");
+      setattributedetails_code(inputs.attributedetails_code || "");
+      setattributedetails_name(inputs.attributedetails_name || "");
+      setdescriptions(inputs.descriptions || "");
+
+      if (location.state?.refreshGrid) {
+        handleSearch(inputs);
+      }
+    }
+  }, [location.state]);
+
+  const clearInputFields = () => {
+    setattributeheader_code("");
+    setattributedetails_code("");
+    setattributedetails_name("");
+    setdescriptions("");
+    setRowData([]);
+  };
+
+    const handleSearch = async (searchParams = null) => {
     setLoading(true);
+
     try {
       const response = await fetch(`${config.apiBaseUrl}/attributeSearchdata`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ company_code: sessionStorage.getItem("selectedCompanyCode"), attributeheader_code, attributedetails_code, attributedetails_name, descriptions }), // Send as search criteria
+        body: JSON.stringify({
+          company_code: sessionStorage.getItem("selectedCompanyCode"),
+          attributeheader_code: searchParams?.attributeheader_code ?? attributeheader_code,
+          attributedetails_code: searchParams?.attributedetails_code ?? attributedetails_code,
+          attributedetails_name: searchParams?.attributedetails_name ?? attributedetails_name,
+          descriptions: searchParams?.descriptions ?? descriptions,
+        }),
       });
 
       if (response.ok) {
@@ -69,7 +114,7 @@ const VendorProductTable = () => {
       } else if (response.status === 404) {
         console.log("Data not found");
         setRowData([]);
-        toast.warning("Data not found");
+        toast.info("Data not found");
       } else {
         const errorResponse = await response.json();
         toast.warning(errorResponse.message || "Failed to fetch data");
@@ -77,7 +122,8 @@ const VendorProductTable = () => {
     } catch (error) {
       console.error("Error fetching search data:", error);
       toast.error("Error fetching search data:", error);
-    } finally {
+    }
+    finally {
       setLoading(false);
     }
   };
@@ -255,8 +301,25 @@ const VendorProductTable = () => {
     navigate('/AddAttributeDet', { state: { mode: "create" } });
   };
 
-  const handleNavigateWithRowData = (selectedRow) => {
-    navigate("/AddAttributeDet", { state: { mode: "update", selectedRow } });
+  // const handleNavigateWithRowData = (selectedRow) => {
+  //   navigate("/AddAttributeDet", { state: { mode: "update", selectedRow } });
+  // };
+
+    const handleNavigateWithRowData = (selectedRow) => {
+    navigate("/AddAttributeDet", {
+      state: {
+        mode: "update",
+        attributeheader_code: selectedRow.attributeheader_code,
+        attributedetails_code: selectedRow.attributedetails_code,
+
+        preservedInputs: {
+          attributeheader_code,
+          attributedetails_code,
+          attributedetails_name,
+          descriptions,
+        },
+      },
+    });
   };
 
   const onSelectionChanged = () => {
@@ -504,7 +567,7 @@ const VendorProductTable = () => {
                 </div>
               )}
               <div className="col-md-2 mt-1 mb-5">
-                <a className='border-none text-dark p-1' title="Reload" onClick={handleReload} style={{ cursor: "pointer" }}> <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
+                <a className='border-none text-dark p-1' title="Reload" onClick={clearInputFields} style={{ cursor: "pointer" }}> <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
                   <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2z" />
                   <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466" />
                 </svg>
@@ -556,7 +619,7 @@ const VendorProductTable = () => {
                         </svg>
                       </button>
                     )}
-                    <a className='border-none text-dark p-1 d-flex justify-content-center' onClick={handleReload} title="Reload" style={{ cursor: "pointer" }}> <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
+                    <a className='border-none text-dark p-1 d-flex justify-content-center' onClick={clearInputFields} title="Reload" style={{ cursor: "pointer" }}> <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
                       <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2z" />
                       <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466" />
                     </svg>

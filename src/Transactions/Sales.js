@@ -7,17 +7,8 @@ import CustomerHelp from '../Transactions/Popups/CustomerHelpPopup';
 import ItemHelp from '../Transactions/Popups/SalesItemHelpPopup';
 import WarehouseHelp from '../Transactions/Popups/SalesWarehouseHelpPopup';
 import SalesDeletedHelp from '../Transactions/Popups/DeletedSalesHelpPopup';
-import {
-  ModuleRegistry,
-  ClientSideRowModelModule,
-  PaginationModule,
-  TextFilterModule,
-  NumberFilterModule,
-  DateFilterModule,
-  CustomFilterModule,
-  CellStyleModule,
-  ValidationModule
-} from 'ag-grid-community';
+import { ModuleRegistry, ClientSideRowModelModule, PaginationModule, TextFilterModule, NumberFilterModule,
+  DateFilterModule, CustomFilterModule, CellStyleModule, ValidationModule} from 'ag-grid-community';
 import '../App.css';
 import { ToastContainer, toast } from 'react-toastify';
 import { Modal, Button } from "react-bootstrap";

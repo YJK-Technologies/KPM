@@ -11296,6 +11296,32 @@ const getDefaultUserCompany = async (req, res) => {
 };
 //code ended by sakthi on 08-10-26
 
+//code added by sakthi on 08-17-26
+const getAttributeData = async (req, res) => {
+  const { company_code, attributeheader_code, attributedetails_code } = req.body;
+
+  try {
+    const pool = await connection.connectToDatabase();
+    const result = await pool
+      .request()
+      .input("mode", sql.NVarChar, "GAI")
+      .input("company_code", sql.NVarChar, company_code)
+      .input("attributeheader_code", sql.NVarChar, attributeheader_code)
+      .input("attributedetails_code", sql.NVarChar, attributedetails_code)
+      .query(`EXEC sp_attribute_Info @mode,@company_code,@attributeheader_code,@attributedetails_code,'','','','','','','','','','','',''`);
+
+    if (result.recordset.length > 0) {
+      res.status(200).json(result.recordset);
+    } else {
+      res.status(404).json("Data not found");
+    }
+  } catch (err) {
+    console.error("Error", err);
+    res.status(500).json({ message: err.message || "Internal Server Error" });
+  }
+};
+//code ended by sakthi on 08-17-26
+
 module.exports = {
   login,
   forgetPassword,
@@ -11702,6 +11728,7 @@ module.exports = {
   getDefaultScreens,
   userSettingsInsert,
   getUserSettings,
-  getDefaultUserCompany
+  getDefaultUserCompany,
+  getAttributeData
 
 };
