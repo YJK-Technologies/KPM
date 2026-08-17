@@ -415,6 +415,13 @@ router.post("/getDefaultScreens",dataController.getDefaultScreens)
 router.post("/userSettingsInsert",dataController.userSettingsInsert)
 router.post("/getUserSettings",dataController.getUserSettings)
 router.post("/getDefaultUserCompany",dataController.getDefaultUserCompany)
+router.post("/getCompanyData",dataController.getCompanyData)
+router.post("/getCompanyMappingData",dataController.getCompanyMappingData)
+router.post("/getLocationData",dataController.getLocationData)
+router.post("/getRoleData",dataController.getRoleData)
+router.post("/getRoleMappingData",dataController.getRoleMappingData)
+router.post("/getRoleRightsData",dataController.getRoleRightsData)
+router.post("/getUserData",dataController.getUserData)
 
 
 

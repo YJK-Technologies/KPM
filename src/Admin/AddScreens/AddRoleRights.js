@@ -16,7 +16,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import { useLocation } from "react-router-dom";
 import '../../App.css';
 import LoadingScreen from '../../BookLoader';
-import secureLocalStorage from "react-secure-storage"; 
+import secureLocalStorage from "react-secure-storage";
 
 // Register necessary modules
 ModuleRegistry.registerModules([
@@ -40,7 +40,7 @@ const VendorProductTable = () => {
   const [selectedpermissions, setselectedpermissions] = useState('');
   const [selectedRows, setSelectedRows] = useState([]);
   const [selectedRole, setSelectedRole] = useState('');
-  const [error, setError] = useState("");
+  const [error, setError] = useState(false);
   const permissiontype = useRef(null);
   const screentype = useRef(null);
   const roleId = useRef(null);
@@ -49,46 +49,118 @@ const VendorProductTable = () => {
   const [roleiddrop, setroleiddrop] = useState([]);
   const created_by = sessionStorage.getItem('selectedUserCode')
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);  
+  const [loading, setLoading] = useState(false);
   const [isUpdated, setIsUpdated] = useState(false);
   const modified_by = sessionStorage.getItem("selectedUserCode");
-  const location = useLocation();
   const [keyfield, setKeyfield] = useState('');
-  const { mode, selectedRow } = location.state || {};
-  
-  // console.log(selectedRow);
-  const handleClick = () => {
-    navigate('/RoleRights');
+
+  const location = useLocation();
+  const locationState = location.state || {};
+  const mode = locationState.mode || "create"; // ✅ default fallback
+  const selectedRow = locationState.selectedRow || null;
+  const keyfields = location.state?.keyfield;
+  const company_code = sessionStorage.getItem('selectedCompanyCode');
+
+  useEffect(() => {
+    if (!location.state) {
+      clearInputFields(); // ensure fresh create mode
+    }
+  }, []);
+
+  useEffect(() => {
+    if (mode === "update" && keyfields) {
+      fetchRoleRightsData();
+    }
+  }, [mode, keyfields]);
+
+  const fetchRoleRightsData = async () => {
+    try {
+      setLoading(true);
+
+      const response = await fetch(`${config.apiBaseUrl}/getRoleRightsData`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          keyfield: keyfields,
+          company_code
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.length > 0) {
+        const roleRights = data[0];
+
+        setKeyfield(roleRights.keyfield || "");
+        setselectedpermissions({
+          label: roleRights.permission_type,
+          value: roleRights.permission_type,
+        });
+        setpermission_type(roleRights.permission_type);
+        setSelectedRole({
+          label: roleRights.role_id,
+          value: roleRights.role_id,
+        });
+        setrole_id(roleRights.role_id);
+        setselectedscreens({
+          label: roleRights.screen_type,
+          value: roleRights.screen_type,
+        });
+        setscreen_type(roleRights.screen_type);
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to fetch role rights details");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const clearInputFields = () => {
     setselectedpermissions("");
+    setpermission_type("");
     setSelectedRole("");
+    setrole_id("");
     setselectedscreens("")
+    setscreen_type("");
+    setKeyfield("");
   };
 
-  useEffect(() => {
-      if (mode === "update" && selectedRow && !isUpdated) {
-        setKeyfield(selectedRow.keyfield || "");
-        setselectedpermissions({
-          label: selectedRow.permission_type,
-          value: selectedRow.permission_type,
-        });
-        setpermission_type(selectedRow.permission_type);
-        setSelectedRole({
-          label: selectedRow.role_id,
-          value: selectedRow.role_id,
-        });
-        setrole_id(selectedRow.role_id);
-        setselectedscreens({
-          label: selectedRow.screen_type,
-          value: selectedRow.screen_type,
-        });
-        setscreen_type(selectedRow.screen_type);
-      } else if (mode === "create") {
-        clearInputFields();
-      }
-    }, [mode, selectedRow, isUpdated]);
+  // console.log(selectedRow);
+  const handleClick = () => {
+    navigate('/RoleRights', {
+      state: {
+        refreshGrid: true,
+        // preservedRowData: location.state?.preservedRowData,
+        preservedInputs: location.state?.preservedInputs,
+      },
+    });
+  };
+
+  // useEffect(() => {
+  //   if (mode === "update" && selectedRow && !isUpdated) {
+  //     setKeyfield(selectedRow.keyfield || "");
+  //     setselectedpermissions({
+  //       label: selectedRow.permission_type,
+  //       value: selectedRow.permission_type,
+  //     });
+  //     setpermission_type(selectedRow.permission_type);
+  //     setSelectedRole({
+  //       label: selectedRow.role_id,
+  //       value: selectedRow.role_id,
+  //     });
+  //     setrole_id(selectedRow.role_id);
+  //     setselectedscreens({
+  //       label: selectedRow.screen_type,
+  //       value: selectedRow.screen_type,
+  //     });
+  //     setscreen_type(selectedRow.screen_type);
+  //   } else if (mode === "create") {
+  //     clearInputFields();
+  //   }
+  // }, [mode, selectedRow, isUpdated]);
 
   useEffect(() => {
     const company_code = sessionStorage.getItem('selectedCompanyCode');
@@ -169,10 +241,11 @@ const VendorProductTable = () => {
       !screen_type,
       !permission_type
     ) {
-      setError(" ");
-       toast.warning("Error: Missing required fields");
+      setError(true);
+      toast.warning("Error: Missing required fields");
       return;
     }
+    setError(false);
     setLoading(true);
 
     try {
@@ -190,14 +263,14 @@ const VendorProductTable = () => {
 
         }),
       });
-      if (response.status === 200) {
+      if (response.ok) {
         console.log("Data inserted successfully");
-
-        setTimeout(() => {
-          toast.success("Data inserted successfully!", {
-            onClose: () => window.location.reload(),
-          });
-        }, 1000);
+        toast.success("Data inserted successfully", {
+          onClose: () => {
+            clearInputFields();
+            setError(false)
+          }
+        });
       } else {
         const errorResponse = await response.json();
         console.error(errorResponse.message);
@@ -213,14 +286,15 @@ const VendorProductTable = () => {
 
   const handleUpdate = async () => {
     if (
-      !selectedRole ||
-      !selectedscreens ||
-      !selectedpermissions
+      !role_id,
+      !screen_type,
+      !permission_type
     ) {
-      setError(" ");
-       toast.warning("Error: Missing required fields");
+      setError(true);
+      toast.warning("Error: Missing required fields");
       return;
     }
+    setError(false);
     setLoading(true);
 
     try {
@@ -238,13 +312,14 @@ const VendorProductTable = () => {
           keyfield
         }),
       });
-      if (response.status === 200) {
+      if (response.ok) {
         console.log("Data updated successfully");
-        setTimeout(() => {
-          toast.success("Data updated successfully!", {
-            onClose: () => clearInputFields(),
-          });
-        }, 1000);
+        toast.success("Data updated successfully", {
+          onClose: () => {
+            // clearInputFields();
+            setError(false)
+          }
+        });
       } else {
         const errorResponse = await response.json();
         console.error(errorResponse.message);
@@ -298,57 +373,57 @@ const VendorProductTable = () => {
           <div className="col-md-3 mb-2">
             <label className={`fw-bold ${error && !selectedRole ? 'text-danger' : ''}`}>Role ID<span className="text-danger">*</span></label>
             <div title="Please select the role id">
-            <Select
-              value={selectedRole}
-              onChange={handleChangeRole}
-              options={filteredOptionRole}
-              className=""
-              classNamePrefix="react-select"
-              placeholder=""
-              maxLength={18}
-              ref={roleId}
-              onKeyDown={(e) => handleKeyDown(e, screentype, roleId)}
-            />
-          </div>
+              <Select
+                value={selectedRole}
+                onChange={handleChangeRole}
+                options={filteredOptionRole}
+                className=""
+                classNamePrefix="react-select"
+                placeholder=""
+                maxLength={18}
+                ref={roleId}
+                onKeyDown={(e) => handleKeyDown(e, screentype, roleId)}
+              />
+            </div>
           </div>
           <div className="col-md-3 mb-2">
             <label className={`fw-bold ${error && !selectedscreens ? 'text-danger' : ''}`}>Screen Type<span className="text-danger">*</span></label>
             <div title="Please select the screen type">
-            <Select
-              value={selectedscreens}
-              onChange={handleChangescreens}
-              options={filteredOptionscreens}
-              className=""
-              placeholder=""
-              classNamePrefix="react-select"
-              ref={screentype}
-              onKeyDown={(e) => handleKeyDown(e, permissiontype, screentype)}
-            />
+              <Select
+                value={selectedscreens}
+                onChange={handleChangescreens}
+                options={filteredOptionscreens}
+                className=""
+                placeholder=""
+                classNamePrefix="react-select"
+                ref={screentype}
+                onKeyDown={(e) => handleKeyDown(e, permissiontype, screentype)}
+              />
+            </div>
           </div>
-          </div>  
           <div className="col-md-3 mb-2">
             <label className={`fw-bold ${error && !selectedpermissions ? 'text-danger' : ''}`}>Permission Type<span className="text-danger">*</span></label>
             <div title="Please select the permission type">
-            <Select
-              value={selectedpermissions}
-              onChange={handleChangePermissions}
-              options={filteredOptionPermissions}
-              className=""
-              placeholder=""
-              classNamePrefix="react-select"
-              ref={permissiontype}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  if (mode === "create") {
-                    handleInsert();
-                  } else {
-                    handleUpdate();
+              <Select
+                value={selectedpermissions}
+                onChange={handleChangePermissions}
+                options={filteredOptionPermissions}
+                className=""
+                placeholder=""
+                classNamePrefix="react-select"
+                ref={permissiontype}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    if (mode === "create") {
+                      handleInsert();
+                    } else {
+                      handleUpdate();
+                    }
                   }
-                }
-              }}
+                }}
               // onKeyDown={(e) => handleKeyDown(e, permissiontype)}
-            />
-          </div>
+              />
+            </div>
           </div>
           {/* <div className="col-md-3 mb-2">
             {mode === "create" ? (

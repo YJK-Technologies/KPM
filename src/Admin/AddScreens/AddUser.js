@@ -18,6 +18,7 @@ import {
 } from 'ag-grid-community';
 import LoadingScreen from '../../BookLoader';
 import secureLocalStorage from "react-secure-storage";
+import UserProfile from '../../DefaultImages/User.png';
 // Use a single modern theme
 
 import '../../App.css';
@@ -37,7 +38,6 @@ ModuleRegistry.registerModules([
 const VendorProductTable = () => {
   const navigate = useNavigate();
 
-  const handleClick = () => { navigate('/User'); };
   const [user_code, setUser_code] = useState("");
   const [user_name, setUser_name] = useState("");
   const [first_name, setFirst_name] = useState("");
@@ -58,9 +58,9 @@ const VendorProductTable = () => {
   const [roleDrop, setRoleDrop] = useState([]);
   const [Genderdrop, setGenderdrop] = useState([]);
   const [Loginoroutdrop, setLoginoroutdrop] = useState([]);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(false);
   const [user_images, setuser_image] = useState("");
-  const [selectedImage, setSelectedImage] = useState(null);
+  const [selectedImage, setSelectedImage] = useState(UserProfile);
   const config = require('../../ApiConfig');
   const usercode = useRef(null);
   const username = useRef(null);
@@ -74,13 +74,107 @@ const VendorProductTable = () => {
   const Dob = useRef(null);
   const Gender = useRef(null);
   const ImagE = useRef(null);
+  const SuperAdmin = useRef(null);
   const [loading, setLoading] = useState(false);
   const [hasValueChanged, setHasValueChanged] = useState(false);
   const created_by = sessionStorage.getItem('selectedUserCode')
   const modified_by = sessionStorage.getItem("selectedUserCode");
   const [isUpdated, setIsUpdated] = useState(false);
+  const [superAdmin, setSuperAdmin] = useState(false);
+
   const location = useLocation();
-  const { mode, selectedRow } = location.state || {};
+  const locationState = location.state || {};
+  const mode = locationState.mode || "create";
+  const selectedRow = locationState.selectedRow || null;
+  const userCode = location.state?.user_code;
+  const company_code = sessionStorage.getItem('selectedCompanyCode');
+
+  useEffect(() => {
+    if (!location.state) {
+      clearInputFields();
+    }
+  }, []);
+
+  useEffect(() => {
+    if (mode === "update" && userCode) {
+      fetchUserData();
+    }
+  }, [mode, userCode]);
+
+  const fetchUserData = async () => {
+    try {
+      setLoading(true);
+
+      const response = await fetch(`${config.apiBaseUrl}/getUserData`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          user_code: userCode,
+          company_code
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.length > 0) {
+        const user = data[0];
+
+        setUser_code(user.user_code || "");
+        setUser_name(user.user_name || "");
+        setFirst_name(user.first_name || "");
+        setLast_name(user.last_name || "");
+        setUser_password(user.user_password || "");
+        setRole(user.role_id || "");
+        setLog_in_out(user.log_in_out || "");
+        setUser_status(user.user_status || "");
+        setGender(user.gender || "");
+        setSuperAdmin(
+          user.super_admin?.toLowerCase() === "yes"
+        );
+        setSelectedStatus({
+          label: user.user_status,
+          value: user.user_status,
+        });
+        setSelectedRole({
+          label: user.role_id,
+          value: user.role_id,
+        });
+        setSelectedLog({
+          label: user.log_in_out,
+          value: user.log_in_out,
+        });
+        setSelectedGender({
+          label: user.gender,
+          value: user.gender,
+        });
+        setEmail_id(user.email_id || "");
+
+        if (user.dob) {
+          const formattedDate = new Date(user.dob).toISOString().split("T")[0];
+          setDob(formattedDate);
+        } else {
+          setDob("");
+        }
+
+        if (user.user_images && user.user_images.data) {
+          const base64Image = arrayBufferToBase64(user.user_images.data);
+          const file = base64ToFile(`data:image/jpeg;base64,${base64Image}`, 'user_image.jpg');
+          setSelectedImage(`data:image/jpeg;base64,${base64Image}`);
+          setuser_image(file);
+        } else {
+          setSelectedImage(null);
+          setuser_image(null);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to fetch user details");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const [showPassword, setShowPassword] = useState(false);
 
@@ -99,19 +193,31 @@ const VendorProductTable = () => {
     setFirst_name("");
     setLast_name("");
     setSelectedStatus("");
-    setUser_password("");
+    setUser_status("");
     setSelectedRole("");
+    setRole("");
     setSelectedLog("");
+    setLog_in_out("");
     setSelectedGender("");
+    setGender("");
     setEmail_id("");
     setDob("");
-    setuser_image('')
-    setSelectedImage("");
+    setUser_password("");
+    setSelectedImage(UserProfile);
     if (ImagE.current) {
       ImagE.current.value = null;
     }
   };
 
+  const handleClick = () => {
+    navigate("/User", {
+      state: {
+        refreshGrid: true,
+        // preservedRowData: location.state?.preservedRowData,
+        preservedInputs: location.state?.preservedInputs,
+      },
+    });
+  };
 
   const arrayBufferToBase64 = (buffer) => {
     let binary = "";
@@ -122,52 +228,52 @@ const VendorProductTable = () => {
     return window.btoa(binary);
   };
 
-  useEffect(() => {
-    if (mode === "update" && selectedRow && !isUpdated) {
-      setUser_code(selectedRow.user_code || "");
-      setUser_name(selectedRow.user_name || "");
-      setFirst_name(selectedRow.first_name || "");
-      setLast_name(selectedRow.last_name || "");
-      setUser_password(selectedRow.user_password || "");
-      setSelectedStatus({
-        label: selectedRow.user_status,
-        value: selectedRow.user_status,
-      });
-      setSelectedRole({
-        label: selectedRow.role_id,
-        value: selectedRow.role_id,
-      });
-      setSelectedLog({
-        label: selectedRow.log_in_out,
-        value: selectedRow.log_in_out,
-      });
-      setSelectedGender({
-        label: selectedRow.gender,
-        value: selectedRow.gender,
-      });
-      setEmail_id(selectedRow.email_id || "");
+  // useEffect(() => {
+  //   if (mode === "update" && selectedRow && !isUpdated) {
+  //     setUser_code(selectedRow.user_code || "");
+  //     setUser_name(selectedRow.user_name || "");
+  //     setFirst_name(selectedRow.first_name || "");
+  //     setLast_name(selectedRow.last_name || "");
+  //     setUser_password(selectedRow.user_password || "");
+  //     setSelectedStatus({
+  //       label: selectedRow.user_status,
+  //       value: selectedRow.user_status,
+  //     });
+  //     setSelectedRole({
+  //       label: selectedRow.role_id,
+  //       value: selectedRow.role_id,
+  //     });
+  //     setSelectedLog({
+  //       label: selectedRow.log_in_out,
+  //       value: selectedRow.log_in_out,
+  //     });
+  //     setSelectedGender({
+  //       label: selectedRow.gender,
+  //       value: selectedRow.gender,
+  //     });
+  //     setEmail_id(selectedRow.email_id || "");
 
-      if (selectedRow.dob) {
-        const formattedDate = new Date(selectedRow.dob).toISOString().split("T")[0];
-        setDob(formattedDate);
-      } else {
-        setDob("");
-      }
+  //     if (selectedRow.dob) {
+  //       const formattedDate = new Date(selectedRow.dob).toISOString().split("T")[0];
+  //       setDob(formattedDate);
+  //     } else {
+  //       setDob("");
+  //     }
 
-      if (selectedRow.user_images && selectedRow.user_images.data) {
-        const base64Image = arrayBufferToBase64(selectedRow.user_images.data);
-        const file = base64ToFile(`data:image/jpeg;base64,${base64Image}`, 'user_image.jpg');
-        setSelectedImage(`data:image/jpeg;base64,${base64Image}`);
-        setuser_image(file);
-      } else {
-        setSelectedImage(null);
-        setuser_image(null);
-      }
+  //     if (selectedRow.user_images && selectedRow.user_images.data) {
+  //       const base64Image = arrayBufferToBase64(selectedRow.user_images.data);
+  //       const file = base64ToFile(`data:image/jpeg;base64,${base64Image}`, 'user_image.jpg');
+  //       setSelectedImage(`data:image/jpeg;base64,${base64Image}`);
+  //       setuser_image(file);
+  //     } else {
+  //       setSelectedImage(null);
+  //       setuser_image(null);
+  //     }
 
-    } else if (mode === "create") {
-      clearInputFields();
-    }
-  }, [mode, selectedRow, isUpdated]);
+  //   } else if (mode === "create") {
+  //     clearInputFields();
+  //   }
+  // }, [mode, selectedRow, isUpdated]);
 
   const base64ToFile = (base64Data, fileName) => {
     if (!base64Data || !base64Data.startsWith("data:")) {
@@ -329,7 +435,15 @@ const VendorProductTable = () => {
 
   const handleChangeRole = (selectedRole) => {
     setSelectedRole(selectedRole);
-    setRole(selectedRole ? selectedRole.value : '');
+
+    const roleValue = selectedRole?.value || '';
+
+    console.log(roleValue)
+    setRole(roleValue);
+
+    if (!["sa", "super admin"].includes(roleValue.toLowerCase())) {
+      setSuperAdmin(false);
+    }
   };
 
   const handleChangeLog = (selectedLog) => {
@@ -358,7 +472,7 @@ const VendorProductTable = () => {
       !dob ||
       !gender
     ) {
-      setError(" ");
+      setError(true);
       toast.warning("Error: Missing required fields");
       return;
     }
@@ -368,6 +482,7 @@ const VendorProductTable = () => {
       toast.warning("Invalid email format.");
       return;
     }
+    setError(false);
     setLoading(true);
 
     try {
@@ -384,6 +499,7 @@ const VendorProductTable = () => {
       formData.append("dob", dob);
       formData.append("role_id", role_id);
       formData.append("gender", gender);
+      formData.append("super_admin", superAdmin ? "Yes" : "No");
       formData.append("created_by", sessionStorage.getItem("selectedUserCode"));
 
       if (user_images) {
@@ -395,24 +511,17 @@ const VendorProductTable = () => {
         body: formData, // Sending formData
       });
 
-      if (response.status === 200) {
-        console.log("Data inserted successfully");
-        setTimeout(() => {
-          toast.success("Data inserted successfully!", {
-            onClose: () => window.location.reload(), // Reloads the page after the toast closes
-          });
-        }, 1000);
-      } else if (response.status === 400) {
-        const errorResponse = await response.json();
-        console.error(errorResponse.message);
-        toast.warning(errorResponse.message, {
-
+      if (response.ok) {
+        toast.success("Data inserted successfully", {
+          onClose: () => {
+            clearInputFields();
+            setError(false)
+          }
         });
       } else {
-        console.error("Failed to insert data");
-        toast.error('Failed to insert data', {
-
-        });
+        const errorResponse = await response.json();
+        console.error(errorResponse.message);
+        toast.warning(errorResponse.message);
       }
     } catch (error) {
       console.error("Error inserting data:", error);
@@ -431,14 +540,13 @@ const VendorProductTable = () => {
       !first_name ||
       !last_name ||
       !user_password ||
-      !selectedGender ||
-      !selectedRole ||
-      !selectedLog ||
+      !role_id ||
       !email_id ||
-      !selectedStatus ||
+      !user_status ||
+      !gender ||
       !dob
     ) {
-      setError(" ");
+      setError(true);
       toast.warning("Please fill all required fields.");
       return;
     }
@@ -447,6 +555,7 @@ const VendorProductTable = () => {
       toast.warning("Invalid email format.");
       return;
     }
+    setError(false);
     setLoading(true);
 
     try {
@@ -457,14 +566,14 @@ const VendorProductTable = () => {
       formData.append("first_name", first_name);
       formData.append("last_name", last_name);
       formData.append("user_password", user_password);
-      formData.append("user_status", selectedStatus.value);
-      formData.append("log_in_out", selectedLog.value);
+      formData.append("user_status", user_status);
+      formData.append("log_in_out", log_in_out);
       formData.append("email_id", email_id);
       formData.append("dob", dob);
-      formData.append("status", selectedStatus.value);
-      formData.append("gender", selectedGender.value);
-      formData.append("role_id", selectedRole.value);
+      formData.append("gender", gender);
+      formData.append("role_id", role_id);
       formData.append("modified_by", modified_by);
+      formData.append("super_admin", superAdmin ? "Yes" : "No");
 
       if (user_images) {
         formData.append("user_images", user_images);
@@ -474,21 +583,17 @@ const VendorProductTable = () => {
         body: formData,
       });
 
-      if (response.status === 200) {
-        console.log("Data Updated successfully");
-        setIsUpdated(true);
-        clearInputFields();
-        setTimeout(() => {
-          toast.success("Data Updated successfully!")
-        })
-      } else if (response.status === 400) {
+      if (response.ok) {
+        toast.success("Data updated successfully", {
+          onClose: () => {
+            // clearInputFields();
+            setError(false)
+          }
+        });
+      } else {
         const errorResponse = await response.json();
         console.error(errorResponse.message);
         toast.warning(errorResponse.message);
-
-      } else {
-        console.error("Failed to Update data");
-        toast.error("Failed to Update data");
       }
     } catch (error) {
       console.error("Error Update data:", error);
@@ -698,7 +803,7 @@ const VendorProductTable = () => {
               onKeyDown={(e) => handleKeyDown(e, Gender, Dob)}
             />
           </div>
-          <div className="col-md-3 mb-2">
+          <div className="col-md-3 mb-2 ">
             <label className={`fw-bold ${error && !gender ? 'text-danger' : ''}`}>Gender<span className="text-danger">*</span></label>
             <div title="Please select the gender">
               <Select
@@ -713,6 +818,19 @@ const VendorProductTable = () => {
                 ref={Gender}
                 onKeyDown={(e) => handleKeyDown(e, ImagE, Gender)}
               />
+            </div>
+          </div>
+          <div className="col-md-3 mb-2">
+            <div className="checkboxGroup">
+              <input
+                type="checkbox"
+                id="superAdmin"
+                checked={superAdmin}
+                disabled={!["sa", "super admin"].includes(role_id?.toLowerCase())}
+                onChange={(e) => setSuperAdmin(e.target.checked)}
+                ref={SuperAdmin}
+              />
+              <label htmlFor="fw-bold">Super Admin</label>
             </div>
           </div>
           <div className="col-md-3 mb-2">
@@ -745,7 +863,7 @@ const VendorProductTable = () => {
             <div className="col-md-3 form-group mb-2">
               <div class="exp-form-floating">
                 <img
-                  src={selectedImage}
+                  src={selectedImage || UserProfile}
                   alt="Selected Preview"
                   className="avatar rounded sm mt-4"
                   style={{ height: '200px', width: '200px' }}

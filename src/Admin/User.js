@@ -3,8 +3,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { showConfirmationToast } from '../ToastConfirmation';
 import { ToastContainer, toast } from 'react-toastify';
 import Select from 'react-select';
-import { useLocation } from "react-router-dom";
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   ModuleRegistry,
   ClientSideRowModelModule,
@@ -18,7 +17,7 @@ import {
 } from 'ag-grid-community';
 import LoadingScreen from '../BookLoader';
 import '../App.css';
-import secureLocalStorage from "react-secure-storage"; 
+import secureLocalStorage from "react-secure-storage";
 
 // Register necessary modules
 ModuleRegistry.registerModules([
@@ -68,28 +67,107 @@ const VendorProductTable = () => {
   const [selectedRows, setSelectedRows] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const location = useLocation();
-  const { mode, selectedRow } = location.state || {};
-
   const [createdBy, setCreatedBy] = useState("");
   const [modifiedBy, setModifiedBy] = useState("");
   const [createdDate, setCreatedDate] = useState("");
   const [modifiedDate, setModifiedDate] = useState("");
+
+  const location = useLocation();
 
   const permissions = JSON.parse(sessionStorage.getItem('permissions')) || {};
   const userPermissions = permissions
     .filter(permission => permission.screen_type === 'User')
     .map(permission => permission.permission_type.toLowerCase());
 
-  const handleNavigateWithRowData = (selectedRow) => {
-    navigate("/AddUser", { state: { mode: "update", selectedRow } });
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      const isReloadShortcut =
+        (event.ctrlKey && event.key.toLowerCase() === "r") ||
+        (event.altKey && event.key.toLowerCase() === "r") ||
+        event.key === "F5";
+
+      if (isReloadShortcut) {
+        event.preventDefault();
+        clearInputFields();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  useEffect(() => {
+    // if (location.state?.preservedRowData) {
+    //   setRowData(location.state.preservedRowData);
+    // }
+
+    if (location.state?.preservedInputs) {
+      const inputs = location.state.preservedInputs;
+      setuser_code(inputs.user_code || "");
+      setuser_name(inputs.user_name || "");
+      setfirst_name(inputs.first_name || "");
+      setlast_name(inputs.last_name || "");
+      setuser_status(inputs.user_status || "");
+
+      if (inputs.user_status) {
+        setSelectedStatus({
+          label: inputs.user_status,
+          value: inputs.user_status,
+        });
+      }
+      setuser_type(inputs.user_type || "");
+      setdob(inputs.dob || "");
+      setgender(inputs.gender || "");
+
+      if (inputs.gender) {
+        setSelectedGender({
+          label: inputs.gender,
+          value: inputs.gender,
+        });
+      }
+
+      if (location.state?.refreshGrid) {
+        handleSearch(inputs);
+      }
+    }
+  }, [location.state]);
+
+  const clearInputFields = () => {
+    setuser_code("");
+    setuser_name("");
+    setfirst_name("");
+    setlast_name("");
+    setSelectedStatus("");
+    setuser_status("");
+    setdob("");
+    setSelectedGender("");
+    setgender("");
+    setRowData([]);
   };
 
+  const handleNavigateWithRowData = (selectedRow) => {
+    navigate("/AddUser", {
+      state: {
+        mode: "update",
+        user_code: selectedRow.user_code,
+        preservedInputs: {
+          user_code,
+          user_name,
+          first_name,
+          last_name,
+          user_status,
+          user_type,
+          dob,
+          gender,
+        },
+      },
+    });
+  };
 
   const handleChangeStatus = (selectedStatus) => {
     setSelectedStatus(selectedStatus);
     setuser_status(selectedStatus ? selectedStatus.value : "");
-    setError(false);
     setHasValueChanged(true);
   };
 
@@ -113,7 +191,6 @@ const VendorProductTable = () => {
 
       .then((response) => response.json())
       .then((data) => {
-        // Extract city names from the fetched data
         const statusOption = data.map((option) => option.attributedetails_name);
         setStatusGriddrop(statusOption);
       })
@@ -133,7 +210,6 @@ const VendorProductTable = () => {
     })
       .then((response) => response.json())
       .then((data) => {
-        // Extract city names from the fetched data
         const statusOption = data.map((option) => option.attributedetails_name);
         setUserGriddrop(statusOption);
       })
@@ -154,7 +230,6 @@ const VendorProductTable = () => {
 
       .then((response) => response.json())
       .then((data) => {
-        // Extract city names from the fetched data
         const statusOption = data.map((option) => option.attributedetails_name);
         setGenderGriddrop(statusOption);
       })
@@ -174,7 +249,6 @@ const VendorProductTable = () => {
 
       .then((response) => response.json())
       .then((data) => {
-        // Extract city names from the fetched data
         const statusOption = data.map((option) => option.attributedetails_name);
         setLogGriddrop(statusOption);
       })
@@ -234,7 +308,6 @@ const VendorProductTable = () => {
   const handleChangeGender = (selectedGender) => {
     setSelectedGender(selectedGender);
     setgender(selectedGender ? selectedGender.value : "");
-    setError(false);
     setHasValueChanged(true);
   };
 
@@ -243,7 +316,7 @@ const VendorProductTable = () => {
     label: option.attributedetails_name,
   }));
 
-  const handleSearch = async () => {
+  const handleSearch = async (searchParams = null) => {
     setLoading(true);
     try {
       const company_code = sessionStorage.getItem("selectedCompanyCode");
@@ -255,14 +328,16 @@ const VendorProductTable = () => {
         },
         body: JSON.stringify({
           company_code: company_code,
-          user_code,
-          user_name,
-          first_name,
-          last_name,
-          user_status,
-          dob,
-          gender,
-        }), // Send company_no and company_name as search criteria
+          user_code: searchParams?.user_code ?? user_code,
+          user_name: searchParams?.user_name ?? user_name,
+          first_name: searchParams?.first_name ?? first_name,
+          last_name: searchParams?.last_name ?? last_name,
+          user_status: searchParams?.user_status ?? user_status,
+          user_type: searchParams?.user_type ?? user_type,
+          dob: searchParams?.dob ?? dob,
+          gender: searchParams?.gender ?? gender,
+          created_by: sessionStorage.getItem("selectedUserCode")
+        }), 
       });
 
       if (response.ok) {
@@ -460,16 +535,16 @@ const VendorProductTable = () => {
     const rowIndex = updatedRowData.findIndex(
       (row) => row.user_code === params.data.user_code
     );
-  
+
     if (rowIndex !== -1) {
       updatedRowData[rowIndex][params.colDef.field] = params.newValue;
       setRowData(updatedRowData);
-  
+
       setEditedData((prevData) => {
         const existingIndex = prevData.findIndex(
           (item) => item.user_code === params.data.user_code
         );
-  
+
         if (existingIndex !== -1) {
           const updatedEdited = [...prevData];
           updatedEdited[existingIndex] = updatedRowData[rowIndex];
@@ -497,8 +572,8 @@ const VendorProductTable = () => {
     showConfirmationToast(
       "Are you sure you want to Delete the data in the selected rows?",
       async () => {
-  
-          setLoading(true);
+
+        setLoading(true);
         try {
           const response = await fetch(`${config.apiBaseUrl}/userdelete`, {
             method: "POST",
@@ -525,7 +600,7 @@ const VendorProductTable = () => {
         } catch (error) {
           console.error("Error deleting rows:", error);
           toast.error('Error Deleting Data: ' + error.message);
-        }finally {
+        } finally {
           setLoading(false);
         }
       },
@@ -756,7 +831,7 @@ const VendorProductTable = () => {
 
   return (
     <div className="container-fluid ">
-       {loading && <LoadingScreen />}
+      {loading && <LoadingScreen />}
       <ToastContainer position="top-right" className="toast-design" theme="colored" />
       <div className="card shadow-lg border-0 p-3 rounded-5 " style={{ height: "auto" }}>
         <div className="d-flex justify-content-between">
@@ -920,17 +995,17 @@ const VendorProductTable = () => {
           <div className="col-md-3 mb-2">
             <label className='fw-bold'>User Status </label>
             <div title="Please select the user status">
-            <Select
-              id="status"
-              value={selectedStatus}
-              onChange={handleChangeStatus}
-              onKeyDown={handleKeyDownStatus}
-              options={filteredOptionStatus}
-              classNamePrefix="react-select"
-              className="exp-input-field"
-              placeholder=""
-            />
-          </div>
+              <Select
+                id="status"
+                value={selectedStatus}
+                onChange={handleChangeStatus}
+                onKeyDown={handleKeyDownStatus}
+                options={filteredOptionStatus}
+                classNamePrefix="react-select"
+                className="exp-input-field"
+                placeholder=""
+              />
+            </div>
           </div>
           {/* <div className="col-md-3 mb-2">
             <label className='fw-bold'>User Type </label>
@@ -962,17 +1037,17 @@ const VendorProductTable = () => {
           <div className="col-md-3 mb-2">
             <label className='fw-bold'>Gender </label>
             <div title="Please select the gender">
-            <Select
-              id="gender"
-              value={selectedGender}
-              onChange={handleChangeGender}
-              onKeyDown={handleKeyDownStatus}
-              options={filteredOptionGender}
-              className="exp-input-field"
-              placeholder=""
-              classNamePrefix="react-select"
-            />
-          </div>
+              <Select
+                id="gender"
+                value={selectedGender}
+                onChange={handleChangeGender}
+                onKeyDown={handleKeyDownStatus}
+                options={filteredOptionGender}
+                className="exp-input-field"
+                placeholder=""
+                classNamePrefix="react-select"
+              />
+            </div>
           </div>
           <div className="col-md-2 mb-2 mt-4">
             <button title="Search" className="button2 " onClick={handleSearch} >

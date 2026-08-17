@@ -1,7 +1,6 @@
 import { AgGridReact } from 'ag-grid-react';
-
 import Select from 'react-select';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from "react-router-dom";
 import React, { useState, useEffect, useRef } from "react";
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -76,10 +75,72 @@ const VendorProductTable = () => {
   const [createdDate, setCreatedDate] = useState("");
   const [modifiedDate, setModifiedDate] = useState("");
 
+  const location = useLocation();
+
   const permissions = JSON.parse(sessionStorage.getItem('permissions')) || {};
   const locationPermissions = permissions
     .filter(permission => permission.screen_type === 'Location')
     .map(permission => permission.permission_type.toLowerCase());
+
+    useEffect(() => {
+    const handleKeyDown = (event) => {
+      const isReloadShortcut =
+        (event.ctrlKey && event.key.toLowerCase() === "r") ||
+        (event.altKey && event.key.toLowerCase() === "r") ||
+        event.key === "F5";
+
+      if (isReloadShortcut) {
+        event.preventDefault();
+        clearInputFields();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  useEffect(() => {
+    // if (location.state?.preservedRowData) {
+    //   setRowData(location.state.preservedRowData);
+    // }
+    if (location.state?.preservedInputs) {
+
+      const inputs = location.state.preservedInputs;
+
+      setlocation_no(inputs.location_no || "");
+      setlocation_name(inputs.location_name || "");
+      setcity(inputs.city || "");
+      setstate(inputs.state || "");
+      setpincode(inputs.pincode || "");
+      setcountry(inputs.country || "");
+      setstatus(inputs.status || "");
+
+      if (inputs.status) {
+        setSelectedStatus({
+          label: inputs.status,
+          value: inputs.status,
+        });
+      }
+
+      if (location.state?.refreshGrid) {
+        handleSearch(inputs); 
+      }
+
+    }
+  }, [location.state]);
+
+  const clearInputFields = () => {
+    setlocation_no("");
+    setlocation_name("");
+    setcity("");
+    setstate("");
+    setpincode("");
+    setcountry("");
+    setSelectedStatus("");
+    setstatus("");
+    setRowData([]);
+  };
 
   const handleKeyDown = async (e, nextFieldRef) => {
     if (e.key === 'Enter') {
@@ -186,21 +247,6 @@ const VendorProductTable = () => {
       .catch((error) => console.error('Error fetching data:', error));
   }, []);
 
-  // Assuming you have a unique identifier for each row, such as 'id'
-  // const onCellValueChanged = (params) => {
-  //   const updatedRowData = [...rowData];
-  //   const rowIndex = updatedRowData.findIndex(
-  //     (row) => row.location_no === params.data.location_no // Use the unique identifier 
-  //   );
-  //   if (rowIndex !== -1) {
-  //     updatedRowData[rowIndex][params.colDef.field] = params.newValue;
-  //     setRowData(updatedRowData);
-
-  //     // Add the edited row data to the state
-  //     setEditedData((prevData) => [...prevData, updatedRowData[rowIndex]]);
-  //   }
-  // };
-
   const onCellValueChanged = (params) => {
     const updatedRowData = [...rowData];
     const rowIndex = updatedRowData.findIndex(
@@ -227,7 +273,7 @@ const VendorProductTable = () => {
     }
   };
 
-  const handleSearch = async () => {
+  const handleSearch = async (searchParams = null) => {
     setLoading(true);
     try {
       const response = await fetch(`${config.apiBaseUrl}/locationSearchdata`, {
@@ -236,33 +282,18 @@ const VendorProductTable = () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          location_no,
-          location_name,
-          city,
-          state,
-          pincode,
-          country,
-          status,
+          location_no: searchParams?.location_no ?? location_no,
+          location_name: searchParams?.location_name ?? location_name,
+          city: searchParams?.city ?? city,
+          state: searchParams?.state ?? state,
+          pincode: searchParams?.pincode ?? pincode,
+          country: searchParams?.country ?? country,
+          status: searchParams?.status ?? status,
         }),
       });
 
       if (response.ok) {
         const searchData = await response.json();
-        // const newRows = searchData.map((matchedItem) => ({
-        //   location_no: matchedItem.location_no,
-        //   location_name: matchedItem.location_name,
-        //   short_name: matchedItem.short_name,
-        //   address1: matchedItem.address1,
-        //   address2: matchedItem.address2,
-        //   address3: matchedItem.address3,
-        //   city: matchedItem.city,
-        //   state: matchedItem.state,
-        //   pincode: Number(matchedItem.pincode),
-        //   country: matchedItem.country,
-        //   email_id: matchedItem.email_id,
-        //   status: matchedItem.status,
-        //   contact_no: Number(matchedItem.contact_no),
-        // }));
         setRowData(searchData);
         console.log("data fetched successfully")
       } else if (response.status === 404) {
@@ -410,11 +441,24 @@ const VendorProductTable = () => {
   };
 
   const handleNavigateWithRowData = (selectedRow) => {
-    navigate("/AddLocation", { state: { mode: "update", selectedRow } });
+    navigate("/AddLocation", {
+      state: {
+        mode: "update", 
+        location_no: selectedRow.location_no, 
+        preservedInputs: { 
+          location_no, 
+          location_name, 
+          city, 
+          state, 
+          pincode,
+          country, 
+          status, 
+        },
+      },
+    });
   };
 
   const columnDefs = [
-
     {
       headerCheckboxSelection: true,
       checkboxSelection: true,
