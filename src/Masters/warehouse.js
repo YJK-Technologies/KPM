@@ -2,13 +2,15 @@ import { AgGridReact } from 'ag-grid-react';
 import React, { useState, useEffect, useRef } from "react";
 import Select from 'react-select';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ModuleRegistry, ClientSideRowModelModule, PaginationModule, TextFilterModule, NumberFilterModule,
-  DateFilterModule, CustomFilterModule, CellStyleModule, ValidationModule} from 'ag-grid-community';
+import {
+  ModuleRegistry, ClientSideRowModelModule, PaginationModule, TextFilterModule, NumberFilterModule,
+  DateFilterModule, CustomFilterModule, CellStyleModule, ValidationModule
+} from 'ag-grid-community';
 import { ToastContainer, toast } from 'react-toastify';
 import { showConfirmationToast } from '../ToastConfirmation';
 import '../App.css';
 import LoadingScreen from '../BookLoader';
-import secureLocalStorage from "react-secure-storage"; 
+import secureLocalStorage from "react-secure-storage";
 
 // Register necessary modules
 ModuleRegistry.registerModules([
@@ -48,25 +50,49 @@ const VendorProductTable = () => {
     .filter(permission => permission.screen_type === 'Warehouse')
     .map(permission => permission.permission_type.toLowerCase());
 
-   useEffect(() => {
-         if (location.state?.preservedRowData) {
-           setRowData(location.state.preservedRowData);
-         }
-       
-         if (location.state?.preservedInputs) {
-           setwarehouse_code(location.state.preservedInputs.warehouse_code || "");
-           setwarehouse_name(location.state.preservedInputs.warehouse_name || "");
-           setstatus(location.state.preservedInputs.status || "");
-           setlocation_no(location.state.preservedInputs.location_no || "");
-       
-           if (location.state.preservedInputs.status) {
-             setSelectedStatus({
-               label: location.state.preservedInputs.status,
-               value: location.state.preservedInputs.status,
-             });
-           }
-         }
-       }, [location.state]);
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      const isReloadShortcut =
+        (event.ctrlKey && event.key.toLowerCase() === "r") ||
+        (event.altKey && event.key.toLowerCase() === "r") ||
+        event.key === "F5";
+
+      if (isReloadShortcut) {
+        event.preventDefault();
+        clearInputFields();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  useEffect(() => {
+    // if (location.state?.preservedRowData) {
+    //   setRowData(location.state.preservedRowData);
+    // }
+
+    if (location.state?.preservedInputs) {
+      const inputs = location.state.preservedInputs;
+
+      setwarehouse_code(inputs.warehouse_code || "");
+      setwarehouse_name(inputs.warehouse_name || "");
+      setstatus(inputs.status || "");
+      setlocation_no(inputs.location_no || "");
+
+      if (inputs.status) {
+        setSelectedStatus({
+          label: inputs.status,
+          value: inputs.status,
+        });
+      }
+
+      if (location.state?.refreshGrid) {
+        handleSearch(inputs);
+      }
+    }
+  }, [location.state]);
 
   const handleClick = () => {
     navigate('/AddWarehouse', { state: { mode: "create" } });
@@ -139,7 +165,7 @@ const VendorProductTable = () => {
 
 
 
-  const handleSearch = async () => {
+  const handleSearch = async (searchParams = null) => {
     setLoading(true);
     try {
       const company_code = sessionStorage.getItem('selectedCompanyCode');
@@ -149,7 +175,13 @@ const VendorProductTable = () => {
           "Content-Type": "application/json",
           "company_code": company_code
         },
-        body: JSON.stringify({ company_code: company_code, warehouse_code, warehouse_name, status, location_no }) // Send company_no and company_name as search criteria
+        body: JSON.stringify({ 
+          company_code: company_code, 
+          warehouse_code: searchParams?.warehouse_code ?? warehouse_code,
+          warehouse_name: searchParams?.warehouse_name ?? warehouse_name,
+          status: searchParams?.status ?? status,
+          location_no: searchParams?.location_no ?? location_no,
+        }) 
       });
       if (response.ok) {
         const searchData = await response.json();
@@ -182,8 +214,8 @@ const VendorProductTable = () => {
     setstatus("");
     setlocation_no("");
     setSelectedStatus("");
-    setRowData([]);
-  };
+    setRowData([]);
+  };
 
   const onSelectionChanged = () => {
     const selectedNodes = gridApi.getSelectedNodes();
@@ -209,16 +241,16 @@ const VendorProductTable = () => {
     const rowIndex = updatedRowData.findIndex(
       (row) => row.warehouse_code === params.data.warehouse_code
     );
-  
+
     if (rowIndex !== -1) {
       updatedRowData[rowIndex][params.colDef.field] = params.newValue;
       setRowData(updatedRowData);
-  
+
       setEditedData((prevData) => {
         const existingIndex = prevData.findIndex(
           (item) => item.warehouse_code === params.data.warehouse_code
         );
-  
+
         if (existingIndex !== -1) {
           const updatedEdited = [...prevData];
           updatedEdited[existingIndex] = updatedRowData[rowIndex];
@@ -455,10 +487,7 @@ const VendorProductTable = () => {
     navigate("/AddWarehouse", {
       state: {
         mode: "update",
-        selectedRow,
-
-        preservedRowData: rowData,
-
+        warehouse_code: selectedRow.warehouse_code,
         preservedInputs: {
           warehouse_code,
           warehouse_name,
@@ -699,16 +728,16 @@ const VendorProductTable = () => {
           <div className="col-md-3 mb-2">
             <label className='fw-bold'>Status</label>
             <div title="Please select the status">
-            <Select
-              id="status"
-              value={selectedStatus}
-              onChange={handleChangeStatus}
-              onKeyDown={handleKeyDownStatus}
-              options={filteredOptionStatus}
-              placeholder=""
-              classNamePrefix="react-select"
-            />
-          </div>
+              <Select
+                id="status"
+                value={selectedStatus}
+                onChange={handleChangeStatus}
+                onKeyDown={handleKeyDownStatus}
+                options={filteredOptionStatus}
+                placeholder=""
+                classNamePrefix="react-select"
+              />
+            </div>
           </div>
           <div className="col-md-3 mb-2">
             <label className='fw-bold'>Location No</label>

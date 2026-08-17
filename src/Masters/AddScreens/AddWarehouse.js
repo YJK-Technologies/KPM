@@ -2,13 +2,15 @@ import { AgGridReact } from 'ag-grid-react';
 import Select from 'react-select';
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from 'react-router-dom';
-import { ModuleRegistry, ClientSideRowModelModule, PaginationModule, TextFilterModule, NumberFilterModule,
-  DateFilterModule, CustomFilterModule, CellStyleModule, ValidationModule} from 'ag-grid-community';
+import {
+  ModuleRegistry, ClientSideRowModelModule, PaginationModule, TextFilterModule, NumberFilterModule,
+  DateFilterModule, CustomFilterModule, CellStyleModule, ValidationModule
+} from 'ag-grid-community';
 import { ToastContainer, toast } from 'react-toastify';
 import { useLocation } from "react-router-dom";
 import '../../App.css';
 import LoadingScreen from '../../BookLoader';
-import secureLocalStorage from "react-secure-storage"; 
+import secureLocalStorage from "react-secure-storage";
 
 // Register necessary modules
 ModuleRegistry.registerModules([
@@ -29,7 +31,7 @@ const VendorProductTable = () => {
   const [showModal, setShowModal] = useState(false);
   const [locationnodrop, setLocationdrop] = useState([]);
   const [location_no, setlocation_no] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError] = useState(false);
   const [status, setStatus] = useState("");
   const [statusdrop, setStatusdrop] = useState([]);
   const [warehouse_code, setWarehouse_Code] = useState("");
@@ -37,58 +39,114 @@ const VendorProductTable = () => {
   const [selectedStatus, setSelectedStatus] = useState('');
   const [selectedLocation, setSelectedLocation] = useState('');
   const created_by = sessionStorage.getItem('selectedUserCode')
-  const location = useLocation();
-  const { mode, selectedRow } = location.state || {};
+
   const [isUpdated, setIsUpdated] = useState(false);
   const modified_by = sessionStorage.getItem("selectedUserCode");
   const [loading, setLoading] = useState(false);
-
 
   const locatioN = useRef(null);
   const Status = useRef(null);
   const WarehouseCode = useRef(null);
   const WarehouseName = useRef(null);
 
+  const location = useLocation();
+  const locationState = location.state || {};
+  const mode = locationState.mode || "create"; // ✅ default fallback
+  const selectedRow = locationState.selectedRow || null;
+  const warehouseCode = location.state?.warehouse_code;
+  const company_code = sessionStorage.getItem('selectedCompanyCode');
 
-  // const handleClick = () => {
-  //   navigate('/warehouse');
-  // };
+  useEffect(() => {
+    if (!location.state) {
+      clearInputFields(); // ensure fresh create mode
+    }
+  }, []);
 
-  const handleClick = () => {
-    navigate("/warehouse", {
-      state: {
-        preservedRowData: location.state?.preservedRowData,
-        preservedInputs: location.state?.preservedInputs
+  useEffect(() => {
+    if (mode === "update" && warehouseCode) {
+      fetchWarehouseData();
+    }
+  }, [mode, warehouseCode]);
+
+  const fetchWarehouseData = async () => {
+    try {
+      setLoading(true);
+
+      const response = await fetch(`${config.apiBaseUrl}/getWarehouseData`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          warehouse_code: warehouseCode,
+          company_code
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.length > 0) {
+        const warehouse = data[0];
+
+        setSelectedLocation({
+          label: warehouse.location_no,
+          value: warehouse.location_no,
+        });
+        setlocation_no(warehouse.location_no || "");
+        setSelectedStatus({
+          label: warehouse.status,
+          value: warehouse.status,
+        });
+        setStatus(warehouse.status || "");
+        setWarehouse_Code(warehouse.warehouse_code || "");
+        setWarehouse_Name(warehouse.warehouse_name || "");
       }
-    });
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to fetch warehouse details");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const clearInputFields = () => {
     setWarehouse_Code("");
     setWarehouse_Name("");
     setSelectedLocation("");
+    setlocation_no("");
     setSelectedStatus("");
+    setStatus("");
   };
 
-  useEffect(() => {
-    if (mode === "update" && selectedRow && !isUpdated) {
-      setSelectedLocation({
-        label: selectedRow.location_no,
-        value: selectedRow.location_no,
-      });
-      setlocation_no(selectedRow.location_no);
-      setSelectedStatus({
-        label: selectedRow.status,
-        value: selectedRow.status,
-      });
-      setStatus(selectedRow.status);
-      setWarehouse_Code(selectedRow.warehouse_code || "");
-      setWarehouse_Name(selectedRow.warehouse_name || "");
+  // useEffect(() => {
+  //   if (mode === "update" && selectedRow && !isUpdated) {
+  //     setSelectedLocation({
+  //       label: selectedRow.location_no,
+  //       value: selectedRow.location_no,
+  //     });
+  //     setlocation_no(selectedRow.location_no);
+  //     setSelectedStatus({
+  //       label: selectedRow.status,
+  //       value: selectedRow.status,
+  //     });
+  //     setStatus(selectedRow.status);
+  //     setWarehouse_Code(selectedRow.warehouse_code || "");
+  //     setWarehouse_Name(selectedRow.warehouse_name || "");
 
-    } else if (mode === "create") {
-      clearInputFields();
-    }
-  }, [mode, selectedRow, isUpdated]);
+  //   } else if (mode === "create") {
+  //     clearInputFields();
+  //   }
+  // }, [mode, selectedRow, isUpdated]);
+
+  const handleClick = () => {
+    navigate("/warehouse", {
+      state: {
+        refreshGrid: true,
+        // preservedRowData: location.state?.preservedRowData,
+        preservedInputs: location.state?.preservedInputs
+      }
+    });
+  };
 
   useEffect(() => {
     fetch(`${config.apiBaseUrl}/locationno`)
@@ -138,10 +196,11 @@ const VendorProductTable = () => {
       !status ||
       !location_no
     ) {
-      setError(" ");
+      setError(true);
       toast.warning("Error: Missing required fields");
       return;
     }
+    setError(false);
     setLoading(true);
 
     try {
@@ -159,13 +218,11 @@ const VendorProductTable = () => {
           created_by: sessionStorage.getItem('selectedUserCode')
         }),
       });
-      if (response.status === 200) {
+      if (response.ok) {
         console.log("Data inserted successfully");
-        setTimeout(() => {
-          toast.success("Data inserted successfully!", {
-            onClose: () => window.location.reload(), // Reloads the page after the toast closes
-          });
-        }, 1000);
+        toast.success("Data inserted successfully!", {
+          onClose: () => clearInputFields(), // Reloads the page after the toast closes
+        });
       } else {
         const errorResponse = await response.json();
         console.error(errorResponse.message);
@@ -186,9 +243,10 @@ const VendorProductTable = () => {
       !status ||
       !location_no
     ) {
-      setError(" ");
+      setError(true);
       return;
     }
+    setError(false);
     setLoading(true);
 
     try {
@@ -207,11 +265,10 @@ const VendorProductTable = () => {
           modified_by,
         }),
       });
-      if (response.status === 200) {
-        console.log("Data Updated successfully");
-        setIsUpdated(true);
-        clearInputFields();
-        toast.success("Data Updated successfully!")
+      if (response.ok) {
+        toast.success("Data updated successfully", {
+          // onClose: () => clearInputFields()
+        });
       } else {
         const errorResponse = await response.json();
         console.error(errorResponse.message);
@@ -241,7 +298,7 @@ const VendorProductTable = () => {
 
   return (
     <div className="container-fluid sidenav">
-       {loading && <LoadingScreen />}
+      {loading && <LoadingScreen />}
       <div className="card shadow-lg border-0 p-3  rounded-5 " >
         <ToastContainer position="top-right" className="toast-design" theme="colored" />
         <div className="d-flex justify-content-between">
@@ -285,39 +342,39 @@ const VendorProductTable = () => {
           <div className="col-md-3 mb-2">
             <label className={`fw-bold ${error && !selectedStatus ? 'text-danger' : ''}`}>Status<span className="text-danger">*</span></label>
             <div title="Please select the status">
-            <Select
-              classNamePrefix="react-select"
-              value={selectedStatus}
-              onChange={handleChangeStatus}
-              options={filteredOptionStatus}
-              placeholder=""
-              ref={Status}
-              onKeyDown={(e) => handleKeyDown(e, locatioN, Status)}
-            />
-          </div>
+              <Select
+                classNamePrefix="react-select"
+                value={selectedStatus}
+                onChange={handleChangeStatus}
+                options={filteredOptionStatus}
+                placeholder=""
+                ref={Status}
+                onKeyDown={(e) => handleKeyDown(e, locatioN, Status)}
+              />
+            </div>
           </div>
           <div className="col-md-3 mb-2">
             <label className={`fw-bold ${error && !selectedLocation ? 'text-danger' : ''}`}>Location No<span className="text-danger">*</span></label>
             <div title="Please select the locatio no">
-            <Select
-              type="text"
-              classNamePrefix="react-select"
-              value={selectedLocation}
-              onChange={handleChangeLocation}
-              options={filteredOptionLocation}
-              placeholder=""
-              ref={locatioN}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  if (mode === "create") {
-                    handleInsert();
-                  } else {
-                    handleUpdate();
+              <Select
+                type="text"
+                classNamePrefix="react-select"
+                value={selectedLocation}
+                onChange={handleChangeLocation}
+                options={filteredOptionLocation}
+                placeholder=""
+                ref={locatioN}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    if (mode === "create") {
+                      handleInsert();
+                    } else {
+                      handleUpdate();
+                    }
                   }
-                }
-              }}
-            />
-          </div>
+                }}
+              />
+            </div>
           </div>
           {/* <div className="col-md-3 mb-2">
             {mode === "create" ? (

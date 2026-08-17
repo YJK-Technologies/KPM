@@ -2,8 +2,10 @@ import React, { useState, useEffect, useRef } from "react";
 import { AgGridReact } from 'ag-grid-react';
 import Select from 'react-select';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ModuleRegistry, ClientSideRowModelModule, PaginationModule, TextFilterModule, NumberFilterModule,
-  DateFilterModule, CustomFilterModule, CellStyleModule, ValidationModule} from 'ag-grid-community';
+import {
+  ModuleRegistry, ClientSideRowModelModule, PaginationModule, TextFilterModule, NumberFilterModule,
+  DateFilterModule, CustomFilterModule, CellStyleModule, ValidationModule
+} from 'ag-grid-community';
 import { ToastContainer, toast } from 'react-toastify';
 import { showConfirmationToast } from '../ToastConfirmation';
 import '../App.css';
@@ -60,45 +62,68 @@ const VendorProductTable = () => {
   const [agcustomerdrop, setagcustomerdrop] = useState([]);
   const navigate = useNavigate();
 
-  const location = useLocation();  
+  const location = useLocation();
 
   const permissions = JSON.parse(sessionStorage.getItem('permissions')) || {};
   const customerPermissions = permissions
     .filter(permission => permission.screen_type === 'Customer')
     .map(permission => permission.permission_type.toLowerCase());
 
-        useEffect(() => {
-          if (location.state?.preservedRowData) {
-            setRowData(location.state.preservedRowData);
-          }
-        
-          if (location.state?.preservedInputs) {
-            setcustomer_code(location.state.preservedInputs.customer_code || "");
-            setcustomer_name(location.state.preservedInputs.customer_name || "");
-            setpanno(location.state.preservedInputs.panno || "");
-            setcustomer_gst_no(location.state.preservedInputs.customer_gst_no || "");
-            setcustomer_addr_1(location.state.preservedInputs.customer_addr_1 || "");
-            setcustomer_area(location.state.preservedInputs.customer_area || "");
-            setcustomer_state(location.state.preservedInputs.customer_state || "");
-            setcustomer_country(location.state.preservedInputs.customer_country || "");
-            setcustomer_mobile_no(location.state.preservedInputs.customer_mobile_no || "");
-            setstatus(location.state.preservedInputs.status || "");
-            setdefaultCust(location.state.preservedInputs.default_customer || "");
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      const isReloadShortcut =
+        (event.ctrlKey && event.key.toLowerCase() === "r") ||
+        (event.altKey && event.key.toLowerCase() === "r") ||
+        event.key === "F5";
 
-            if (location.state.preservedInputs.status) {
-              setSelectedStatus({
-                label: location.state.preservedInputs.status,
-                value: location.state.preservedInputs.status,
-              });
-            }
-            if (location.state.preservedInputs.default_customer) {
-              setselectedCust({
-                label: location.state.preservedInputs.default_customer,
-                value: location.state.preservedInputs.default_customer,
-              });
-            }
-          }
-        }, [location.state]);
+      if (isReloadShortcut) {
+        event.preventDefault();
+        clearInputFields();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  useEffect(() => {
+    // if (location.state?.preservedRowData) {
+    //   setRowData(location.state.preservedRowData);
+    // }
+
+    if (location.state?.preservedInputs) {
+      const inputs = location.state.preservedInputs;
+
+      setcustomer_code(inputs.customer_code || "");
+      setcustomer_name(inputs.customer_name || "");
+      setpanno(inputs.panno || "");
+      setcustomer_gst_no(inputs.customer_gst_no || "");
+      setcustomer_addr_1(inputs.customer_addr_1 || "");
+      setcustomer_area(inputs.customer_area || "");
+      setcustomer_state(inputs.customer_state || "");
+      setcustomer_country(inputs.customer_country || "");
+      setcustomer_mobile_no(inputs.customer_mobile_no || "");
+      setstatus(inputs.status || "");
+      setdefaultCust(inputs.default_customer || "");
+
+      if (inputs.status) {
+        setSelectedStatus({
+          label: inputs.status,
+          value: inputs.status,
+        });
+      }
+      if (inputs.default_customer) {
+        setselectedCust({
+          label: inputs.default_customer,
+          value: inputs.default_customer,
+        });
+      }
+      if (location.state?.refreshGrid) {
+        handleSearch(inputs);
+      }
+    }
+  }, [location.state]);
 
 
   useEffect(() => {
@@ -278,7 +303,7 @@ const VendorProductTable = () => {
     window.location.reload();
   };
 
-    const clearInputFields = () => {
+  const clearInputFields = () => {
     setcustomer_code("");
     setcustomer_name("");
     setpanno("");
@@ -292,40 +317,53 @@ const VendorProductTable = () => {
     setdefaultCust("");
     setSelectedStatus("");
     setselectedCust("");
-    setRowData([]);
-  };
+    setRowData([]);
+  };
 
-    const handleSearch = async () => {
-      setLoading(true);
-  
-      try {
-        const response = await fetch(`${config.apiBaseUrl}/customerSearchdata`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({ company_code: sessionStorage.getItem('selectedCompanyCode'), customer_code, customer_name, panno, customer_gst_no, customer_addr_1, customer_area, customer_state, customer_country, customer_mobile_no, status, default_customer })
-        });
-        if (response.ok) {
-          const searchData = await response.json();
-          setRowData(searchData);
-          console.log("Data fetched successfully");
-        } else if (response.status === 404) {
-          console.log("Data not found");
-          toast.warning("Data not found")
-          setRowData([]);
-        } else {
-          const errorResponse = await response.json();
-          toast.warning(errorResponse.message || "Failed to insert sales data");
-        }
-      } catch (error) {
-        console.error("Error saving data:", error);
-        toast.error("Error updating data: " + error.message);
+  const handleSearch = async (searchParams = null) => {
+    setLoading(true);
+
+    try {
+      const response = await fetch(`${config.apiBaseUrl}/customerSearchdata`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          company_code: sessionStorage.getItem('selectedCompanyCode'),
+          customer_code: searchParams?.customer_code ?? customer_code,
+          customer_name: searchParams?.customer_name ?? customer_name,
+          panno: searchParams?.panno ?? panno,
+          customer_gst_no: searchParams?.customer_gst_no ?? customer_gst_no,
+          customer_addr_1: searchParams?.customer_addr_1 ?? customer_addr_1,
+          customer_area: searchParams?.customer_area ?? customer_area,
+          customer_state: searchParams?.customer_state ?? customer_state,
+          customer_country: searchParams?.customer_country ?? customer_country,
+          customer_mobile_no: searchParams?.customer_mobile_no ?? customer_mobile_no,
+          status: searchParams?.status ?? status,
+          default_customer: searchParams?.default_customer ?? default_customer,
+        })
+      });
+      if (response.ok) {
+        const searchData = await response.json();
+        setRowData(searchData);
+        console.log("Data fetched successfully");
+      } else if (response.status === 404) {
+        console.log("Data not found");
+        toast.warning("Data not found")
+        setRowData([]);
+      } else {
+        const errorResponse = await response.json();
+        toast.warning(errorResponse.message || "Failed to insert sales data");
       }
-      finally {
-        setLoading(false);
-      }
-    };
+    } catch (error) {
+      console.error("Error saving data:", error);
+      toast.error("Error updating data: " + error.message);
+    }
+    finally {
+      setLoading(false);
+    }
+  };
 
   // const handleSearch = async () => {
   //   setLoading(true);
@@ -805,30 +843,27 @@ const VendorProductTable = () => {
   //   navigate("/AddCustomerDet", { state: { mode: "update", selectedRow } });
   // };
 
-    const handleNavigateWithRowData = (selectedRow) => {
-  navigate("/AddCustomerDet", {
-    state: {
-      mode: "update",
-      selectedRow,
-
-      preservedRowData: rowData,
-
-      preservedInputs: {
-        customer_code,
-        customer_name,
-        panno,
-        customer_gst_no,
-        customer_addr_1,
-        customer_area,
-        customer_state,
-        customer_country,
-        customer_mobile_no,
-        status,
-        default_customer
+  const handleNavigateWithRowData = (selectedRow) => {
+    navigate("/AddCustomerDet", {
+      state: {
+        mode: "update",
+        keyfield: selectedRow.keyfield,
+        preservedInputs: {
+          customer_code,
+          customer_name,
+          panno,
+          customer_gst_no,
+          customer_addr_1,
+          customer_area,
+          customer_state,
+          customer_country,
+          customer_mobile_no,
+          status,
+          default_customer
+        },
       },
-    },
-  });
-};
+    });
+  };
 
   const onSelectionChanged = () => {
     const selectedNodes = gridApi.getSelectedNodes();

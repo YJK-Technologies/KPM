@@ -5,12 +5,14 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import Barcode from 'react-barcode';
 import { ToastContainer, toast } from 'react-toastify';
 import { showConfirmationToast } from '../ToastConfirmation';
-import { ModuleRegistry, ClientSideRowModelModule, PaginationModule, TextFilterModule, NumberFilterModule,
-  DateFilterModule, CustomFilterModule, CellStyleModule, ValidationModule} from 'ag-grid-community';
+import {
+  ModuleRegistry, ClientSideRowModelModule, PaginationModule, TextFilterModule, NumberFilterModule,
+  DateFilterModule, CustomFilterModule, CellStyleModule, ValidationModule
+} from 'ag-grid-community';
 import 'react-toastify/dist/ReactToastify.css';
 import LoadingScreen from '../BookLoader';
 import '../App.css';
-import secureLocalStorage from "react-secure-storage"; 
+import secureLocalStorage from "react-secure-storage";
 
 // Register necessary modules
 ModuleRegistry.registerModules([
@@ -71,11 +73,10 @@ const VendorProductTable = () => {
   const [selectedRows, setSelectedRows] = useState([]);
 
   const location = useLocation();
-  
+
   const handleChangeStatus = (selectedStatus) => {
     setSelectedStatus(selectedStatus);
     setstatus(selectedStatus ? selectedStatus.value : '');
-    setError(false);
   };
 
   const handleReload = () => {
@@ -87,33 +88,57 @@ const VendorProductTable = () => {
     .filter(permission => permission.screen_type === 'Item')
     .map(permission => permission.permission_type.toLowerCase());
 
-    useEffect(() => {
-        if (location.state?.preservedRowData) {
-          setRowData(location.state.preservedRowData);
-        }
-    
-        if (location.state?.preservedInputs) {
-          setItem_code(location.state.preservedInputs.Item_code || "");
-          setItem_variant(location.state.preservedInputs.Item_variant || "");
-          setItem_name(location.state.preservedInputs.Item_name || "");
-          setItem_short_name(location.state.preservedInputs.Item_short_name || "");
-          setItem_Our_Brand(location.state.preservedInputs.Item_Our_Brand || "");
-          setstatus(location.state.preservedInputs.status || "");
-    
-          if (location.state.preservedInputs.Item_Our_Brand) {
-            setSelectedBrand({
-              label: location.state.preservedInputs.Item_Our_Brand,
-              value: location.state.preservedInputs.Item_Our_Brand,
-            });
-          }
-          if (location.state.preservedInputs.status) {
-            setSelectedStatus({
-              label: location.state.preservedInputs.status,
-              value: location.state.preservedInputs.status,
-            });
-          }
-        }
-      }, [location.state]);
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      const isReloadShortcut =
+        (event.ctrlKey && event.key.toLowerCase() === "r") ||
+        (event.altKey && event.key.toLowerCase() === "r") ||
+        event.key === "F5";
+
+      if (isReloadShortcut) {
+        event.preventDefault();
+        clearInputFields();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  useEffect(() => {
+    // if (location.state?.preservedRowData) {
+    //   setRowData(location.state.preservedRowData);
+    // }
+
+    if (location.state?.preservedInputs) {
+      const inputs = location.state.preservedInputs;
+
+      setItem_code(inputs.Item_code || "");
+      setItem_variant(inputs.Item_variant || "");
+      setItem_name(inputs.Item_name || "");
+      setItem_short_name(inputs.Item_short_name || "");
+      setItem_Our_Brand(inputs.Item_Our_Brand || "");
+      setstatus(inputs.status || "");
+
+      if (inputs.Item_Our_Brand) {
+        setSelectedBrand({
+          label: inputs.Item_Our_Brand,
+          value: inputs.Item_Our_Brand,
+        });
+      }
+      if (inputs.status) {
+        setSelectedStatus({
+          label: inputs.status,
+          value: inputs.status,
+        });
+      }
+
+      if (location.state?.refreshGrid) {
+        handleSearch(inputs);
+      }
+    }
+  }, [location.state]);
 
   useEffect(() => {
     const company_code = sessionStorage.getItem('selectedCompanyCode');
@@ -235,7 +260,7 @@ const VendorProductTable = () => {
   }, []);
 
 
-  const handleSearch = async () => {
+  const handleSearch = async (searchParams = null) => {
     setLoading(true);
     try {
       const company_code = sessionStorage.getItem('selectedCompanyCode')
@@ -244,7 +269,15 @@ const VendorProductTable = () => {
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ company_code, Item_code, Item_name, Item_variant, Item_short_name, Item_Our_Brand, status }) // Send company_no and company_name as search criteria
+        body: JSON.stringify({ 
+          company_code, 
+          Item_code: searchParams?.Item_code ?? Item_code,
+          Item_name: searchParams?.Item_name ?? Item_name,
+          Item_variant: searchParams?.Item_variant ?? Item_variant,
+          Item_short_name: searchParams?.Item_short_name ?? Item_short_name,
+          Item_Our_Brand: searchParams?.Item_Our_Brand ?? Item_Our_Brand,
+          status: searchParams?.status ?? status,
+        }) 
       });
       if (response.ok) {
         const searchData = await response.json();
@@ -285,10 +318,7 @@ const VendorProductTable = () => {
     navigate("/AddItem", {
       state: {
         mode: "update",
-        selectedRow,
-
-        preservedRowData: rowData,
-
+        Item_code: selectedRow.Item_code,
         preservedInputs: {
           Item_code,
           Item_variant,
@@ -842,16 +872,16 @@ const VendorProductTable = () => {
     const rowIndex = updatedRowData.findIndex(
       (row) => row.Item_code === params.data.Item_code && row.Item_variant === params.data.Item_variant
     );
-  
+
     if (rowIndex !== -1) {
       updatedRowData[rowIndex][params.colDef.field] = params.newValue;
       setRowData(updatedRowData);
-  
+
       setEditedData((prevData) => {
         const existingIndex = prevData.findIndex(
           (item) => item.Item_code === params.data.Item_code && item.Item_variant === params.data.Item_variant
         );
-  
+
         if (existingIndex !== -1) {
           const updatedEdited = [...prevData];
           updatedEdited[existingIndex] = updatedRowData[rowIndex];
@@ -921,8 +951,8 @@ const VendorProductTable = () => {
     setstatus("");
     setSelectedBrand("");
     setSelectedStatus("");
-    setRowData([]);
-  };
+    setRowData([]);
+  };
 
   return (
     <div className="container-fluid ">
@@ -1086,32 +1116,32 @@ const VendorProductTable = () => {
           <div className="col-md-3 mb-2">
             <label className='fw-bold'>Our Brand</label>
             <div title="Please select the our brand">
-            <Select
-              id="ahsts"
-              value={selectedBrand}
-              onChange={handleChangeBrand}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              options={filteredOptionBrand}
-              classNamePrefix="react-select"
-              placeholder=""
-              maxLength={30}
-            />
-          </div>
+              <Select
+                id="ahsts"
+                value={selectedBrand}
+                onChange={handleChangeBrand}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                options={filteredOptionBrand}
+                classNamePrefix="react-select"
+                placeholder=""
+                maxLength={30}
+              />
+            </div>
           </div>
           <div className="col-md-3 mb-2">
             <label className='fw-bold'>Status</label>
             <div title="Please select the status">
-            <Select
-              type="text"
-              id="ahsts"
-              value={selectedStatus}
-              onChange={handleChangeStatus}
-              // onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              options={filteredOptionStatus}
-              classNamePrefix="react-select"
-              placeholder=""
-            />
-          </div>
+              <Select
+                type="text"
+                id="ahsts"
+                value={selectedStatus}
+                onChange={handleChangeStatus}
+                // onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                options={filteredOptionStatus}
+                classNamePrefix="react-select"
+                placeholder=""
+              />
+            </div>
           </div>
           <div className="col-md-2 mb-2 mt-4">
             <button className="button2" onClick={handleSearch} title="Search" >

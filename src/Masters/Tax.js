@@ -2,13 +2,15 @@ import React, { useState, useEffect, useRef } from "react";
 import { AgGridReact } from 'ag-grid-react';
 import Select from 'react-select';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ModuleRegistry, ClientSideRowModelModule, PaginationModule, TextFilterModule, NumberFilterModule,
-  DateFilterModule, CustomFilterModule, CellStyleModule, ValidationModule} from 'ag-grid-community';
+import {
+  ModuleRegistry, ClientSideRowModelModule, PaginationModule, TextFilterModule, NumberFilterModule,
+  DateFilterModule, CustomFilterModule, CellStyleModule, ValidationModule
+} from 'ag-grid-community';
 import { showConfirmationToast } from '../ToastConfirmation';
 import { ToastContainer, toast } from 'react-toastify';
 import '../App.css';
 import LoadingScreen from '../BookLoader';
-import secureLocalStorage from "react-secure-storage"; 
+import secureLocalStorage from "react-secure-storage";
 
 // Register necessary modules
 ModuleRegistry.registerModules([
@@ -58,27 +60,51 @@ const VendorProductTable = () => {
     .map(permission => permission.permission_type.toLowerCase());
 
   useEffect(() => {
-      if (location.state?.preservedRowData) {
-        setRowData(location.state.preservedRowData);
+    const handleKeyDown = (event) => {
+      const isReloadShortcut =
+        (event.ctrlKey && event.key.toLowerCase() === "r") ||
+        (event.altKey && event.key.toLowerCase() === "r") ||
+        event.key === "F5";
+
+      if (isReloadShortcut) {
+        event.preventDefault();
+        clearInputFields();
       }
-    
-      if (location.state?.preservedInputs) {
-        settax_type_header(location.state.preservedInputs.tax_type_header || "");
-        settax_name_details(location.state.preservedInputs.tax_name_details || "");
-        settax_percentage(location.state.preservedInputs.tax_percentage || 0);
-        settax_shortname(location.state.preservedInputs.tax_shortname || "");
-        settax_accountcode(location.state.preservedInputs.tax_accountcode || "");
-        settransaction_type(location.state.preservedInputs.transaction_type || "");
-        setstatus(location.state.preservedInputs.status || "");
-    
-        if (location.state.preservedInputs.status) {
-          setSelectedStatus({
-            label: location.state.preservedInputs.status,
-            value: location.state.preservedInputs.status,
-          });
-        }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  useEffect(() => {
+    // if (location.state?.preservedRowData) {
+    //   setRowData(location.state.preservedRowData);
+    // }
+
+    if (location.state?.preservedInputs) {
+      const inputs = location.state.preservedInputs;
+
+      settax_type_header(inputs.tax_type_header || "");
+      settax_name_details(inputs.tax_name_details || "");
+      settax_percentage(inputs.tax_percentage || 0);
+      settax_shortname(inputs.tax_shortname || "");
+      settax_accountcode(inputs.tax_accountcode || "");
+      settransaction_type(inputs.transaction_type || "");
+      setstatus(inputs.status || "");
+
+      if (inputs.status) {
+        setSelectedStatus({
+          label: inputs.status,
+          value: inputs.status,
+        });
       }
-    }, [location.state]);
+
+      if (location.state?.refreshGrid) {
+        handleSearch(inputs);
+      }
+    }
+  }, [location.state]);
 
   const reloadGridData = () => {
     window.location.reload();
@@ -87,13 +113,13 @@ const VendorProductTable = () => {
   const clearInputFields = () => {
     settax_type_header("");
     settax_name_details("");
-    settax_percentage(0);
-    settax_shortname("");
-    settax_accountcode("");
-    settransaction_type("");
-    setstatus("");
-    setRowData([]);
-  };
+    settax_percentage(0);
+    settax_shortname("");
+    settax_accountcode("");
+    settransaction_type("");
+    setstatus("");
+    setRowData([]);
+  };
 
   useEffect(() => {
     const company_code = sessionStorage.getItem('selectedCompanyCode');
@@ -154,7 +180,7 @@ const VendorProductTable = () => {
     setError(false);
   };
 
-  const handleSearch = async () => {
+  const handleSearch = async (searchParams = null) => {
     setLoading(true);
     try {
       const response = await fetch(`${config.apiBaseUrl}/taxSearchdata`, {
@@ -163,8 +189,14 @@ const VendorProductTable = () => {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          company_code: sessionStorage.getItem('selectedCompanyCode'), tax_type_header, tax_name_details, tax_percentage, tax_shortname,
-          transaction_type, status, tax_accountcode
+          company_code: sessionStorage.getItem('selectedCompanyCode'), 
+          tax_type_header: searchParams?.tax_type_header || tax_type_header,
+          tax_name_details: searchParams?.tax_name_details || tax_name_details,
+          tax_percentage: searchParams?.tax_percentage || tax_percentage,
+          tax_shortname: searchParams?.tax_shortname || tax_shortname,
+          transaction_type: searchParams?.transaction_type || transaction_type,
+          status: searchParams?.status || status,
+          tax_accountcode: searchParams?.tax_accountcode || tax_accountcode
         })
       });
       if (response.ok) {
@@ -404,10 +436,9 @@ const VendorProductTable = () => {
     navigate("/AddTaxDet", {
       state: {
         mode: "update",
-        selectedRow,
-
-        preservedRowData: rowData,
-
+        tax_type_header: selectedRow.tax_type_header,
+        tax_name_details: selectedRow.tax_name_details,
+        tax_accountcode: selectedRow.tax_accountcode,
         preservedInputs: {
           tax_type_header,
           tax_name_details,
@@ -445,16 +476,16 @@ const VendorProductTable = () => {
     const rowIndex = updatedRowData.findIndex(
       (row) => row.tax_type_header === params.data.tax_type_header && row.tax_name_details === params.data.tax_name_details
     );
-  
+
     if (rowIndex !== -1) {
       updatedRowData[rowIndex][params.colDef.field] = params.newValue;
       setRowData(updatedRowData);
-  
+
       setEditedData((prevData) => {
         const existingIndex = prevData.findIndex(
           (item) => item.tax_type_header === params.data.tax_type_header && item.tax_name_details === params.data.tax_name_details
         );
-  
+
         if (existingIndex !== -1) {
           const updatedEdited = [...prevData];
           updatedEdited[existingIndex] = updatedRowData[rowIndex];
@@ -812,16 +843,16 @@ const VendorProductTable = () => {
           <div className="col-md-3 mb-2">
             <label className='fw-bold'>Status</label>
             <div title="Please select the status">
-            <Select
-              value={selectedStatus}
-              onChange={handleChangeStatus}
-              // onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              options={filteredOptionStatus}
-              classNamePrefix="react-select"
-              placeholder=""
-              maxLength={18}
-            />
-          </div>
+              <Select
+                value={selectedStatus}
+                onChange={handleChangeStatus}
+                // onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                options={filteredOptionStatus}
+                classNamePrefix="react-select"
+                placeholder=""
+                maxLength={18}
+              />
+            </div>
           </div>
           <div className="col-md-2 mb-2 mt-4">
             <button className="button2" onClick={handleSearch} title="Search">

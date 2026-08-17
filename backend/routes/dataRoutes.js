@@ -423,6 +423,11 @@ router.post("/getRoleMappingData",dataController.getRoleMappingData)
 router.post("/getRoleRightsData",dataController.getRoleRightsData)
 router.post("/getUserData",dataController.getUserData)
 router.post("/getAttributeData",dataController.getAttributeData)
+router.post("/getCustomerData",dataController.getCustomerData)
+router.post("/getVendorData",dataController.getVendorData)
+router.post("/getTaxData",dataController.getTaxData)
+router.post("/getWarehouseData",dataController.getWarehouseData)
+router.post("/getItemData",dataController.getItemData)
 
 
 

@@ -17,7 +17,7 @@ import { useLocation } from "react-router-dom";
 import { ToastContainer, toast } from 'react-toastify';
 import '../../App.css';
 import LoadingScreen from '../../BookLoader';
-import secureLocalStorage from "react-secure-storage"; 
+import secureLocalStorage from "react-secure-storage";
 
 // Register necessary modules
 ModuleRegistry.registerModules([
@@ -59,7 +59,7 @@ const VendorProductTable = () => {
   const [selectedCountry, setselectedCountry] = useState('');
   const [selectedCode, setSelectedCode] = useState('');
   const [selectedSales, setSelectedSales] = useState('');
-  const [error, setError] = useState("");
+  const [error, setError] = useState(false);
   const [selectedUserName, setSelectedUserName] = useState('')
   const [officedrop, setOfficedrop] = useState([]);
   const [customerdrop, setcustomerdrop] = useState([]);
@@ -92,9 +92,105 @@ const VendorProductTable = () => {
   const [isUpdated, setIsUpdated] = useState(false);
 
   const location = useLocation();
-  const { mode, selectedRow } = location.state || {};
+  const locationState = location.state || {};
+  const mode = locationState.mode || "create"; // ✅ default fallback
+  const selectedRow = locationState.selectedRow || null;
+  const keyfields = location.state?.keyfield;
+  const company_code = sessionStorage.getItem('selectedCompanyCode');
 
-  console.log(selectedRow);
+  const [panNo, setPanNo] = useState("");
+  const [customerGstNo, setCustomerGstNo] = useState("");
+  const [status, setStatus] = useState("");
+
+  useEffect(() => {
+    if (!location.state) {
+      clearInputFields(); // ensure fresh create mode
+    }
+  }, []);
+
+  useEffect(() => {
+    if (mode === "update" && keyfields) {
+      fetchCustomerData();
+    }
+  }, [mode, keyfields]);
+
+  const fetchCustomerData = async () => {
+    try {
+      setLoading(true);
+
+      const response = await fetch(`${config.apiBaseUrl}/getCustomerData`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          keyfield: keyfields,
+          company_code
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.length > 0) {
+        const Customer = data[0];
+
+        setcustomer_addr_1(Customer.customer_addr_1 || "")
+        setcustomer_addr_2(Customer.customer_addr_2 || "");
+        setcustomer_addr_3(Customer.customer_addr_3 || "");
+        setcustomer_addr_4(Customer.customer_addr_4 || "");
+        setcustomer_office_no(Customer.customer_office_no || "");
+        setcustomer_resi_no(Customer.customer_resi_no || "");
+        setcustomer_mobile_no(Customer.customer_mobile_no || 0);
+        setcustomer_email_id(Customer.customer_email_id || "");
+        setcustomer_credit_limit(Customer.customer_credit_limit || 0);
+        setContact_person(Customer.contact_person || "");
+        setcustomer_code(Customer.customer_code || "");
+        setcustomer_area(Customer.customer_area || "");
+        setcustomer_state(Customer.customer_state || "");
+        setcustomer_country(Customer.customer_country || "");
+        setcustomer_salesman_code(Customer.customer_salesman_code || "");
+        setOfficeType(Customer.office_type || "");
+        setdefaultCust(Customer.default_customer || "");
+        setkeyfield(Customer.keyfield || "");
+        setStatus(Customer.status || "");
+        setPanNo(Customer.panno || "");
+        setCustomerGstNo(Customer.customer_gst_no || "");
+        setSelectedCode({
+          label: Customer.customer_code,
+          value: Customer.customer_code,
+        });
+        setSelectedCity({
+          label: Customer.customer_area,
+          value: Customer.customer_area,
+        });
+        setselectedState({
+          label: Customer.customer_state,
+          value: Customer.customer_state,
+        });
+        setselectedCountry({
+          label: Customer.customer_country,
+          value: Customer.customer_country,
+        });
+        setSelectedSales({
+          label: Customer.customer_salesman_code,
+          value: Customer.customer_salesman_code,
+        });
+        setselectedOffice({
+          label: Customer.office_type,
+          value: Customer.office_type,
+        });
+        setselectedCust({
+          label: Customer.default_customer,
+          value: Customer.default_customer,
+        });
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to fetch customer details");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const clearInputFields = () => {
     setcustomer_code("");
@@ -106,7 +202,7 @@ const VendorProductTable = () => {
     setcustomer_resi_no('');
     setcustomer_mobile_no('');
     setcustomer_email_id('');
-    setcustomer_credit_limit('');
+    setcustomer_credit_limit('0');
     setContact_person('');
     setcustomer_code('');
     setcustomer_area('');
@@ -122,7 +218,9 @@ const VendorProductTable = () => {
     setSelectedSales('');
     setselectedOffice('');
     setselectedCust('');
+    setStatus('');
   };
+
   const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false);
 
@@ -227,59 +325,59 @@ const VendorProductTable = () => {
   }, []);
 
 
-  useEffect(() => {
-    if (mode === "update" && selectedRow && !isUpdated) {
-      setcustomer_addr_1(selectedRow.customer_addr_1 || "")
-      setcustomer_addr_2(selectedRow.customer_addr_2 || "");
-      setcustomer_addr_3(selectedRow.customer_addr_3 || "");
-      setcustomer_addr_4(selectedRow.customer_addr_4 || "");
-      setcustomer_office_no(selectedRow.customer_office_no || "");
-      setcustomer_resi_no(selectedRow.customer_resi_no || "");
-      setcustomer_mobile_no(selectedRow.customer_mobile_no || 0);
-      setcustomer_email_id(selectedRow.customer_email_id || "");
-      setcustomer_credit_limit(selectedRow.customer_credit_limit || 0);
-      setContact_person(selectedRow.contact_person || "");
-      setcustomer_code(selectedRow.customer_code || "");
-      setcustomer_area(selectedRow.customer_area || "");
-      setcustomer_state(selectedRow.customer_state || "");
-      setcustomer_country(selectedRow.customer_country || "");
-      setcustomer_salesman_code(selectedRow.customer_salesman_code || "");
-      setOfficeType(selectedRow.office_type || "");
-      setdefaultCust(selectedRow.default_customer || "");
-      setkeyfield(selectedRow.keyfield || "");
-      setSelectedCode({
-        label: selectedRow.customer_code,
-        value: selectedRow.customer_code,
-      });
-      setSelectedCity({
-        label: selectedRow.customer_area,
-        value: selectedRow.customer_area,
-      });
-      setselectedState({
-        label: selectedRow.customer_state,
-        value: selectedRow.customer_state,
-      });
-      setselectedCountry({
-        label: selectedRow.customer_country,
-        value: selectedRow.customer_country,
-      });
-      setSelectedSales({
-        label: selectedRow.customer_salesman_code,
-        value: selectedRow.customer_salesman_code,
-      });
-      setselectedOffice({
-        label: selectedRow.office_type,
-        value: selectedRow.office_type,
-      });
-      setselectedCust({
-        label: selectedRow.default_customer,
-        value: selectedRow.default_customer,
-      });
+  // useEffect(() => {
+  //   if (mode === "update" && selectedRow && !isUpdated) {
+  //     setcustomer_addr_1(selectedRow.customer_addr_1 || "")
+  //     setcustomer_addr_2(selectedRow.customer_addr_2 || "");
+  //     setcustomer_addr_3(selectedRow.customer_addr_3 || "");
+  //     setcustomer_addr_4(selectedRow.customer_addr_4 || "");
+  //     setcustomer_office_no(selectedRow.customer_office_no || "");
+  //     setcustomer_resi_no(selectedRow.customer_resi_no || "");
+  //     setcustomer_mobile_no(selectedRow.customer_mobile_no || 0);
+  //     setcustomer_email_id(selectedRow.customer_email_id || "");
+  //     setcustomer_credit_limit(selectedRow.customer_credit_limit || 0);
+  //     setContact_person(selectedRow.contact_person || "");
+  //     setcustomer_code(selectedRow.customer_code || "");
+  //     setcustomer_area(selectedRow.customer_area || "");
+  //     setcustomer_state(selectedRow.customer_state || "");
+  //     setcustomer_country(selectedRow.customer_country || "");
+  //     setcustomer_salesman_code(selectedRow.customer_salesman_code || "");
+  //     setOfficeType(selectedRow.office_type || "");
+  //     setdefaultCust(selectedRow.default_customer || "");
+  //     setkeyfield(selectedRow.keyfield || "");
+  //     setSelectedCode({
+  //       label: selectedRow.customer_code,
+  //       value: selectedRow.customer_code,
+  //     });
+  //     setSelectedCity({
+  //       label: selectedRow.customer_area,
+  //       value: selectedRow.customer_area,
+  //     });
+  //     setselectedState({
+  //       label: selectedRow.customer_state,
+  //       value: selectedRow.customer_state,
+  //     });
+  //     setselectedCountry({
+  //       label: selectedRow.customer_country,
+  //       value: selectedRow.customer_country,
+  //     });
+  //     setSelectedSales({
+  //       label: selectedRow.customer_salesman_code,
+  //       value: selectedRow.customer_salesman_code,
+  //     });
+  //     setselectedOffice({
+  //       label: selectedRow.office_type,
+  //       value: selectedRow.office_type,
+  //     });
+  //     setselectedCust({
+  //       label: selectedRow.default_customer,
+  //       value: selectedRow.default_customer,
+  //     });
 
-    } else if (mode === "create") {
-      clearInputFields();
-    }
-  }, [mode, selectedRow, isUpdated]);
+  //   } else if (mode === "create") {
+  //     clearInputFields();
+  //   }
+  // }, [mode, selectedRow, isUpdated]);
 
   const filteredOptionCode = Array.isArray(customercodedrop)
     ? customercodedrop.map((option) => ({
@@ -358,7 +456,8 @@ const VendorProductTable = () => {
 
   const handleChangeOffice = (selectedOffice) => {
     setselectedOffice(selectedOffice);
-    setOfficeType(selectedOffice ? selectedOffice.value : '');  };
+    setOfficeType(selectedOffice ? selectedOffice.value : '');
+  };
 
   const handleChangeCustomer = (selectedCustomer) => {
     setselectedCust(selectedCustomer);
@@ -372,7 +471,8 @@ const VendorProductTable = () => {
   const handleClick = () => {
     navigate("/Customer", {
       state: {
-        preservedRowData: location.state?.preservedRowData,
+        refreshGrid: true,
+        // preservedRowData: location.state?.preservedRowData,
         preservedInputs: location.state?.preservedInputs
       }
     });
@@ -390,7 +490,7 @@ const VendorProductTable = () => {
       !customer_state ||
       !customer_area
     ) {
-      setError(" ");
+      setError(true);
       toast.warning("Error: Missing required fields");
       return;
     }
@@ -399,6 +499,7 @@ const VendorProductTable = () => {
       toast.warning("Please enter a valid email address");
       return;
     }
+    setError(false);
     setLoading(true);
 
     try {
@@ -429,13 +530,10 @@ const VendorProductTable = () => {
           created_by: sessionStorage.getItem('selectedUserCode')
         }),
       });
-      if (response.status === 200) {
-        console.log("Data inserted successfully");
-        setTimeout(() => {
-          toast.success("Data inserted successfully!", {
-            onClose: () => window.location.reload(),
-          });
-        }, 1000);
+      if (response.ok) {
+        toast.success("Data inserted Successfully", {
+          onClose: () => clearInputFields()
+        });
       } else {
         const errorResponse = await response.json();
         console.error(errorResponse.message);
@@ -460,7 +558,7 @@ const VendorProductTable = () => {
       !customer_country ||
       !customer_state
     ) {
-      setError(" ");
+      setError(true);
       toast.warning("Error: Missing required fields");
       return;
     }
@@ -469,6 +567,7 @@ const VendorProductTable = () => {
       toast.warning("Please enter a valid email address");
       return;
     }
+    setError(false);
     setLoading(true);
 
     try {
@@ -500,11 +599,10 @@ const VendorProductTable = () => {
           modified_by: sessionStorage.getItem('selectedUserCode')
         }),
       });
-      if (response.status === 200) {
-        console.log("Data inserted successfully");
-        setIsUpdated(true);
-        clearInputFields();
-        toast.success("Data Updated successfully!")
+      if (response.ok) {
+        toast.success("Data updated successfully", {
+          // onClose: () => clearInputFields()
+        });
       } else {
         const errorResponse = await response.json();
         console.error(errorResponse.message);
@@ -568,32 +666,32 @@ const VendorProductTable = () => {
             <label className={`fw-bold ${error && !customer_code ? 'text-danger' : ''}`}>Code<span className="text-danger">*</span></label>
             <div className="position-relative">
               <div title="Please select the code">
-              <Select
-                type="text"
-                className="position-relative"
-                classNamePrefix="react-select"
-                value={selectedCode}
-                onChange={handleChangeCode}
-                options={filteredOptionCode}
-                placeholder=""
-                maxLength={18}
-                ref={code}
-                readOnly={mode === "update"}
-                isDisabled={mode === "update"}
-                onKeyDown={(e) => handleKeyDown(e, Address1, code)}
-              />
+                <Select
+                  type="text"
+                  className="position-relative"
+                  classNamePrefix="react-select"
+                  value={selectedCode}
+                  onChange={handleChangeCode}
+                  options={filteredOptionCode}
+                  placeholder=""
+                  maxLength={18}
+                  ref={code}
+                  readOnly={mode === "update"}
+                  isDisabled={mode === "update"}
+                  onKeyDown={(e) => handleKeyDown(e, Address1, code)}
+                />
                 {mode !== 'update' && (
-              <button
-                title="Add Customer Header"
-                type="button"
-                className="btn btn-sm btn-primary position-absolute p-2 ps-3 pe-3 top-50 end-0 translate-middle-y"
-                style={{ zIndex: 2 }}
-                onClick={handleShowModal}
-              >
-                +
-              </button>
+                  <button
+                    title="Add Customer Header"
+                    type="button"
+                    className="btn btn-sm btn-primary position-absolute p-2 ps-3 pe-3 top-50 end-0 translate-middle-y"
+                    style={{ zIndex: 2 }}
+                    onClick={handleShowModal}
+                  >
+                    +
+                  </button>
                 )}
-            </div>
+              </div>
             </div>
           </div>
           <div className="col-md-3 mb-2">
@@ -655,45 +753,45 @@ const VendorProductTable = () => {
           <div className="col-md-3 mb-2">
             <label className={`fw-bold ${error && !customer_area ? 'text-danger' : ''}`}>City<span className="text-danger">*</span></label>
             <div title="Please select the city">
-            <Select
-              type="text"
-              classNamePrefix="react-select"
-              value={selectedCity}
-              onChange={handleChangeCity}
-              options={filteredOptionCity}
-              placeholder=""
-              ref={City}
-              onKeyDown={(e) => handleKeyDown(e, code, City)}
-            />
-          </div>
+              <Select
+                type="text"
+                classNamePrefix="react-select"
+                value={selectedCity}
+                onChange={handleChangeCity}
+                options={filteredOptionCity}
+                placeholder=""
+                ref={City}
+                onKeyDown={(e) => handleKeyDown(e, code, City)}
+              />
+            </div>
           </div>
           <div className="col-md-3 mb-2">
             <label className={`fw-bold ${error && !customer_state ? 'text-danger' : ''}`}>State<span className="text-danger">*</span></label>
             <div title="Please select the state">
-            <Select
-              value={selectedState}
-              onChange={handleChangeState}
-              options={filteredOptionState}
-              classNamePrefix="react-select"
-              placeholder=""
-              ref={code}
-              onKeyDown={(e) => handleKeyDown(e, Country, code)}
-            />
-          </div>
+              <Select
+                value={selectedState}
+                onChange={handleChangeState}
+                options={filteredOptionState}
+                classNamePrefix="react-select"
+                placeholder=""
+                ref={code}
+                onKeyDown={(e) => handleKeyDown(e, Country, code)}
+              />
+            </div>
           </div>
           <div className="col-md-3 mb-2">
             <label className={`fw-bold ${error && !customer_country ? 'text-danger' : ''}`}>Country<span className="text-danger">*</span></label>
             <div title="Please select the country">
-            <Select
-              value={selectedCountry}
-              onChange={handleChangeCountry}
-              options={filteredOptionCountry}
-              classNamePrefix="react-select"
-              placeholder=""
-              ref={Country}
-              onKeyDown={(e) => handleKeyDown(e, OfficeNo, Country)}
-            />
-          </div>
+              <Select
+                value={selectedCountry}
+                onChange={handleChangeCountry}
+                options={filteredOptionCountry}
+                classNamePrefix="react-select"
+                placeholder=""
+                ref={Country}
+                onKeyDown={(e) => handleKeyDown(e, OfficeNo, Country)}
+              />
+            </div>
           </div>
           {/* <div className="col-md-3 mb-2">
           <label className='fw-bold'>IMEX No</label>
@@ -802,44 +900,44 @@ const VendorProductTable = () => {
           <div className="col-md-3 mb-2">
             <label className='fw-bold'>Salesman Code</label>
             <div title="Please select the salesman code">
-            <Select
-              value={selectedSales}
-              onChange={handleChangeSales}
-              options={filteredOptionSales}
-              classNamePrefix="react-select"
-              placeholder=""
-              ref={Salesman}
-              onKeyDown={(e) => handleKeyDown(e, Office, Salesman)}
-            />
-          </div>
+              <Select
+                value={selectedSales}
+                onChange={handleChangeSales}
+                options={filteredOptionSales}
+                classNamePrefix="react-select"
+                placeholder=""
+                ref={Salesman}
+                onKeyDown={(e) => handleKeyDown(e, Office, Salesman)}
+              />
+            </div>
           </div>
           <div className="col-md-3 mb-2">
             <label className='fw-bold'>Office Type</label>
             <div title="Please select the office type">
-            <Select
-              value={selectedOffice}
-              onChange={handleChangeOffice}
-              options={filteredOptionOffice}
-              classNamePrefix="react-select"
-              placeholder=""
-              ref={Office}
-              onKeyDown={(e) => handleKeyDown(e, Default, Office)}
-            />
-          </div>
+              <Select
+                value={selectedOffice}
+                onChange={handleChangeOffice}
+                options={filteredOptionOffice}
+                classNamePrefix="react-select"
+                placeholder=""
+                ref={Office}
+                onKeyDown={(e) => handleKeyDown(e, Default, Office)}
+              />
+            </div>
           </div>
           <div className="col-md-3 mb-2">
             <label className='fw-bold'>Default Customer</label>
             <div title="Please select the default customer">
-            <Select
-              value={selectedCustomer}
-              onChange={handleChangeCustomer}
-              options={filteredOptioncustomer}
-              classNamePrefix="react-select"
-              placeholder=""
-              ref={Default}
-              onKeyDown={(e) => handleKeyDown(e, Contact, Default)}
-            />
-          </div>
+              <Select
+                value={selectedCustomer}
+                onChange={handleChangeCustomer}
+                options={filteredOptioncustomer}
+                classNamePrefix="react-select"
+                placeholder=""
+                ref={Default}
+                onKeyDown={(e) => handleKeyDown(e, Contact, Default)}
+              />
+            </div>
           </div>
           <div className="col-md-3 mb-2">
             <label className='fw-bold'>Contact Person</label>
@@ -884,15 +982,15 @@ const VendorProductTable = () => {
             )}
           </div> */}
           <div className="col-md-2 mb-2 mt-4">
-          {mode === "create" ? (
-            <button className="btn btn-primary" onClick={handleInsert} title="Submit">
-              Submit
-            </button>
-             ) : (
-            <button className="btn btn-primary" onClick={handleUpdate} title="Update">
-              Update
-            </button>
-              )}
+            {mode === "create" ? (
+              <button className="btn btn-primary" onClick={handleInsert} title="Submit">
+                Submit
+              </button>
+            ) : (
+              <button className="btn btn-primary" onClick={handleUpdate} title="Update">
+                Update
+              </button>
+            )}
           </div>
         </div>
       </div>

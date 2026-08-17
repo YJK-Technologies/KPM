@@ -5,9 +5,11 @@ import React, { useState, useEffect, useRef } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import { showConfirmationToast } from '../ToastConfirmation';
 import LoadingScreen from '../BookLoader';
-import { ModuleRegistry, ClientSideRowModelModule, PaginationModule, TextFilterModule, NumberFilterModule,
-        DateFilterModule, CustomFilterModule, CellStyleModule, ValidationModule} from 'ag-grid-community';
-import secureLocalStorage from "react-secure-storage"; 
+import {
+  ModuleRegistry, ClientSideRowModelModule, PaginationModule, TextFilterModule, NumberFilterModule,
+  DateFilterModule, CustomFilterModule, CellStyleModule, ValidationModule
+} from 'ag-grid-community';
+import secureLocalStorage from "react-secure-storage";
 
 import '../App.css';
 // Register necessary modules
@@ -70,35 +72,59 @@ const VendorProductTable = () => {
     .map(permission => permission.permission_type.toLowerCase());
 
   useEffect(() => {
-    if (location.state?.preservedRowData) {
-      setRowData(location.state.preservedRowData);
-    }
+    const handleKeyDown = (event) => {
+      const isReloadShortcut =
+        (event.ctrlKey && event.key.toLowerCase() === "r") ||
+        (event.altKey && event.key.toLowerCase() === "r") ||
+        event.key === "F5";
+
+      if (isReloadShortcut) {
+        event.preventDefault();
+        clearInputFields();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  useEffect(() => {
+    // if (location.state?.preservedRowData) {
+    //   setRowData(location.state.preservedRowData);
+    // }
 
     if (location.state?.preservedInputs) {
-      setvendor_code(location.state.preservedInputs.vendor_code || "");
-      setvendor_name(location.state.preservedInputs.vendor_name || "");
-      setpanno(location.state.preservedInputs.panno || "");
-      setvendor_gst_no(location.state.preservedInputs.vendor_gst_no || "");
-      setvendor_addr_1(location.state.preservedInputs.vendor_addr_1 || "");
+      const inputs = location.state.preservedInputs;
+
+      setvendor_code(inputs.vendor_code || "");
+      setvendor_name(inputs.vendor_name || "");
+      setpanno(inputs.panno || "");
+      setvendor_gst_no(inputs.vendor_gst_no || "");
+      setvendor_addr_1(inputs.vendor_addr_1 || "");
       setvendor_area_code(
-        location.state.preservedInputs.vendor_area_code || "",
+        inputs.vendor_area_code || "",
       );
       setvendor_state_code(
-        location.state.preservedInputs.vendor_state_code || "",
+        inputs.vendor_state_code || "",
       );
       setvendor_country_code(
-        location.state.preservedInputs.vendor_country_code || "",
+        inputs.vendor_country_code || "",
       );
       setvendor_mobile_no(
-        location.state.preservedInputs.vendor_mobile_no || "",
+        inputs.vendor_mobile_no || "",
       );
-      setstatus(location.state.preservedInputs.status || "");
+      setstatus(inputs.status || "");
 
-      if (location.state.preservedInputs.status) {
+      if (inputs.status) {
         setSelectedStatus({
           label: location.state.preservedInputs.status,
           value: location.state.preservedInputs.status,
         });
+      }
+
+      if (location.state?.refreshGrid) {
+        handleSearch(inputs);
       }
     }
   }, [location.state]);
@@ -373,7 +399,7 @@ const VendorProductTable = () => {
           });
         }
       },
-    }, 
+    },
     {
       headerName: "Residential No",
       field: "vendor_resi_no",
@@ -390,7 +416,7 @@ const VendorProductTable = () => {
           params.data.vendor_resi_no = newValue;
           return true;
         }
-        return false; 
+        return false;
       },
     },
     {
@@ -409,7 +435,7 @@ const VendorProductTable = () => {
           params.data.vendor_mobile_no = newValue;
           return true;
         }
-        return false; 
+        return false;
       },
     },
     {
@@ -446,14 +472,11 @@ const VendorProductTable = () => {
   //   navigate("/AddVendorDet", { state: { mode: "update", selectedRow } });
   // };
 
-    const handleNavigateWithRowData = (selectedRow) => {
+  const handleNavigateWithRowData = (selectedRow) => {
     navigate("/AddVendorDet", {
       state: {
         mode: "update",
-        selectedRow,
-
-        preservedRowData: rowData,
-
+        keyfield: selectedRow.keyfield,
         preservedInputs: {
           vendor_code,
           vendor_name,
@@ -495,16 +518,16 @@ const VendorProductTable = () => {
     const rowIndex = updatedRowData.findIndex(
       (row) => row.vendor_code === params.data.vendor_code && row.company_code === params.data.company_code && row.keyfield == params.data.keyfield
     );
-  
+
     if (rowIndex !== -1) {
       updatedRowData[rowIndex][params.colDef.field] = params.newValue;
       setRowData(updatedRowData);
-  
+
       setEditedData((prevData) => {
         const existingIndex = prevData.findIndex(
           (item) => item.vendor_code === params.data.vendor_code && item.company_code === params.data.company_code && item.keyfield == params.data.keyfield
         );
-  
+
         if (existingIndex !== -1) {
           const updatedEdited = [...prevData];
           updatedEdited[existingIndex] = updatedRowData[rowIndex];
@@ -515,7 +538,7 @@ const VendorProductTable = () => {
       });
     }
   };
-  
+
   const clearInputFields = () => {
     setvendor_code("");
     setvendor_name("");
@@ -531,7 +554,7 @@ const VendorProductTable = () => {
     setRowData([]);
   };
 
-  const handleSearch = async () => {
+  const handleSearch = async (searchParams = null) => {
     setLoading(true);
     try {
       const response = await fetch(`${config.apiBaseUrl}/vendorsearchdata`, {
@@ -539,7 +562,19 @@ const VendorProductTable = () => {
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ company_code: sessionStorage.getItem('selectedCompanyCode'), vendor_code, vendor_name, panno, vendor_gst_no, vendor_addr_1, vendor_area_code, vendor_state_code, vendor_country_code, vendor_mobile_no, status })
+        body: JSON.stringify({
+          company_code: sessionStorage.getItem('selectedCompanyCode'),
+          vendor_code: searchParams?.vendor_code ?? vendor_code,
+          vendor_name: searchParams?.vendor_name ?? vendor_name,
+          panno: searchParams?.panno ?? panno,
+          vendor_gst_no: searchParams?.vendor_gst_no ?? vendor_gst_no,
+          vendor_addr_1: searchParams?.vendor_addr_1 ?? vendor_addr_1,
+          vendor_area_code: searchParams?.vendor_area_code ?? vendor_area_code,
+          vendor_state_code: searchParams?.vendor_state_code ?? vendor_state_code,
+          vendor_country_code: searchParams?.vendor_country_code ?? vendor_country_code,
+          vendor_mobile_no: searchParams?.vendor_mobile_no ?? vendor_mobile_no,
+          status: searchParams?.status ?? status,
+        })
       });
       if (response.ok) {
         const searchData = await response.json();
@@ -565,7 +600,6 @@ const VendorProductTable = () => {
   const handleChangeStatus = (selectedStatus) => {
     setSelectedStatus(selectedStatus);
     setstatus(selectedStatus ? selectedStatus.value : '');
-    setError(false);
   };
 
   const filteredOptionStatus = statusdrop.map((option) => ({
@@ -1109,16 +1143,16 @@ const VendorProductTable = () => {
           <div className="col-md-3 mb-2">
             <label className='fw-bold'>Status</label>
             <div title="Please select the status">
-            <Select
-              id="status"
-              value={selectedStatus}
-              onChange={handleChangeStatus}
-              // onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              options={filteredOptionStatus}
-              classNamePrefix="react-select"
-              placeholder=""
-            />
-          </div>
+              <Select
+                id="status"
+                value={selectedStatus}
+                onChange={handleChangeStatus}
+                // onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                options={filteredOptionStatus}
+                classNamePrefix="react-select"
+                placeholder=""
+              />
+            </div>
           </div>
           <div className="col-md-2 mb-2 mt-4">
             <button title="Search" onClick={handleSearch} className="button2 " >
