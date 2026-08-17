@@ -5,22 +5,14 @@ import { useNavigate } from 'react-router-dom';
 import { ToastContainer, toast } from 'react-toastify';
 import { useLocation } from "react-router-dom";
 import Barcode from 'react-barcode';
-
 import {
-  ModuleRegistry,
-  ClientSideRowModelModule,
-  PaginationModule,
-  TextFilterModule,
-  NumberFilterModule,
-  DateFilterModule,
-  CustomFilterModule,
-  CellStyleModule,
-  ValidationModule
+  ModuleRegistry, ClientSideRowModelModule, PaginationModule, TextFilterModule, NumberFilterModule,
+  DateFilterModule, CustomFilterModule, CellStyleModule, ValidationModule
 } from 'ag-grid-community';
 import { useReactToPrint } from 'react-to-print';
 import '../../App.css';
 import LoadingScreen from '../../BookLoader';
-import secureLocalStorage from "react-secure-storage"; 
+import secureLocalStorage from "react-secure-storage";
 
 ModuleRegistry.registerModules([
   ClientSideRowModelModule,
@@ -57,7 +49,7 @@ const VendorProductTable = () => {
   const [Item_Register_Brand, setItem_Register_Brand] = useState("");
   const [Item_Our_Brand, setItem_Our_Brand] = useState("");
   const [status, setStatus] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError] = useState(false);
   const [regbranddrop, setregbranddrop] = useState([]);
   const [ourbranddrop, setourbranddrop] = useState([]);
   const [statusdrop, setStatusdrop] = useState([]);
@@ -113,25 +105,139 @@ const VendorProductTable = () => {
   const modified_by = sessionStorage.getItem("selectedUserCode");
   const [isUpdated, setIsUpdated] = useState(false);
   const [loading, setLoading] = useState(false);
-  const location = useLocation();
-  const { mode, selectedRow } = location.state || {};
+
   const navigate = useNavigate();
-  const handleClick = () => { navigate('/Item'); };
+  // const handleClick = () => { navigate('/Item'); };
   const [Item_Description, setItem_Description] = useState("");
   const [Is_Default, setIs_Default] = useState("");
   const [Display_Order, setDisplay_Order] = useState("");
 
+  const location = useLocation();
+  const locationState = location.state || {};
+  const mode = locationState.mode || "create"; // ✅ default fallback
+  const selectedRow = locationState.selectedRow || null;
+  const ItemCode = location.state?.Item_code;
+  const company_code = sessionStorage.getItem('selectedCompanyCode');
 
+  useEffect(() => {
+    if (!location.state) {
+      clearInputFields(); // ensure fresh create mode
+    }
+  }, []);
 
-  // console.log(selectedRow)
+  useEffect(() => {
+    if (mode === "update" && ItemCode) {
+      fetchItemData();
+    }
+  }, [mode, ItemCode]);
+
+  const fetchItemData = async () => {
+    try {
+      setLoading(true);
+
+      const response = await fetch(`${config.apiBaseUrl}/getItemData`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          Item_code: ItemCode,
+          company_code
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.length > 0) {
+        const Item = data[0];
+        setBarcodeValue(Item.Barcode_Data || "")
+        setItem_code(Item.Item_code || "");
+        setItem_name(Item.Item_name || "");
+        setItem_wigh(Item.Item_wigh || 0);
+        sethsn(Item.hsn || "");
+        setItem_std_sales_price(Item.Item_std_sales_price || 0);
+        setItem_std_purch_price(Item.Item_std_purch_price || 0);
+        setItem_Last_salesRate_IncludingTax(Item.Item_Last_salesRate_IncludingTax || 0);
+        setItem_Last_salesRate_ExTax(Item.Item_Last_salesRate_ExTax || 0);
+        setItem_short_name(Item.Item_short_name || "");
+        setMRPPrice(Item.MRP_Price || 0);
+        setDiscount(Item.discount_Percentage || 0);
+        setItem_BaseUOM(Item.Item_BaseUOM || "");
+        setItem_SecondaryUOM(Item.Item_SecondaryUOM || "");
+        setItem_Register_Brand(Item.Item_Register_Brand || "");
+        setItem_Our_Brand(Item.Item_Our_Brand || "");
+        setStatus(Item.status || "");
+        setItem_sales_Othertax_type(Item.Item_other_sales_taxtype || "");
+        setItem_sales_tax_type(Item.Item_sales_tax_type || "");
+        setItem_purch_tax_type(Item.Item_purch_tax_type || "");
+        setItem_purch_othertax_type(Item.Item_other_purch_taxtype || "");
+        setItem_variant(Item.Item_variant || "");
+        setSelectedUom({
+          label: Item.Item_BaseUOM,
+          value: Item.Item_BaseUOM,
+        });
+        setSelectedSuom({
+          label: Item.Item_SecondaryUOM,
+          value: Item.Item_SecondaryUOM,
+        });
+        setSelectedRegister({
+          label: Item.Item_Register_Brand,
+          value: Item.Item_Register_Brand,
+        });
+        setSelectedBrand({
+          label: Item.Item_Our_Brand,
+          value: Item.Item_Our_Brand,
+        });
+        setSelectedStatus({
+          label: Item.status,
+          value: Item.status,
+        });
+        setselectedsaltax({
+          label: Item.Item_sales_tax_type,
+          value: Item.Item_sales_tax_type,
+        });
+        setselectedOthersaltax({
+          label: Item.Item_other_sales_taxtype,
+          value: Item.Item_other_sales_taxtype,
+        });
+        setselectedpurtax({
+          label: Item.Item_purch_tax_type,
+          value: Item.Item_purch_tax_type,
+        });
+
+        setselectedOtherpurtax({
+          label: Item.Item_other_purch_taxtype,
+          value: Item.Item_other_purch_taxtype,
+        });
+        setselectedvarient({
+          label: Item.Item_variant,
+          value: Item.Item_variant,
+        });
+
+        if (Item.item_images && Item.item_images.data) {
+          const base64Image = arrayBufferToBase64(Item.item_images.data);
+          const file = base64ToFile(`data:image/jpeg;base64,${base64Image}`, 'item_images.jpg');
+          setSelectedImage(`data:image/jpeg;base64,${base64Image}`);
+          setItem_image(file)
+        } else {
+          setSelectedImage(null);
+        }
+
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to fetch item details");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const clearInputFields = () => {
     setBarcodeValue("");
     setItem_code("");
     setItem_name("");
     setItem_wigh(0);
     sethsn("");
-    // setItem_stock_type("");
-    // setItem_stock_code("");
     setItem_std_sales_price("");
     setItem_std_purch_price("");
     setItem_Last_salesRate_IncludingTax(0);
@@ -143,9 +249,7 @@ const VendorProductTable = () => {
     setSelectedBrand('');
     setSelectedStatus('');
     setselectedsaltax('');
-    setselectedOthersaltax('');
     setSelectedImage('');
-    setselectedOtherpurtax('');
     setselectedpurtax('');
     setselectedvarient('');
     setMRPPrice(0);
@@ -160,6 +264,8 @@ const VendorProductTable = () => {
     setItem_purch_tax_type('');
     setItem_purch_othertax_type('');
     setItem_variant('');
+    setselectedOthersaltax('');
+    setselectedOtherpurtax('');
   };
 
   const arrayBufferToBase64 = (buffer) => {
@@ -171,91 +277,100 @@ const VendorProductTable = () => {
     return window.btoa(binary);
   };
 
-  useEffect(() => {
-    if (mode === "update" && selectedRow && !isUpdated) {
-      setBarcodeValue(selectedRow.Barcode_Data || "")
-      setItem_code(selectedRow.Item_code || "");
-      setItem_name(selectedRow.Item_name || "");
-      setItem_wigh(selectedRow.Item_wigh || 0);
-      sethsn(selectedRow.hsn || "");
-      // setItem_stock_type(selectedRow.Item_stock_type || "");
-      // setItem_stock_code(selectedRow.Item_stock_code || "");
-      setItem_std_sales_price(selectedRow.Item_std_sales_price || 0);
-      setItem_std_purch_price(selectedRow.Item_std_purch_price || 0);
-      setItem_Last_salesRate_IncludingTax(selectedRow.Item_Last_salesRate_IncludingTax || 0);
-      setItem_Last_salesRate_ExTax(selectedRow.Item_Last_salesRate_ExTax || 0);
-      setItem_short_name(selectedRow.Item_short_name || "");
-      setMRPPrice(selectedRow.MRP_Price || 0);
-      setDiscount(selectedRow.discount_Percentage || 0);
-      setItem_BaseUOM(selectedRow.Item_BaseUOM || "");
-      setItem_SecondaryUOM(selectedRow.Item_SecondaryUOM || "");
-      setItem_Register_Brand(selectedRow.Item_Register_Brand || "");
-      setItem_Our_Brand(selectedRow.Item_Our_Brand || "");
-      setStatus(selectedRow.status || "");
-      setItem_sales_Othertax_type(selectedRow.Item_other_sales_taxtype || "");
-      setItem_sales_tax_type(selectedRow.Item_sales_tax_type || "");
-      setItem_purch_tax_type(selectedRow.Item_purch_tax_type || "");
-      setItem_purch_othertax_type(selectedRow.Item_other_purch_taxtype || "");
-      setItem_Description(selectedRow.Item_Description || "");
-      setIs_Default(selectedRow.Is_Default ?? false);
-      setDisplay_Order(selectedRow.Display_Order ?? 0);
-      setItem_variant(selectedRow.Item_variant || "");
-      setSelectedUom({
-        label: selectedRow.Item_BaseUOM,
-        value: selectedRow.Item_BaseUOM,
-      });
-      setSelectedSuom({
-        label: selectedRow.Item_SecondaryUOM,
-        value: selectedRow.Item_SecondaryUOM,
-      });
-      setSelectedRegister({
-        label: selectedRow.Item_Register_Brand,
-        value: selectedRow.Item_Register_Brand,
-      });
-      setSelectedBrand({
-        label: selectedRow.Item_Our_Brand,
-        value: selectedRow.Item_Our_Brand,
-      });
-      setSelectedStatus({
-        label: selectedRow.status,
-        value: selectedRow.status,
-      });
-      setselectedsaltax({
-        label: selectedRow.Item_sales_tax_type,
-        value: selectedRow.Item_sales_tax_type,
-      });
-      setselectedOthersaltax({
-        label: selectedRow.Item_other_sales_taxtype,
-        value: selectedRow.Item_other_sales_taxtype,
-      });
-      setselectedpurtax({
-        label: selectedRow.Item_purch_tax_type,
-        value: selectedRow.Item_purch_tax_type,
-      });
+  // useEffect(() => {
+  //   if (mode === "update" && selectedRow && !isUpdated) {
+  //     setBarcodeValue(selectedRow.Barcode_Data || "")
+  //     setItem_code(selectedRow.Item_code || "");
+  //     setItem_name(selectedRow.Item_name || "");
+  //     setItem_wigh(selectedRow.Item_wigh || 0);
+  //     sethsn(selectedRow.hsn || "");
+  //     // setItem_stock_type(selectedRow.Item_stock_type || "");
+  //     // setItem_stock_code(selectedRow.Item_stock_code || "");
+  //     setItem_std_sales_price(selectedRow.Item_std_sales_price || 0);
+  //     setItem_std_purch_price(selectedRow.Item_std_purch_price || 0);
+  //     setItem_Last_salesRate_IncludingTax(selectedRow.Item_Last_salesRate_IncludingTax || 0);
+  //     setItem_Last_salesRate_ExTax(selectedRow.Item_Last_salesRate_ExTax || 0);
+  //     setItem_short_name(selectedRow.Item_short_name || "");
+  //     setMRPPrice(selectedRow.MRP_Price || 0);
+  //     setDiscount(selectedRow.discount_Percentage || 0);
+  //     setItem_BaseUOM(selectedRow.Item_BaseUOM || "");
+  //     setItem_SecondaryUOM(selectedRow.Item_SecondaryUOM || "");
+  //     setItem_Register_Brand(selectedRow.Item_Register_Brand || "");
+  //     setItem_Our_Brand(selectedRow.Item_Our_Brand || "");
+  //     setStatus(selectedRow.status || "");
+  //     setItem_sales_Othertax_type(selectedRow.Item_other_sales_taxtype || "");
+  //     setItem_sales_tax_type(selectedRow.Item_sales_tax_type || "");
+  //     setItem_purch_tax_type(selectedRow.Item_purch_tax_type || "");
+  //     setItem_purch_othertax_type(selectedRow.Item_other_purch_taxtype || "");
+  //     setItem_Description(selectedRow.Item_Description || "");
+  //     setIs_Default(selectedRow.Is_Default ?? false);
+  //     setDisplay_Order(selectedRow.Display_Order ?? 0);
+  //     setItem_variant(selectedRow.Item_variant || "");
+  //     setSelectedUom({
+  //       label: selectedRow.Item_BaseUOM,
+  //       value: selectedRow.Item_BaseUOM,
+  //     });
+  //     setSelectedSuom({
+  //       label: selectedRow.Item_SecondaryUOM,
+  //       value: selectedRow.Item_SecondaryUOM,
+  //     });
+  //     setSelectedRegister({
+  //       label: selectedRow.Item_Register_Brand,
+  //       value: selectedRow.Item_Register_Brand,
+  //     });
+  //     setSelectedBrand({
+  //       label: selectedRow.Item_Our_Brand,
+  //       value: selectedRow.Item_Our_Brand,
+  //     });
+  //     setSelectedStatus({
+  //       label: selectedRow.status,
+  //       value: selectedRow.status,
+  //     });
+  //     setselectedsaltax({
+  //       label: selectedRow.Item_sales_tax_type,
+  //       value: selectedRow.Item_sales_tax_type,
+  //     });
+  //     setselectedOthersaltax({
+  //       label: selectedRow.Item_other_sales_taxtype,
+  //       value: selectedRow.Item_other_sales_taxtype,
+  //     });
+  //     setselectedpurtax({
+  //       label: selectedRow.Item_purch_tax_type,
+  //       value: selectedRow.Item_purch_tax_type,
+  //     });
 
-      setselectedOtherpurtax({
-        label: selectedRow.Item_other_purch_taxtype,
-        value: selectedRow.Item_other_purch_taxtype,
-      });
-      setselectedvarient({
-        label: selectedRow.Item_variant,
-        value: selectedRow.Item_variant,
-      });
+  //     setselectedOtherpurtax({
+  //       label: selectedRow.Item_other_purch_taxtype,
+  //       value: selectedRow.Item_other_purch_taxtype,
+  //     });
+  //     setselectedvarient({
+  //       label: selectedRow.Item_variant,
+  //       value: selectedRow.Item_variant,
+  //     });
 
-      if (selectedRow.item_images && selectedRow.item_images.data) {
-        const base64Image = arrayBufferToBase64(selectedRow.item_images.data);
-        const file = base64ToFile(`data:image/jpeg;base64,${base64Image}`, 'item_images.jpg');
-        setSelectedImage(`data:image/jpeg;base64,${base64Image}`);
-        setItem_image(file)
-      } else {
-        setSelectedImage(null);
-      }
+  //     if (selectedRow.item_images && selectedRow.item_images.data) {
+  //       const base64Image = arrayBufferToBase64(selectedRow.item_images.data);
+  //       const file = base64ToFile(`data:image/jpeg;base64,${base64Image}`, 'item_images.jpg');
+  //       setSelectedImage(`data:image/jpeg;base64,${base64Image}`);
+  //       setItem_image(file)
+  //     } else {
+  //       setSelectedImage(null);
+  //     }
 
-    } else if (mode === "create") {
-      clearInputFields();
-    }
-  }, [mode, selectedRow, isUpdated]);
+  //   } else if (mode === "create") {
+  //     clearInputFields();
+  //   }
+  // }, [mode, selectedRow, isUpdated]);
 
+  const handleClick = () => {
+    navigate("/Item", {
+      state: {
+        refreshGrid: true,
+        // preservedRowData: location.state?.preservedRowData,
+        preservedInputs: location.state?.preservedInputs,
+      },
+    });
+  };
 
   const base64ToFile = (base64Data, fileName) => {
     if (!base64Data || !base64Data.startsWith("data:")) {
@@ -521,9 +636,9 @@ const VendorProductTable = () => {
     label: option.attributedetails_name,
   }));
   const filteredOptionVariant = variantdrop.map((option) => ({
-  value: option.Item_Category_Code,
-  label: `${option.Item_Category_Code} - ${option.Item_Category_Name}`,
-}));
+    value: option.Item_Category_Code,
+    label: `${option.Item_Category_Code} - ${option.Item_Category_Name}`,
+  }));
 
 
   const filteredOptiontaxitemsales = saltaxdrop.map((option) => ({
@@ -584,7 +699,7 @@ const VendorProductTable = () => {
 
   const handleChangeOthersaltax = (selectedsaltax) => {
     setselectedOthersaltax(selectedsaltax);
-     setItem_sales_Othertax_type(selectedsaltax ? selectedsaltax.value : '');
+    setItem_sales_Othertax_type(selectedsaltax ? selectedsaltax.value : '');
   };
 
   const handleChangepurtax = (selectedpurtax) => {
@@ -616,10 +731,11 @@ const VendorProductTable = () => {
       !MRPprice ||
       !status
     ) {
-      setError(" ");
+      setError(true);
       toast.warning("Error: Missing required fields");
       return;
     }
+    setError(false);
     setLoading(true);
 
     try {
@@ -663,13 +779,10 @@ const VendorProductTable = () => {
         body: formData,
       });
 
-      if (response.status === 200) {
-        console.log("Data inserted successfully");
-        setTimeout(() => {
-          toast.success("Data inserted successfully!", {
-            onClose: () => window.location.reload(),
-          });
-        }, 1000);
+      if (response.ok) {
+        toast.success("Data inserted Successfully", {
+          onClose: () => clearInputFields(),
+        });
       } else if (response.status === 400) {
         const errorResponse = await response.json();
         console.error(errorResponse.message);
@@ -726,14 +839,15 @@ const VendorProductTable = () => {
       !MRPprice ||
       !selectedStatus ||
       Item_Description === undefined ||
-  Item_Description === "" ||
-  Is_Default === undefined ||      // ✅ correct
-  Display_Order === undefined 
+      Item_Description === "" ||
+      Is_Default === undefined ||      // ✅ correct
+      Display_Order === undefined
     ) {
-      setError(" ");
+      setError(true);
       toast.warning("Error: Missing required fields");
       return;
     }
+    setError(false);
     setLoading(true);
 
     try {
@@ -776,11 +890,10 @@ const VendorProductTable = () => {
         body: formData,
       });
 
-      if (response.status === 200) {
-        console.log("Data inserted successfully");
-        toast.success("Data Updated successfully!")
-        setIsUpdated(true);
-        clearInputFields();
+      if (response.ok) {
+        toast.success("Data updated successfully", {
+          // onClose: () => clearInputFields()
+        });
       } else if (response.status === 400) {
         const errorResponse = await response.json();
         console.error(errorResponse.message);
@@ -868,20 +981,20 @@ const VendorProductTable = () => {
           <div className="col-md-3 mb-2">
             <label className={`fw-bold ${error && !selectedvarient ? 'text-danger' : ''}`}>Category<span className="text-danger">*</span></label>
             <div title="Please select the variant">
-            <Select
-              id="SUOM"
-              value={selectedvarient}
-              onChange={handleChangeVariant}
-              options={filteredOptionVariant}
-              classNamePrefix="react-select"
-              placeholder=""
-              maxLength={18}
-              ref={variant}
-              readOnly={mode === "update"}
-              isDisabled={mode === "update"}
-              onKeyDown={(e) => handleKeyDown(e, nam, variant)}
-            />
-          </div>
+              <Select
+                id="SUOM"
+                value={selectedvarient}
+                onChange={handleChangeVariant}
+                options={filteredOptionVariant}
+                classNamePrefix="react-select"
+                placeholder=""
+                maxLength={18}
+                ref={variant}
+                readOnly={mode === "update"}
+                isDisabled={mode === "update"}
+                onKeyDown={(e) => handleKeyDown(e, nam, variant)}
+              />
+            </div>
           </div>
           <div className="col-md-3 mb-2">
             <label className={`fw-bold ${error && !Item_name ? 'text-danger' : ''}`}>Name<span className="text-danger">*</span></label>
@@ -925,35 +1038,35 @@ const VendorProductTable = () => {
           <div className="col-md-3 mb-2">
             <label className={`fw-bold ${error && !selectedUom ? 'text-danger' : ''}`}>Base UOM<span className="text-danger">*</span></label>
             <div title="Please select the base UOM">
-            <Select
-              id="BUOM"
-              value={selectedUom}
-              onChange={handleChangeUom}
-              options={filteredOptionuom}
-              classNamePrefix="react-select"
-              placeholder=""
-              maxLength={60}
-              ref={baseuom}
-              onKeyDown={(e) => handleKeyDown(e, seceondoryuom, baseuom)}
-            />
-          </div>
+              <Select
+                id="BUOM"
+                value={selectedUom}
+                onChange={handleChangeUom}
+                options={filteredOptionuom}
+                classNamePrefix="react-select"
+                placeholder=""
+                maxLength={60}
+                ref={baseuom}
+                onKeyDown={(e) => handleKeyDown(e, seceondoryuom, baseuom)}
+              />
+            </div>
           </div>
           <div className="col-md-3 mb-2">
             <label className={`fw-bold ${error && !selectedSuom ? 'text-danger' : ''}`}>Secondary UOM<span className="text-danger">*</span></label>
             <div title="Please select the secondary UOM">
-            <Select
-               type="text"
-              id="BUOM"
-              value={selectedSuom}
-              onChange={handleChangeSuom}
-              options={filteredOptionSuom}
-              classNamePrefix="react-select"
-              placeholder=""
-              maxLength={60}
-              ref={seceondoryuom}
-              onKeyDown={(e) => handleKeyDown(e, shortname, seceondoryuom)}
-            />
-          </div>
+              <Select
+                type="text"
+                id="BUOM"
+                value={selectedSuom}
+                onChange={handleChangeSuom}
+                options={filteredOptionSuom}
+                classNamePrefix="react-select"
+                placeholder=""
+                maxLength={60}
+                ref={seceondoryuom}
+                onKeyDown={(e) => handleKeyDown(e, shortname, seceondoryuom)}
+              />
+            </div>
           </div>
           <div className="col-md-3 mb-2">
             <label className='fw-bold'>Short Name</label>
@@ -1099,70 +1212,70 @@ const VendorProductTable = () => {
           <div className="col-md-3 mb-2">
             <label className={`fw-bold ${error && !selectedpurtax ? 'text-danger' : ''}`}>Local Purchase Tax Type<span className="text-danger">*</span></label>
             <div title="Please select the local purchase tax type">
-            <Select
-              type="text"
-              id="SUOM"
-              value={selectedpurtax}
-              onChange={handleChangepurtax}
-              options={filteredOptiontaxitempur}
-              classNamePrefix="react-select"
-              placeholder=""
-              maxLength={18}
-              ref={purchasetaxtype}
-              onKeyDown={(e) => handleKeyDown(e, otherpurchasetaxtype, purchasetaxtype)}
-            />
-          </div>
+              <Select
+                type="text"
+                id="SUOM"
+                value={selectedpurtax}
+                onChange={handleChangepurtax}
+                options={filteredOptiontaxitempur}
+                classNamePrefix="react-select"
+                placeholder=""
+                maxLength={18}
+                ref={purchasetaxtype}
+                onKeyDown={(e) => handleKeyDown(e, otherpurchasetaxtype, purchasetaxtype)}
+              />
+            </div>
           </div>
           <div className="col-md-3 mb-2">
             <label className={`fw-bold ${error && !selectedOtherpurtax ? 'text-danger' : ''}`}>Other Purchase Tax Type<span className="text-danger">*</span></label>
             <div title="Please select the other purchase tax type">
-            <Select
-              type="text"
-              id="SUOM"
-              value={selectedOtherpurtax}
-              onChange={handleChangeotherpurtax}
-              options={filteredOptionothertaxitempur}
-              classNamePrefix="react-select"
-              placeholder=""
-              maxLength={18}
-              ref={otherpurchasetaxtype}
-              onKeyDown={(e) => handleKeyDown(e, salestaxtype, otherpurchasetaxtype)}
-            />
-          </div>
+              <Select
+                type="text"
+                id="SUOM"
+                value={selectedOtherpurtax}
+                onChange={handleChangeotherpurtax}
+                options={filteredOptionothertaxitempur}
+                classNamePrefix="react-select"
+                placeholder=""
+                maxLength={18}
+                ref={otherpurchasetaxtype}
+                onKeyDown={(e) => handleKeyDown(e, salestaxtype, otherpurchasetaxtype)}
+              />
+            </div>
           </div>
           <div className="col-md-3 mb-2">
             <label className={`fw-bold ${error && !selectedsaltax ? 'text-danger' : ''}`}>Local Sales Tax Type<span className="text-danger">*</span></label>
             <div title="Please select the local sales tax type">
-            <Select
-              type="text"
-              id="SUOM"
-              value={selectedsaltax}
-              onChange={handleChangesaltax}
-              options={filteredOptiontaxitemsales}
-              classNamePrefix="react-select"
-              placeholder=""
-              maxLength={18}
-              ref={salestaxtype}
-              onKeyDown={(e) => handleKeyDown(e, othersalestaxtype, salestaxtype)}
-            />
-          </div>
+              <Select
+                type="text"
+                id="SUOM"
+                value={selectedsaltax}
+                onChange={handleChangesaltax}
+                options={filteredOptiontaxitemsales}
+                classNamePrefix="react-select"
+                placeholder=""
+                maxLength={18}
+                ref={salestaxtype}
+                onKeyDown={(e) => handleKeyDown(e, othersalestaxtype, salestaxtype)}
+              />
+            </div>
           </div>
           <div className="col-md-3 mb-2">
             <label className={`fw-bold ${error && !selectedsaltax ? 'text-danger' : ''}`}>Other Sales Tax Type<span className="text-danger">*</span></label>
             <div title="Please select the other sales tax type">
-            <Select
-              type="text"
-              id="SUOM"
-              value={selectedOthersaltax}
-              onChange={handleChangeOthersaltax}
-              options={filteredOptionOthertaxitemsales}
-              classNamePrefix="react-select"
-              placeholder=""
-              maxLength={18}
-              ref={othersalestaxtype}
-              onKeyDown={(e) => handleKeyDown(e, HSNcode, othersalestaxtype)}
-            />
-          </div>
+              <Select
+                type="text"
+                id="SUOM"
+                value={selectedOthersaltax}
+                onChange={handleChangeOthersaltax}
+                options={filteredOptionOthertaxitemsales}
+                classNamePrefix="react-select"
+                placeholder=""
+                maxLength={18}
+                ref={othersalestaxtype}
+                onKeyDown={(e) => handleKeyDown(e, HSNcode, othersalestaxtype)}
+              />
+            </div>
           </div>
           <div className="col-md-3 mb-2">
             <label className={`fw-bold ${error && !hsn ? 'text-danger' : ''}`}>HSN Code<span className="text-danger">*</span></label>
@@ -1182,53 +1295,53 @@ const VendorProductTable = () => {
           <div className="col-md-3 mb-2">
             <label className={`fw-bold ${error && !selectedRegister ? 'text-danger' : ''}`}>Register Brand<span className="text-danger">*</span></label>
             <div title="Please select the register brand">
-            <Select
-              type="text"
-              id="regbrand"
-              value={selectedRegister}
-              onChange={handleChangeRegister}
-              options={filteredOptionRegister}
-              classNamePrefix="react-select"
-              placeholder=""
-              maxLength={30}
-              ref={regbrand}
-              onKeyDown={(e) => handleKeyDown(e, ourbrand, regbrand)}
-            />
-          </div>
+              <Select
+                type="text"
+                id="regbrand"
+                value={selectedRegister}
+                onChange={handleChangeRegister}
+                options={filteredOptionRegister}
+                classNamePrefix="react-select"
+                placeholder=""
+                maxLength={30}
+                ref={regbrand}
+                onKeyDown={(e) => handleKeyDown(e, ourbrand, regbrand)}
+              />
+            </div>
           </div>
           <div className="col-md-3 mb-2">
             <label className={`fw-bold ${error && !selectedBrand ? 'text-danger' : ''}`}>Our Brand<span className="text-danger">*</span></label>
             <div title="Please select the our brand">
-            <Select
-              type="text"
-              id="ahsts"
-              value={selectedBrand}
-              onChange={handleChangeBrand}
-              options={filteredOptionBrand}
-              classNamePrefix="react-select"
-              placeholder=""
-              maxLength={30}
-              ref={ourbrand}
-              onKeyDown={(e) => handleKeyDown(e, Status, ourbrand)}
-            />
-          </div>
+              <Select
+                type="text"
+                id="ahsts"
+                value={selectedBrand}
+                onChange={handleChangeBrand}
+                options={filteredOptionBrand}
+                classNamePrefix="react-select"
+                placeholder=""
+                maxLength={30}
+                ref={ourbrand}
+                onKeyDown={(e) => handleKeyDown(e, Status, ourbrand)}
+              />
+            </div>
           </div>
           <div className="col-md-3 mb-2">
             <label className={`fw-bold ${error && !status ? 'text-danger' : ''}`}>Status<span className="text-danger">*</span></label>
             <div title="Please select the status">
-            <Select
-              type="text"
-              id="ahsts"
-              value={selectedStatus}
-              onChange={handleChangeStatus}
-              options={filteredOptionStatus}
-              classNamePrefix="react-select"
-              placeholder=""
-              maxLength={250}
-              ref={Status}
-              onKeyDown={(e) => handleKeyDown(e, img, Status)}
-            />
-          </div>
+              <Select
+                type="text"
+                id="ahsts"
+                value={selectedStatus}
+                onChange={handleChangeStatus}
+                options={filteredOptionStatus}
+                classNamePrefix="react-select"
+                placeholder=""
+                maxLength={250}
+                ref={Status}
+                onKeyDown={(e) => handleKeyDown(e, img, Status)}
+              />
+            </div>
           </div>
           <div className="col-md-3 mb-2">
             <label className='fw-bold'>Image</label>
@@ -1238,7 +1351,7 @@ const VendorProductTable = () => {
               accept="image/*"
               onChange={handleFileSelect}
               ref={img}
-              onKeyDown={(e) => handleKeyDown(e,barCode, img)}
+              onKeyDown={(e) => handleKeyDown(e, barCode, img)}
             />
           </div>
           {selectedImage && (
@@ -1276,13 +1389,13 @@ const VendorProductTable = () => {
               }}
             />
           </div>
-            <div className="col-md-3 form-group mb-2" >
-                        <div class="exp-form-floating">
-                          <div ref={componentRef} style={{ marginTop: '20px', overflowX:"auto" }}>
-                         {barcodeValue && <Barcode value={Item_code} displayValue={false}  height={20}/>}
-                        </div>
-                        </div>
-                      </div>
+          <div className="col-md-3 form-group mb-2" >
+            <div class="exp-form-floating">
+              <div ref={componentRef} style={{ marginTop: '20px', overflowX: "auto" }}>
+                {barcodeValue && <Barcode value={Item_code} displayValue={false} height={20} />}
+              </div>
+            </div>
+          </div>
           {/* <div className="col-md-3 mb-2">
             {mode === "create" ? (
               <>
@@ -1305,8 +1418,8 @@ const VendorProductTable = () => {
               </>
             )}
           </div> */}
-                    <div className="col-md-3 mb-2">
-            <label className={`fw-bold ${error && !Item_Description ? 'text-danger' : ''}`}>Item Description</label>
+          <div className="col-md-3 mb-2">
+            <label className={`fw-bold ${error && !Item_Description ? 'text-danger' : ''}`}>Item Description<span className="text-danger">*</span></label>
             <input
               type="text"
               className="form-control"
@@ -1323,7 +1436,7 @@ const VendorProductTable = () => {
             />
           </div>
 
-                    <div className="col-md-3 mb-2">
+          <div className="col-md-3 mb-2">
             <label className={`fw-bold ${error && !Is_Default ? 'text-danger' : ''}`}>Is Default<span className="text-danger">*</span></label>
             <input
               type="text"
@@ -1341,7 +1454,7 @@ const VendorProductTable = () => {
             />
           </div>
 
-                    <div className="col-md-3 mb-2">
+          <div className="col-md-3 mb-2">
             <label className='fw-bold'>Display Order</label>
             <input
               type="text"

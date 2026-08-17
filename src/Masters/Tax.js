@@ -1,23 +1,16 @@
 import React, { useState, useEffect, useRef } from "react";
 import { AgGridReact } from 'ag-grid-react';
 import Select from 'react-select';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  ModuleRegistry,
-  ClientSideRowModelModule,
-  PaginationModule,
-  TextFilterModule,
-  NumberFilterModule,
-  DateFilterModule,
-  CustomFilterModule,
-  CellStyleModule,
-  ValidationModule
+  ModuleRegistry, ClientSideRowModelModule, PaginationModule, TextFilterModule, NumberFilterModule,
+  DateFilterModule, CustomFilterModule, CellStyleModule, ValidationModule
 } from 'ag-grid-community';
 import { showConfirmationToast } from '../ToastConfirmation';
 import { ToastContainer, toast } from 'react-toastify';
 import '../App.css';
 import LoadingScreen from '../BookLoader';
-import secureLocalStorage from "react-secure-storage"; 
+import secureLocalStorage from "react-secure-storage";
 
 // Register necessary modules
 ModuleRegistry.registerModules([
@@ -59,14 +52,73 @@ const VendorProductTable = () => {
   const [modifiedDate, setModifiedDate] = useState("");
   const navigate = useNavigate();
 
+  const location = useLocation();
 
   const permissions = JSON.parse(sessionStorage.getItem('permissions')) || {};
   const taxPermissions = permissions
     .filter(permission => permission.screen_type === 'Tax')
     .map(permission => permission.permission_type.toLowerCase());
 
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      const isReloadShortcut =
+        (event.ctrlKey && event.key.toLowerCase() === "r") ||
+        (event.altKey && event.key.toLowerCase() === "r") ||
+        event.key === "F5";
+
+      if (isReloadShortcut) {
+        event.preventDefault();
+        clearInputFields();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  useEffect(() => {
+    // if (location.state?.preservedRowData) {
+    //   setRowData(location.state.preservedRowData);
+    // }
+
+    if (location.state?.preservedInputs) {
+      const inputs = location.state.preservedInputs;
+
+      settax_type_header(inputs.tax_type_header || "");
+      settax_name_details(inputs.tax_name_details || "");
+      settax_percentage(inputs.tax_percentage || 0);
+      settax_shortname(inputs.tax_shortname || "");
+      settax_accountcode(inputs.tax_accountcode || "");
+      settransaction_type(inputs.transaction_type || "");
+      setstatus(inputs.status || "");
+
+      if (inputs.status) {
+        setSelectedStatus({
+          label: inputs.status,
+          value: inputs.status,
+        });
+      }
+
+      if (location.state?.refreshGrid) {
+        handleSearch(inputs);
+      }
+    }
+  }, [location.state]);
+
   const reloadGridData = () => {
     window.location.reload();
+  };
+
+  const clearInputFields = () => {
+    settax_type_header("");
+    settax_name_details("");
+    settax_percentage(0);
+    settax_shortname("");
+    settax_accountcode("");
+    settransaction_type("");
+    setstatus("");
+    setRowData([]);
   };
 
   useEffect(() => {
@@ -128,7 +180,7 @@ const VendorProductTable = () => {
     setError(false);
   };
 
-  const handleSearch = async () => {
+  const handleSearch = async (searchParams = null) => {
     setLoading(true);
     try {
       const response = await fetch(`${config.apiBaseUrl}/taxSearchdata`, {
@@ -137,8 +189,14 @@ const VendorProductTable = () => {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          company_code: sessionStorage.getItem('selectedCompanyCode'), tax_type_header, tax_name_details, tax_percentage, tax_shortname,
-          transaction_type, status, tax_accountcode
+          company_code: sessionStorage.getItem('selectedCompanyCode'), 
+          tax_type_header: searchParams?.tax_type_header || tax_type_header,
+          tax_name_details: searchParams?.tax_name_details || tax_name_details,
+          tax_percentage: searchParams?.tax_percentage || tax_percentage,
+          tax_shortname: searchParams?.tax_shortname || tax_shortname,
+          transaction_type: searchParams?.transaction_type || transaction_type,
+          status: searchParams?.status || status,
+          tax_accountcode: searchParams?.tax_accountcode || tax_accountcode
         })
       });
       if (response.ok) {
@@ -370,8 +428,28 @@ const VendorProductTable = () => {
     navigate('/AddTaxDet', { state: { mode: "create" } });
   };
 
+  // const handleNavigateWithRowData = (selectedRow) => {
+  //   navigate("/AddTaxDet", { state: { mode: "update", selectedRow } });
+  // };
+
   const handleNavigateWithRowData = (selectedRow) => {
-    navigate("/AddTaxDet", { state: { mode: "update", selectedRow } });
+    navigate("/AddTaxDet", {
+      state: {
+        mode: "update",
+        tax_type_header: selectedRow.tax_type_header,
+        tax_name_details: selectedRow.tax_name_details,
+        tax_accountcode: selectedRow.tax_accountcode,
+        preservedInputs: {
+          tax_type_header,
+          tax_name_details,
+          tax_percentage,
+          tax_shortname,
+          tax_accountcode,
+          transaction_type,
+          status
+        },
+      },
+    });
   };
 
   const onSelectionChanged = () => {
@@ -398,16 +476,16 @@ const VendorProductTable = () => {
     const rowIndex = updatedRowData.findIndex(
       (row) => row.tax_type_header === params.data.tax_type_header && row.tax_name_details === params.data.tax_name_details
     );
-  
+
     if (rowIndex !== -1) {
       updatedRowData[rowIndex][params.colDef.field] = params.newValue;
       setRowData(updatedRowData);
-  
+
       setEditedData((prevData) => {
         const existingIndex = prevData.findIndex(
           (item) => item.tax_type_header === params.data.tax_type_header && item.tax_name_details === params.data.tax_name_details
         );
-  
+
         if (existingIndex !== -1) {
           const updatedEdited = [...prevData];
           updatedEdited[existingIndex] = updatedRowData[rowIndex];
@@ -621,7 +699,7 @@ const VendorProductTable = () => {
                 </div>
               )}
               <div className="col-md-2 mt-1 mb-5">
-                <a className='border-none text-dark p-1' title="Reload" onClick={handleReload} style={{ cursor: "pointer" }}> <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
+                <a className='border-none text-dark p-1' title="Reload" onClick={clearInputFields} style={{ cursor: "pointer" }}> <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
                   <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2z" />
                   <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466" />
                 </svg>
@@ -673,7 +751,7 @@ const VendorProductTable = () => {
                         </svg>
                       </button>
                     )}
-                    <a className='border-none text-dark p-1 d-flex justify-content-center' onClick={handleReload} title="Reload" style={{ cursor: "pointer" }}> <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
+                    <a className='border-none text-dark p-1 d-flex justify-content-center' onClick={clearInputFields} title="Reload" style={{ cursor: "pointer" }}> <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
                       <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2z" />
                       <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466" />
                     </svg>
@@ -765,16 +843,16 @@ const VendorProductTable = () => {
           <div className="col-md-3 mb-2">
             <label className='fw-bold'>Status</label>
             <div title="Please select the status">
-            <Select
-              value={selectedStatus}
-              onChange={handleChangeStatus}
-              // onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              options={filteredOptionStatus}
-              classNamePrefix="react-select"
-              placeholder=""
-              maxLength={18}
-            />
-          </div>
+              <Select
+                value={selectedStatus}
+                onChange={handleChangeStatus}
+                // onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                options={filteredOptionStatus}
+                classNamePrefix="react-select"
+                placeholder=""
+                maxLength={18}
+              />
+            </div>
           </div>
           <div className="col-md-2 mb-2 mt-4">
             <button className="button2" onClick={handleSearch} title="Search">

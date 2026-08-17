@@ -16,7 +16,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import { useLocation } from "react-router-dom";
 import '../../App.css';
 import LoadingScreen from '../../BookLoader';
-import secureLocalStorage from "react-secure-storage"; 
+import secureLocalStorage from "react-secure-storage";
 
 // Register necessary modules
 ModuleRegistry.registerModules([
@@ -37,7 +37,7 @@ const VendorProductTable = () => {
   const [selectedRows, setSelectedRows] = useState([]);
   const [usercodedrop, setusercodedrop] = useState([]);
   const [roleiddrop, setroleiddrop] = useState([]);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(false);
   const [selectedUser, setSelectedUser] = useState('');
   const [selectedRole, setSelectedRole] = useState('');
   const usercode = useRef(null);
@@ -50,32 +50,72 @@ const VendorProductTable = () => {
 
   const [isUpdated, setIsUpdated] = useState(false);
   const [keyfield, setKeyfield] = useState('');
-  const location = useLocation();
-  const { mode, selectedRow } = location.state || {};
 
-  console.log(selectedRow);
+  const location = useLocation();
+  const locationState = location.state || {};
+  const mode = locationState.mode || "create"; // ✅ default fallback
+  const selectedRow = locationState.selectedRow || null;
+  const keyfields = location.state?.keyfield;
+  const company_code = sessionStorage.getItem('selectedCompanyCode');
+
+  useEffect(() => {
+    if (!location.state) {
+      clearInputFields(); // ensure fresh create mode
+    }
+  }, []);
+
+  useEffect(() => {
+    if (mode === "update" && keyfields) {
+      fetchRoleMappingData();
+    }
+  }, [mode, keyfields]);
+
+  const fetchRoleMappingData = async () => {
+    try {
+      setLoading(true);
+
+      const response = await fetch(`${config.apiBaseUrl}/getRoleMappingData`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          keyfield: keyfields,
+          company_code
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.length > 0) {
+        const roleMapping = data[0];
+
+        setuser_code(roleMapping.user_code || "");
+        setrole_id(roleMapping.role_id || "");
+        setKeyfield(roleMapping.keyfield || "");
+        setSelectedUser({
+          label: roleMapping.user_code,
+          value: roleMapping.user_code,
+        });
+        setSelectedRole({
+          label: roleMapping.role_id,
+          value: roleMapping.role_id,
+        });
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to fetch role mapping details");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const clearInputFields = () => {
     setSelectedUser("");
+    setuser_code("");
     setSelectedRole("");
+    setrole_id("");
   };
-
-  useEffect(() => {
-    if (mode === "update" && selectedRow && !isUpdated) {
-      setKeyfield(selectedRow.keyfield || "");
-      setSelectedUser({
-        label: selectedRow.user_code,
-        value: selectedRow.user_code,
-      });
-      setSelectedRole({
-        label: selectedRow.role_id,
-        value: selectedRow.role_id,
-      });
-
-    } else if (mode === "create") {
-      clearInputFields();
-    }
-  }, [mode, selectedRow, isUpdated]);
 
   useEffect(() => {
     fetch(`${config.apiBaseUrl}/usercode`)
@@ -124,9 +164,10 @@ const VendorProductTable = () => {
       !role_id
     ) {
       toast.warning("Error: Missing required fields");
-      setError(" ");
+      setError(true);
       return;
     }
+    setError(false);
     setLoading(true);
 
     try {
@@ -143,13 +184,13 @@ const VendorProductTable = () => {
         }),
       });
 
-      if (response.status === 200) {
-        console.log("Data inserted successfully");
-        setTimeout(() => {
-          toast.success("Data inserted successfully!", {
-            onClose: () => window.location.reload(),
-          });
-        }, 1000);
+      if (response.ok) {
+        toast.success("Data inserted successfully", {
+          onClose: () => {
+            clearInputFields();
+            setError(false)
+          }
+        });
       } else {
         const errorResponse = await response.json();
         console.error(errorResponse.message);
@@ -164,7 +205,13 @@ const VendorProductTable = () => {
   };
 
   const handleClick = () => {
-    navigate('/RoleMapping');
+    navigate("/RoleMapping", {
+      state: {
+        refreshGrid: true,
+        // preservedRowData: location.state?.preservedRowData,
+        preservedInputs: location.state?.preservedInputs
+      }
+    });
   };
 
   const handleKeyDown = async (e, nextFieldRef, value, hasValueChanged, setHasValueChanged) => {
@@ -189,11 +236,13 @@ const VendorProductTable = () => {
   };
 
   const handleUpdate = async () => {
-    if (!selectedUser || !selectedRole) {
-      setError(" ");
+    if (!user_code ||
+      !role_id) {
+      setError(true);
       toast.warning("Error: Missing required fields");
       return;
     }
+    setError(false);
     setLoading(true);
 
     try {
@@ -204,17 +253,19 @@ const VendorProductTable = () => {
         },
         body: JSON.stringify({
           company_code: sessionStorage.getItem("selectedCompanyCode"),
-          user_code: selectedUser.value,
-          role_id: selectedRole.value,
+          user_code,
+          role_id,
           modified_by,
           keyfield
         }),
       });
-      if (response.status === 200) {
-        console.log("Data Updated successfully");
-        setIsUpdated(true);
-        clearInputFields();
-        toast.success("Data Updated successfully!")
+      if (response.ok) {
+        toast.success("Data updated successfully", {
+          onClose: () => {
+            // clearInputFields();
+            setError(false)
+          }
+        });
       } else {
         const errorResponse = await response.json();
         console.error(errorResponse.message);
@@ -247,42 +298,42 @@ const VendorProductTable = () => {
           <div className="col-md-3 mb-2">
             <label className={`fw-bold ${error && !selectedUser ? 'text-danger' : ''}`}>User Code<span className="text-danger">*</span></label>
             <div title="Please select the user code">
-            <Select
-              value={selectedUser}
-              onChange={handleChangeUser}
-              options={filteredOptionUser}
-              className=""
-              placeholder=""
-              classNamePrefix="react-select"
-              maxLength={18}
-              ref={usercode}
-              onKeyDown={(e) => handleKeyDown(e, roleid, usercode)}
-            />
-          </div>
+              <Select
+                value={selectedUser}
+                onChange={handleChangeUser}
+                options={filteredOptionUser}
+                className=""
+                placeholder=""
+                classNamePrefix="react-select"
+                maxLength={18}
+                ref={usercode}
+                onKeyDown={(e) => handleKeyDown(e, roleid, usercode)}
+              />
+            </div>
           </div>
           <div className="col-md-3 mb-2">
             <label className={`fw-bold ${error && !selectedRole ? 'text-danger' : ''}`}>Role ID<span className="text-danger">*</span></label>
             <div title="Please select the role id">
-            <Select
-              value={selectedRole}
-              onChange={handleChangeRole}
-              options={filteredOptionRole}
-              className=""
-              placeholder=""
-              classNamePrefix="react-select"
-              maxLength={18}
-              ref={roleid}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  if (mode === "create") {
-                    handleInsert();
-                  } else {
-                    handleUpdate();
+              <Select
+                value={selectedRole}
+                onChange={handleChangeRole}
+                options={filteredOptionRole}
+                className=""
+                placeholder=""
+                classNamePrefix="react-select"
+                maxLength={18}
+                ref={roleid}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    if (mode === "create") {
+                      handleInsert();
+                    } else {
+                      handleUpdate();
+                    }
                   }
-                }
-              }}
-            />
-          </div>
+                }}
+              />
+            </div>
           </div>
           {/* <div className="col-md-3 mb-2">
             {mode === "create" ? (

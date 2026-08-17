@@ -1,23 +1,16 @@
 import { AgGridReact } from 'ag-grid-react';
 import React, { useState, useEffect, useRef } from "react";
 import Select from 'react-select';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  ModuleRegistry,
-  ClientSideRowModelModule,
-  PaginationModule,
-  TextFilterModule,
-  NumberFilterModule,
-  DateFilterModule,
-  CustomFilterModule,
-  CellStyleModule,
-  ValidationModule
+  ModuleRegistry, ClientSideRowModelModule, PaginationModule, TextFilterModule, NumberFilterModule,
+  DateFilterModule, CustomFilterModule, CellStyleModule, ValidationModule
 } from 'ag-grid-community';
 import { ToastContainer, toast } from 'react-toastify';
 import { showConfirmationToast } from '../ToastConfirmation';
 import '../App.css';
 import LoadingScreen from '../BookLoader';
-import secureLocalStorage from "react-secure-storage"; 
+import secureLocalStorage from "react-secure-storage";
 
 // Register necessary modules
 ModuleRegistry.registerModules([
@@ -35,7 +28,7 @@ const config = require('../ApiConfig');
 const VendorProductTable = () => {
   const [rowData, setRowData] = useState([]);
   const [selectedStatus, setSelectedStatus] = useState(null);
-  const [status, setStatus] = useState("");
+  const [status, setstatus] = useState("");
   const [statusdrop, setStatusdrop] = useState([]);
   const [hasValueChanged, setHasValueChanged] = useState(false);
   const [warehouse_code, setwarehouse_code] = useState("");
@@ -50,10 +43,56 @@ const VendorProductTable = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
 
+  const location = useLocation();
+
   const permissions = JSON.parse(sessionStorage.getItem('permissions')) || {};
   const warehousePermissions = permissions
     .filter(permission => permission.screen_type === 'Warehouse')
     .map(permission => permission.permission_type.toLowerCase());
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      const isReloadShortcut =
+        (event.ctrlKey && event.key.toLowerCase() === "r") ||
+        (event.altKey && event.key.toLowerCase() === "r") ||
+        event.key === "F5";
+
+      if (isReloadShortcut) {
+        event.preventDefault();
+        clearInputFields();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  useEffect(() => {
+    // if (location.state?.preservedRowData) {
+    //   setRowData(location.state.preservedRowData);
+    // }
+
+    if (location.state?.preservedInputs) {
+      const inputs = location.state.preservedInputs;
+
+      setwarehouse_code(inputs.warehouse_code || "");
+      setwarehouse_name(inputs.warehouse_name || "");
+      setstatus(inputs.status || "");
+      setlocation_no(inputs.location_no || "");
+
+      if (inputs.status) {
+        setSelectedStatus({
+          label: inputs.status,
+          value: inputs.status,
+        });
+      }
+
+      if (location.state?.refreshGrid) {
+        handleSearch(inputs);
+      }
+    }
+  }, [location.state]);
 
   const handleClick = () => {
     navigate('/AddWarehouse', { state: { mode: "create" } });
@@ -91,7 +130,7 @@ const VendorProductTable = () => {
 
   const handleChangeStatus = (selectedStatus) => {
     setSelectedStatus(selectedStatus);
-    setStatus(selectedStatus ? selectedStatus.value : '');
+    setstatus(selectedStatus ? selectedStatus.value : '');
     setHasValueChanged(true);
   };
 
@@ -126,7 +165,7 @@ const VendorProductTable = () => {
 
 
 
-  const handleSearch = async () => {
+  const handleSearch = async (searchParams = null) => {
     setLoading(true);
     try {
       const company_code = sessionStorage.getItem('selectedCompanyCode');
@@ -136,7 +175,13 @@ const VendorProductTable = () => {
           "Content-Type": "application/json",
           "company_code": company_code
         },
-        body: JSON.stringify({ company_code: company_code, warehouse_code, warehouse_name, status, location_no }) // Send company_no and company_name as search criteria
+        body: JSON.stringify({ 
+          company_code: company_code, 
+          warehouse_code: searchParams?.warehouse_code ?? warehouse_code,
+          warehouse_name: searchParams?.warehouse_name ?? warehouse_name,
+          status: searchParams?.status ?? status,
+          location_no: searchParams?.location_no ?? location_no,
+        }) 
       });
       if (response.ok) {
         const searchData = await response.json();
@@ -158,13 +203,19 @@ const VendorProductTable = () => {
     }
   };
 
-
-
   const onGridReady = (params) => {
     setGridApi(params.api);
     setGridColumnApi(params.columnApi);
   };
 
+  const clearInputFields = () => {
+    setwarehouse_code("");
+    setwarehouse_name("");
+    setstatus("");
+    setlocation_no("");
+    setSelectedStatus("");
+    setRowData([]);
+  };
 
   const onSelectionChanged = () => {
     const selectedNodes = gridApi.getSelectedNodes();
@@ -190,16 +241,16 @@ const VendorProductTable = () => {
     const rowIndex = updatedRowData.findIndex(
       (row) => row.warehouse_code === params.data.warehouse_code
     );
-  
+
     if (rowIndex !== -1) {
       updatedRowData[rowIndex][params.colDef.field] = params.newValue;
       setRowData(updatedRowData);
-  
+
       setEditedData((prevData) => {
         const existingIndex = prevData.findIndex(
           (item) => item.warehouse_code === params.data.warehouse_code
         );
-  
+
         if (existingIndex !== -1) {
           const updatedEdited = [...prevData];
           updatedEdited[existingIndex] = updatedRowData[rowIndex];
@@ -428,8 +479,23 @@ const VendorProductTable = () => {
   };
 
 
+  // const handleNavigateWithRowData = (selectedRow) => {
+  //   navigate("/AddWarehouse", { state: { mode: "update", selectedRow } });
+  // };
+
   const handleNavigateWithRowData = (selectedRow) => {
-    navigate("/AddWarehouse", { state: { mode: "update", selectedRow } });
+    navigate("/AddWarehouse", {
+      state: {
+        mode: "update",
+        warehouse_code: selectedRow.warehouse_code,
+        preservedInputs: {
+          warehouse_code,
+          warehouse_name,
+          status,
+          location_no,
+        },
+      },
+    });
   };
 
   const handleKeyDownStatus = async (e) => {
@@ -571,7 +637,7 @@ const VendorProductTable = () => {
                 </div>
               )}
               <div className="col-md-2 mt-1 mb-5">
-                <a className='border-none text-dark p-1' title="Reload" onClick={handleReload} style={{ cursor: "pointer" }}> <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
+                <a className='border-none text-dark p-1' title="Reload" onClick={clearInputFields} style={{ cursor: "pointer" }}> <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
                   <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2z" />
                   <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466" />
                 </svg>
@@ -623,7 +689,7 @@ const VendorProductTable = () => {
                         </svg>
                       </button>
                     )}
-                    <a className='border-none text-dark p-1 d-flex justify-content-center' onClick={handleReload} title="Reload" style={{ cursor: "pointer" }}> <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
+                    <a className='border-none text-dark p-1 d-flex justify-content-center' onClick={clearInputFields} title="Reload" style={{ cursor: "pointer" }}> <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
                       <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2z" />
                       <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466" />
                     </svg>
@@ -662,16 +728,16 @@ const VendorProductTable = () => {
           <div className="col-md-3 mb-2">
             <label className='fw-bold'>Status</label>
             <div title="Please select the status">
-            <Select
-              id="status"
-              value={selectedStatus}
-              onChange={handleChangeStatus}
-              onKeyDown={handleKeyDownStatus}
-              options={filteredOptionStatus}
-              placeholder=""
-              classNamePrefix="react-select"
-            />
-          </div>
+              <Select
+                id="status"
+                value={selectedStatus}
+                onChange={handleChangeStatus}
+                onKeyDown={handleKeyDownStatus}
+                options={filteredOptionStatus}
+                placeholder=""
+                classNamePrefix="react-select"
+              />
+            </div>
           </div>
           <div className="col-md-3 mb-2">
             <label className='fw-bold'>Location No</label>

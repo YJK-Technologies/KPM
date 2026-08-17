@@ -7,17 +7,8 @@ import CustomerHelp from '../Transactions/Popups/CustomerHelpPopup';
 import ItemHelp from '../Transactions/Popups/SalesItemHelpPopup';
 import WarehouseHelp from '../Transactions/Popups/SalesWarehouseHelpPopup';
 import SalesDeletedHelp from '../Transactions/Popups/DeletedSalesHelpPopup';
-import {
-  ModuleRegistry,
-  ClientSideRowModelModule,
-  PaginationModule,
-  TextFilterModule,
-  NumberFilterModule,
-  DateFilterModule,
-  CustomFilterModule,
-  CellStyleModule,
-  ValidationModule
-} from 'ag-grid-community';
+import { ModuleRegistry, ClientSideRowModelModule, PaginationModule, TextFilterModule, NumberFilterModule,
+  DateFilterModule, CustomFilterModule, CellStyleModule, ValidationModule} from 'ag-grid-community';
 import '../App.css';
 import { ToastContainer, toast } from 'react-toastify';
 import { Modal, Button } from "react-bootstrap";
@@ -69,7 +60,7 @@ const VendorProductTable = () => {
   const [error, setError] = useState("");
   const [deleteError, setDeleteError] = useState("");
   const [authError, setAuthError] = useState("");
-  const [status, setStatus] = useState('');
+  const [status, setStatus] = useState([]);
   const [customerName, setCustomerName] = useState("");
   const [global, setGlobal] = useState(null)
   const [globalItem, setGlobalItem] = useState(null)
@@ -1676,7 +1667,11 @@ const VendorProductTable = () => {
   setCustomerName(header.CustomerName);
 
 
-  await handleRefNo(header.BillNo);
+  // await handleRefNo(header.BillNo);
+  const isSuccess = await handleRefNo(header.BillNo);
+      if (isSuccess) {
+        TransactionStatus(header.BillNo);
+      }
 };
 
 

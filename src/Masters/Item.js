@@ -1,25 +1,18 @@
 import { AgGridReact } from 'ag-grid-react';
 import React, { useState, useEffect, useRef } from "react";
 import Select from 'react-select';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Barcode from 'react-barcode';
 import { ToastContainer, toast } from 'react-toastify';
 import { showConfirmationToast } from '../ToastConfirmation';
 import {
-  ModuleRegistry,
-  ClientSideRowModelModule,
-  PaginationModule,
-  TextFilterModule,
-  NumberFilterModule,
-  DateFilterModule,
-  CustomFilterModule,
-  CellStyleModule,
-  ValidationModule
+  ModuleRegistry, ClientSideRowModelModule, PaginationModule, TextFilterModule, NumberFilterModule,
+  DateFilterModule, CustomFilterModule, CellStyleModule, ValidationModule
 } from 'ag-grid-community';
 import 'react-toastify/dist/ReactToastify.css';
 import LoadingScreen from '../BookLoader';
 import '../App.css';
-import secureLocalStorage from "react-secure-storage"; 
+import secureLocalStorage from "react-secure-storage";
 
 // Register necessary modules
 ModuleRegistry.registerModules([
@@ -79,10 +72,11 @@ const VendorProductTable = () => {
   const [editedData, setEditedData] = useState([]);
   const [selectedRows, setSelectedRows] = useState([]);
 
+  const location = useLocation();
+
   const handleChangeStatus = (selectedStatus) => {
     setSelectedStatus(selectedStatus);
     setstatus(selectedStatus ? selectedStatus.value : '');
-    setError(false);
   };
 
   const handleReload = () => {
@@ -94,6 +88,57 @@ const VendorProductTable = () => {
     .filter(permission => permission.screen_type === 'Item')
     .map(permission => permission.permission_type.toLowerCase());
 
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      const isReloadShortcut =
+        (event.ctrlKey && event.key.toLowerCase() === "r") ||
+        (event.altKey && event.key.toLowerCase() === "r") ||
+        event.key === "F5";
+
+      if (isReloadShortcut) {
+        event.preventDefault();
+        clearInputFields();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  useEffect(() => {
+    // if (location.state?.preservedRowData) {
+    //   setRowData(location.state.preservedRowData);
+    // }
+
+    if (location.state?.preservedInputs) {
+      const inputs = location.state.preservedInputs;
+
+      setItem_code(inputs.Item_code || "");
+      setItem_variant(inputs.Item_variant || "");
+      setItem_name(inputs.Item_name || "");
+      setItem_short_name(inputs.Item_short_name || "");
+      setItem_Our_Brand(inputs.Item_Our_Brand || "");
+      setstatus(inputs.status || "");
+
+      if (inputs.Item_Our_Brand) {
+        setSelectedBrand({
+          label: inputs.Item_Our_Brand,
+          value: inputs.Item_Our_Brand,
+        });
+      }
+      if (inputs.status) {
+        setSelectedStatus({
+          label: inputs.status,
+          value: inputs.status,
+        });
+      }
+
+      if (location.state?.refreshGrid) {
+        handleSearch(inputs);
+      }
+    }
+  }, [location.state]);
 
   useEffect(() => {
     const company_code = sessionStorage.getItem('selectedCompanyCode');
@@ -215,7 +260,7 @@ const VendorProductTable = () => {
   }, []);
 
 
-  const handleSearch = async () => {
+  const handleSearch = async (searchParams = null) => {
     setLoading(true);
     try {
       const company_code = sessionStorage.getItem('selectedCompanyCode')
@@ -224,7 +269,15 @@ const VendorProductTable = () => {
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ company_code, Item_code, Item_name, Item_variant, Item_short_name, Item_Our_Brand, status }) // Send company_no and company_name as search criteria
+        body: JSON.stringify({ 
+          company_code, 
+          Item_code: searchParams?.Item_code ?? Item_code,
+          Item_name: searchParams?.Item_name ?? Item_name,
+          Item_variant: searchParams?.Item_variant ?? Item_variant,
+          Item_short_name: searchParams?.Item_short_name ?? Item_short_name,
+          Item_Our_Brand: searchParams?.Item_Our_Brand ?? Item_Our_Brand,
+          status: searchParams?.status ?? status,
+        }) 
       });
       if (response.ok) {
         const searchData = await response.json();
@@ -257,8 +310,25 @@ const VendorProductTable = () => {
     label: option.attributedetails_name,
   }));
 
+  // const handleNavigateWithRowData = (selectedRow) => {
+  //   navigate("/AddItem", { state: { mode: "update", selectedRow } });
+  // };
+
   const handleNavigateWithRowData = (selectedRow) => {
-    navigate("/AddItem", { state: { mode: "update", selectedRow } });
+    navigate("/AddItem", {
+      state: {
+        mode: "update",
+        Item_code: selectedRow.Item_code,
+        preservedInputs: {
+          Item_code,
+          Item_variant,
+          Item_name,
+          Item_short_name,
+          Item_Our_Brand,
+          status,
+        },
+      },
+    });
   };
 
   const arrayBufferToBase64 = (buffer) => {
@@ -802,16 +872,16 @@ const VendorProductTable = () => {
     const rowIndex = updatedRowData.findIndex(
       (row) => row.Item_code === params.data.Item_code && row.Item_variant === params.data.Item_variant
     );
-  
+
     if (rowIndex !== -1) {
       updatedRowData[rowIndex][params.colDef.field] = params.newValue;
       setRowData(updatedRowData);
-  
+
       setEditedData((prevData) => {
         const existingIndex = prevData.findIndex(
           (item) => item.Item_code === params.data.Item_code && item.Item_variant === params.data.Item_variant
         );
-  
+
         if (existingIndex !== -1) {
           const updatedEdited = [...prevData];
           updatedEdited[existingIndex] = updatedRowData[rowIndex];
@@ -872,6 +942,18 @@ const VendorProductTable = () => {
     wrapText: true,
   };
 
+  const clearInputFields = () => {
+    setItem_code("");
+    setItem_variant("");
+    setItem_name("");
+    setItem_short_name("");
+    setItem_Our_Brand("");
+    setstatus("");
+    setSelectedBrand("");
+    setSelectedStatus("");
+    setRowData([]);
+  };
+
   return (
     <div className="container-fluid ">
       {loading && <LoadingScreen />}
@@ -911,7 +993,7 @@ const VendorProductTable = () => {
                 </div>
               )}
               <div className="col-md-2 mt-1 mb-5">
-                <a className='border-none text-dark p-1' title="Reload" onClick={handleReload} style={{ cursor: "pointer" }}> <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
+                <a className='border-none text-dark p-1' title="Reload" onClick={clearInputFields} style={{ cursor: "pointer" }}> <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
                   <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2z" />
                   <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466" />
                 </svg>
@@ -963,7 +1045,7 @@ const VendorProductTable = () => {
                         </svg>
                       </button>
                     )}
-                    <a className='border-none text-dark p-1 d-flex justify-content-center' onClick={handleReload} title="Reload" style={{ cursor: "pointer" }}> <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
+                    <a className='border-none text-dark p-1 d-flex justify-content-center' onClick={clearInputFields} title="Reload" style={{ cursor: "pointer" }}> <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
                       <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2z" />
                       <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466" />
                     </svg>
@@ -1034,32 +1116,32 @@ const VendorProductTable = () => {
           <div className="col-md-3 mb-2">
             <label className='fw-bold'>Our Brand</label>
             <div title="Please select the our brand">
-            <Select
-              id="ahsts"
-              value={selectedBrand}
-              onChange={handleChangeBrand}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              options={filteredOptionBrand}
-              classNamePrefix="react-select"
-              placeholder=""
-              maxLength={30}
-            />
-          </div>
+              <Select
+                id="ahsts"
+                value={selectedBrand}
+                onChange={handleChangeBrand}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                options={filteredOptionBrand}
+                classNamePrefix="react-select"
+                placeholder=""
+                maxLength={30}
+              />
+            </div>
           </div>
           <div className="col-md-3 mb-2">
             <label className='fw-bold'>Status</label>
             <div title="Please select the status">
-            <Select
-              type="text"
-              id="ahsts"
-              value={selectedStatus}
-              onChange={handleChangeStatus}
-              // onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              options={filteredOptionStatus}
-              classNamePrefix="react-select"
-              placeholder=""
-            />
-          </div>
+              <Select
+                type="text"
+                id="ahsts"
+                value={selectedStatus}
+                onChange={handleChangeStatus}
+                // onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                options={filteredOptionStatus}
+                classNamePrefix="react-select"
+                placeholder=""
+              />
+            </div>
           </div>
           <div className="col-md-2 mb-2 mt-4">
             <button className="button2" onClick={handleSearch} title="Search" >

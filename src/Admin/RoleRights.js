@@ -1,6 +1,6 @@
 import { AgGridReact } from 'ag-grid-react';
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   ModuleRegistry,
   ClientSideRowModelModule,
@@ -16,7 +16,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import '../App.css';
 import { showConfirmationToast } from '../ToastConfirmation';
 import LoadingScreen from '../BookLoader';
-import secureLocalStorage from "react-secure-storage"; 
+import secureLocalStorage from "react-secure-storage";
 
 // Register necessary modules
 ModuleRegistry.registerModules([
@@ -52,10 +52,54 @@ const VendorProductTable = () => {
   const [modifiedDate, setModifiedDate] = useState("");
   const navigate = useNavigate();
 
+  const location = useLocation();
+
   const permissions = JSON.parse(sessionStorage.getItem('permissions')) || {};
   const roleRightsPermissions = permissions
     .filter(permission => permission.screen_type === 'RoleRights')
     .map(permission => permission.permission_type.toLowerCase());
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      const isReloadShortcut =
+        (event.ctrlKey && event.key.toLowerCase() === "r") ||
+        (event.altKey && event.key.toLowerCase() === "r") ||
+        event.key === "F5";
+
+      if (isReloadShortcut) {
+        event.preventDefault();
+        clearInputFields();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  useEffect(() => {
+    // if (location.state?.preservedRowData) {
+    //   setRowData(location.state.preservedRowData);
+    // }
+
+    if (location.state?.preservedInputs) {
+      const inputs = location.state.preservedInputs;
+      setrole_id(inputs.role_id || "");
+      setscreen_type(inputs.screen_type || "");
+      setpermission_type(inputs.permission_type || "");
+
+      if (location.state?.refreshGrid) {
+        handleSearch(inputs);
+      }
+    }
+  }, [location.state]);
+
+  const clearInputFields = () => {
+    setrole_id("");
+    setscreen_type("");
+    setpermission_type("");
+    setRowData([]);
+  };
 
   useEffect(() => {
     const company_code = sessionStorage.getItem('selectedCompanyCode');
@@ -111,7 +155,7 @@ const VendorProductTable = () => {
       .catch((error) => console.error('Error fetching data:', error));
   }, []);
 
-  const handleSearch = async () => {
+  const handleSearch = async (searchParams = null) => {
     setLoading(true);
     try {
       const company_code = sessionStorage.getItem('selectedCompanyCode');
@@ -121,7 +165,12 @@ const VendorProductTable = () => {
           "Content-Type": "application/json",
           "company_code": company_code
         },
-        body: JSON.stringify({ company_code: company_code, role_id, screen_type, permission_type }) // Send company_no and company_name as search criteria
+        body: JSON.stringify({ 
+          company_code: company_code, 
+          role_id: searchParams?.role_id ?? role_id, 
+          screen_type: searchParams?.screen_type ?? screen_type, 
+          permission_type: searchParams?.permission_type ?? permission_type, 
+        })
       });
       if (response.ok) {
         const searchData = await response.json();
@@ -322,7 +371,17 @@ const VendorProductTable = () => {
   };
 
   const handleNavigateWithRowData = (selectedRow) => {
-    navigate("/AddRoleRights", { state: { mode: "update", selectedRow } });
+    navigate("/AddRoleRights", { 
+      state: {
+        mode: "update",
+        keyfield: selectedRow.keyfield,
+        preservedInputs: {
+          role_id,
+          screen_type,
+          permission_type,
+        },
+      }, 
+    });
   };
 
   const onSelectionChanged = () => {
@@ -330,34 +389,22 @@ const VendorProductTable = () => {
     const selectedData = selectedNodes.map((node) => node.data);
     setSelectedRows(selectedData);
   };
-
-  // const onCellValueChanged = (params) => {
-  //   const updatedRowData = [...rowData];
-  //   const rowIndex = updatedRowData.findIndex(
-  //     (row) => row.keyfield === params.data.keyfield
-  //   );
-  //   if (rowIndex !== -1) {
-  //     updatedRowData[rowIndex][params.colDef.field] = params.newValue;
-  //     setRowData(updatedRowData);
-  //     setEditedData((prevData) => [...prevData, updatedRowData[rowIndex]]);
-  //   }
-  // };
-
+  
   const onCellValueChanged = (params) => {
     const updatedRowData = [...rowData];
     const rowIndex = updatedRowData.findIndex(
       (row) => row.keyfield === params.data.keyfield
     );
-  
+
     if (rowIndex !== -1) {
       updatedRowData[rowIndex][params.colDef.field] = params.newValue;
       setRowData(updatedRowData);
-  
+
       setEditedData((prevData) => {
         const existingIndex = prevData.findIndex(
           (item) => item.keyfield === params.data.keyfield
         );
-  
+
         if (existingIndex !== -1) {
           const updatedEdited = [...prevData];
           updatedEdited[existingIndex] = updatedRowData[rowIndex];
@@ -517,7 +564,7 @@ const VendorProductTable = () => {
 
   return (
     <div className="container-fluid ">
-       {loading && <LoadingScreen />}
+      {loading && <LoadingScreen />}
       <ToastContainer position="top-right" className="toast-design" theme="colored" />
       <div className="card shadow-lg border-0 p-3 rounded-5 " style={{ height: "auto" }}>
         <div className="d-flex justify-content-between">

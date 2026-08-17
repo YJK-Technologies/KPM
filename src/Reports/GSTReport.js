@@ -1,20 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
 import { AgGridReact } from 'ag-grid-react';
 import Select from 'react-select';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import * as XLSX from 'xlsx';
 import { ToastContainer, toast } from 'react-toastify';
-import {
-  ModuleRegistry,
-  ClientSideRowModelModule,
-  PaginationModule,
-  TextFilterModule,
-  NumberFilterModule,
-  DateFilterModule,
-  CustomFilterModule,
-  CellStyleModule,
-  ValidationModule
-} from 'ag-grid-community';
+import { ModuleRegistry, ClientSideRowModelModule, PaginationModule, TextFilterModule, NumberFilterModule,
+  DateFilterModule, CustomFilterModule, CellStyleModule, ValidationModule} from 'ag-grid-community';
 import LoadingScreen from '../BookLoader';
 import secureLocalStorage from "react-secure-storage"; 
 
@@ -529,7 +520,9 @@ const VendorProductTable = () => {
   const [opens, setOpens] = useState(false);
   const dropdownRef = useRef();
 
-
+  const goBack = () => {
+    navigate(-1);
+  };
   return (
     <div className="container-fluid ">
       {loading && <LoadingScreen />}
@@ -553,6 +546,11 @@ const VendorProductTable = () => {
                   </svg>
                 </a>
                 </div>
+                <div className='col-md-2 mt-1 me-0 mb-5' ><a className='border-none text-danger p-1' onClick={goBack} title="Close" style={{ cursor: "pointer" }}><svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-x-circle-fill" viewBox="0 0 16 16">
+              <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0M5.354 4.646a.5.5 0 1 0-.708.708L7.293 8l-2.647 2.646a.5.5 0 0 0 .708.708L8 8.707l2.646 2.647a.5.5 0 0 0 .708-.708L8.707 8l2.647-2.646a.5.5 0 0 0-.708-.708L8 7.293z" />
+            </svg>
+            </a>
+            </div>
               </div>
             </div>
             <div className="mobile_buttons">

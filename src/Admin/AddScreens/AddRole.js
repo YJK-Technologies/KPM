@@ -15,7 +15,7 @@ import '../../App.css';
 import LoadingScreen from '../../BookLoader';
 import { useLocation } from "react-router-dom";
 import { ToastContainer, toast } from 'react-toastify';
-import secureLocalStorage from "react-secure-storage"; 
+import secureLocalStorage from "react-secure-storage";
 
 // Register necessary modules
 ModuleRegistry.registerModules([
@@ -35,7 +35,7 @@ const VendorProductTable = () => {
   const [role_name, setRole_name] = useState("");
   const [description, setDescription] = useState("");
   const [selectedRows, setSelectedRows] = useState([]);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(false);
   const roleid = useRef(null);
   const rolename = useRef(null);
   const Description = useRef(null);
@@ -44,9 +44,58 @@ const VendorProductTable = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [isUpdated, setIsUpdated] = useState(false);
-  const location = useLocation();
-  const { mode, selectedRow } = location.state || {};
   const modified_by = sessionStorage.getItem("selectedUserCode");
+
+  const location = useLocation();
+  const locationState = location.state || {};
+  const mode = locationState.mode || "create";
+  const selectedRow = locationState.selectedRow || null;
+  const roleId = location.state?.role_id;
+  const company_code = sessionStorage.getItem('selectedCompanyCode');
+
+  useEffect(() => {
+    if (!location.state) {
+      clearInputFields(); // ensure fresh create mode
+    }
+  }, []);
+
+  useEffect(() => {
+    if (mode === "update" && roleId) {
+      fetchRoleData();
+    }
+  }, [mode, roleId]);
+
+  const fetchRoleData = async () => {
+    try {
+      setLoading(true);
+
+      const response = await fetch(`${config.apiBaseUrl}/getRoleData`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          role_id: roleId,
+          company_code
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.length > 0) {
+        const role = data[0];
+
+        setRole_id(role.role_id || "");
+        setRole_name(role.role_name || "");
+        setDescription(role.description || "");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to fetch role details");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const clearInputFields = () => {
     setRole_id("");
@@ -54,26 +103,27 @@ const VendorProductTable = () => {
     setDescription("");
   };
 
-  useEffect(() => {
-    if (mode === "update" && selectedRow && !isUpdated) {
-      setRole_id(selectedRow.role_id || "");
-      setRole_name(selectedRow.role_name || "");
-      setDescription(selectedRow.description || "");
-    }
-    else if (mode === "create") {
-      clearInputFields();
-    }
-  }, [mode, selectedRow, isUpdated]);
+  // useEffect(() => {
+  //   if (mode === "update" && selectedRow && !isUpdated) {
+  //     setRole_id(selectedRow.role_id || "");
+  //     setRole_name(selectedRow.role_name || "");
+  //     setDescription(selectedRow.description || "");
+  //   }
+  //   else if (mode === "create") {
+  //     clearInputFields();
+  //   }
+  // }, [mode, selectedRow, isUpdated]);
 
   const handleInsert = async () => {
     if (
       !role_id ||
       !role_name
     ) {
-      setError(" ");
+      setError(true);
       toast.warning("Error: Missing required fields");
       return;
     }
+    setError(false);
     setLoading(true);
 
     try {
@@ -90,13 +140,13 @@ const VendorProductTable = () => {
           created_by: sessionStorage.getItem('selectedUserCode')
         }),
       });
-      if (response.status === 200) {
-        console.log("Data inserted successfully");
-        setTimeout(() => {
-          toast.success("Data inserted successfully!", {
-            onClose: () => window.location.reload(),
-          });
-        }, 1000);
+      if (response.ok) {
+        toast.success("Data inserted successfully", {
+          onClose: () => {
+            clearInputFields();
+            setError(false)
+          }
+        });
       } else {
         const errorResponse = await response.json();
         console.error(errorResponse.message);
@@ -111,7 +161,13 @@ const VendorProductTable = () => {
   };
 
   const handleClick = () => {
-    navigate('/Role');
+    navigate("/Role", {
+      state: {
+        refreshGrid: true,
+        // preservedRowData: location.state?.preservedRowData,
+        preservedInputs: location.state?.preservedInputs,
+      },
+    });
   };
 
   const handleKeyDown = async (e, nextFieldRef, value, hasValueChanged, setHasValueChanged) => {
@@ -140,10 +196,11 @@ const VendorProductTable = () => {
       !role_id ||
       !role_name
     ) {
-      setError(" ");
+      setError(true);
       toast.warning("Error: Missing required fields");
       return;
     }
+    setError(false);
     setLoading(true);
 
     try {
@@ -161,11 +218,13 @@ const VendorProductTable = () => {
           modified_by,
         }),
       });
-      if (response.status === 200) {
-        console.log("Data Updated successfully");
-        setIsUpdated(true);
-        clearInputFields();
-        toast.success("Data Updated successfully!")
+      if (response.ok) {
+        toast.success("Data updated successfully", {
+          onClose: () => {
+            // clearInputFields();
+            setError(false)
+          }
+        });
       } else {
         const errorResponse = await response.json();
         console.error(errorResponse.message);

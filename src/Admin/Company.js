@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { AgGridReact } from 'ag-grid-react';
 import Select from 'react-select';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   ModuleRegistry,
   ClientSideRowModelModule,
@@ -13,13 +13,13 @@ import {
   TextEditorModule,
   SelectEditorModule,
   NumberEditorModule,
-  DateEditorModule 
+  DateEditorModule
 } from 'ag-grid-community';
 import LoadingScreen from '../BookLoader';
 import '../App.css';
 import { ToastContainer, toast } from 'react-toastify';
 import { showConfirmationToast } from '../ToastConfirmation';
-import secureLocalStorage from "react-secure-storage"; 
+import secureLocalStorage from "react-secure-storage";
 
 
 // Register necessary modules
@@ -33,7 +33,7 @@ ModuleRegistry.registerModules([
   TextEditorModule,
   SelectEditorModule,
   NumberEditorModule,
-  DateEditorModule 
+  DateEditorModule
 ]);
 const config = require('../ApiConfig');
 
@@ -72,6 +72,69 @@ const VendorProductTable = () => {
   const companyPermissions = permissions
     .filter(permission => permission.screen_type === 'Company')
     .map(permission => permission.permission_type.toLowerCase());
+
+  const location = useLocation();
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      const isReloadShortcut =
+        (event.ctrlKey && event.key.toLowerCase() === "r") ||
+        (event.altKey && event.key.toLowerCase() === "r") ||
+        event.key === "F5";
+
+      if (isReloadShortcut) {
+        event.preventDefault();
+        clearInputFields();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  useEffect(() => {
+    // if (location.state?.preservedRowData) {
+    //   setRowData(location.state.preservedRowData);
+    // }
+
+    if (location.state?.preservedInputs) {
+      const inputs = location.state.preservedInputs;
+
+      setCompany_no(inputs.company_no || "");
+      setCompany_name(inputs.company_name || "");
+      setCity(inputs.city || "");
+      setPincode(inputs.pincode || "");
+      setCountry(inputs.country || "");
+      setcompany_gst_no(inputs.company_gst_no || "");
+      setState(inputs.state || "");
+      setStatus(inputs.status || "");
+
+      if (inputs.status) {
+        setSelectedStatus({
+          label: inputs.status,
+          value: inputs.status,
+        });
+      }
+
+      if (location.state?.refreshGrid) {
+        handleSearch(inputs);
+      }
+    }
+  }, [location.state]);
+
+  const clearInputFields = () => {
+    setCompany_no("");
+    setCompany_name("");
+    setCity("");
+    setState("");
+    setPincode("");
+    setCountry("");
+    setcompany_gst_no("");
+    setSelectedStatus("");
+    setStatus("");
+    setRowData([]);
+  };
 
   const handleClick = () => {
     navigate("/AddCompany", { state: { mode: "create" } });
@@ -195,7 +258,7 @@ const VendorProductTable = () => {
     setCompany_name(event.target.value);
   };
 
-  const handleSearch = async () => {
+  const handleSearch = async (searchParams = null) => {
     setLoading(true);
     try {
       const response = await fetch(`${config.apiBaseUrl}/companysearchcriteria`, {
@@ -203,32 +266,19 @@ const VendorProductTable = () => {
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ company_no, company_name, city, state, pincode, country, status, company_gst_no }) // Send company_no and company_name as search criteria
+        body: JSON.stringify({
+          company_no: searchParams?.company_no ?? company_no,
+          company_name: searchParams?.company_name ?? company_name,
+          city: searchParams?.city ?? city,
+          state: searchParams?.state ?? state,
+          pincode: searchParams?.pincode ?? pincode,
+          country: searchParams?.country ?? country,
+          status: searchParams?.status ?? status,
+          company_gst_no: searchParams?.company_gst_no ?? company_gst_no,
+        }),
       });
       if (response.ok) {
         const searchData = await response.json();
-        // const newRows = searchData.map((matchedItem) => ({
-        //   company_no: matchedItem.company_no,
-        //   company_name: matchedItem.company_name,
-        //   short_name: matchedItem.short_name,
-        //   address1: matchedItem.address1,
-        //   address2: matchedItem.address2,
-        //   address3: matchedItem.address3,
-        //   city: matchedItem.city,
-        //   state: matchedItem.state,
-        //   pincode: Number(matchedItem.pincode),
-        //   country: matchedItem.country,
-        //   email_id: matchedItem.email_id,
-        //   status: matchedItem.status,
-        //   foundedDate: matchedItem.foundedDate,
-        //   websiteURL: matchedItem.websiteURL,
-        //   contact_no: Number(matchedItem.contact_no),
-        //   annualReportURL: matchedItem.annualReportURL,
-        //   location_no: matchedItem.location_no,
-        //   company_gst_no: matchedItem.company_gst_no,
-        //   company_logo: matchedItem.company_logo,
-        //   authorisedSignatur: matchedItem.authorisedSignatur
-        // }));
         setRowData(searchData);
         console.log("data fetched successfully")
       } else if (response.status === 404) {
@@ -365,7 +415,7 @@ const VendorProductTable = () => {
           params.data.pincode = newValue;
           return true;
         }
-        return false; 
+        return false;
       },
     },
     {
@@ -429,7 +479,7 @@ const VendorProductTable = () => {
           params.data.contact_no = newValue;
           return true;
         }
-        return false; 
+        return false;
       },
     },
     {
@@ -476,10 +526,10 @@ const VendorProductTable = () => {
       toast.warning("Please select at least one row to generate a report");
       return;
     }
-  
+
     const reportData = selectedRows.map((row) => {
       const formatValue = (val) => (val !== undefined && val !== null ? val : '');
-      
+
       const addressParts = [
         row.address1,
         row.address2,
@@ -489,7 +539,7 @@ const VendorProductTable = () => {
         row.state,
         row.country
       ].map(formatValue);
-  
+
       const formattedAddress = `
         ${addressParts[0]},
         ${addressParts[1]},
@@ -499,7 +549,7 @@ const VendorProductTable = () => {
         ${addressParts[5]}<br>
         ${addressParts[6]}
       `;
-  
+
       return {
         "Company No": formatValue(row.company_no),
         "Company Name": formatValue(row.company_name),
@@ -513,7 +563,7 @@ const VendorProductTable = () => {
         "Annual Report URL": formatValue(row.annualReportURL)
       };
     });
-  
+
     const reportWindow = window.open("", "_blank");
     reportWindow.document.write("<html><head><title>Company Report</title>");
     reportWindow.document.write("<style>");
@@ -579,14 +629,14 @@ const VendorProductTable = () => {
     `);
     reportWindow.document.write("</style></head><body>");
     reportWindow.document.write("<h1><u>Company Information</u></h1>");
-  
+
     // Create table with headers
     reportWindow.document.write("<table><thead><tr>");
     Object.keys(reportData[0]).forEach((key) => {
       reportWindow.document.write(`<th>${key}</th>`);
     });
     reportWindow.document.write("</tr></thead><tbody>");
-  
+
     // Populate the rows with safe empty strings
     reportData.forEach((row) => {
       reportWindow.document.write("<tr>");
@@ -595,7 +645,7 @@ const VendorProductTable = () => {
       });
       reportWindow.document.write("</tr>");
     });
-  
+
     reportWindow.document.write("</tbody></table>");
     reportWindow.document.write(
       '<button class="report-button" title="Print" onclick="window.print()">Print</button>'
@@ -603,10 +653,25 @@ const VendorProductTable = () => {
     reportWindow.document.write("</body></html>");
     reportWindow.document.close();
   };
-  
 
   const handleNavigateWithRowData = (selectedRow) => {
-    navigate("/AddCompany", { state: { mode: "update", selectedRow } });
+    navigate("/AddCompany", {
+      state: {
+        mode: "update",
+        company_no: selectedRow.company_no,
+
+        preservedInputs: {
+          company_no,
+          company_name,
+          city,
+          state,
+          pincode,
+          country,
+          company_gst_no,
+          status,
+        },
+      },
+    });
   };
 
   const onSelectionChanged = () => {
@@ -615,33 +680,21 @@ const VendorProductTable = () => {
     setSelectedRows(selectedData);
   };
 
-  // const onCellValueChanged = (params) => {
-  //   const updatedRowData = [...rowData];
-  //   const rowIndex = updatedRowData.findIndex(
-  //     (row) => row.company_no === params.data.company_no
-  //   );
-  //   if (rowIndex !== -1) {
-  //     updatedRowData[rowIndex][params.colDef.field] = params.newValue;
-  //     setRowData(updatedRowData);
-  //     setEditedData((prevData) => [...prevData, updatedRowData[rowIndex]]);
-  //   }
-  // };
-
   const onCellValueChanged = (params) => {
     const updatedRowData = [...rowData];
     const rowIndex = updatedRowData.findIndex(
       (row) => row.company_no === params.data.company_no
     );
-  
+
     if (rowIndex !== -1) {
       updatedRowData[rowIndex][params.colDef.field] = params.newValue;
       setRowData(updatedRowData);
-  
+
       setEditedData((prevData) => {
         const existingIndex = prevData.findIndex(
           (item) => item.company_no === params.data.company_no
         );
-  
+
         if (existingIndex !== -1) {
           const updatedEdited = [...prevData];
           updatedEdited[existingIndex] = updatedRowData[rowIndex];
@@ -652,7 +705,7 @@ const VendorProductTable = () => {
       });
     }
   };
-  
+
   const saveEditedData = async () => {
     const selectedRowsData = editedData
       .filter(row => selectedRows.some(selectedRow => selectedRow.company_no === row.company_no))
@@ -758,7 +811,7 @@ const VendorProductTable = () => {
       setPincode(value);
     }
   };
-  
+
   const handleKeyDownStatus = async (e) => {
     if (e.key === 'Enter' && hasValueChanged) {
       await handleSearch();
@@ -801,7 +854,7 @@ const VendorProductTable = () => {
 
   return (
     <div className="container-fluid h-100">
-       {loading && <LoadingScreen />}
+      {loading && <LoadingScreen />}
       <ToastContainer position="top-right" className="toast-design" theme="colored" />
       <div className="card shadow-lg border-0 p-3 rounded-5 " style={{ height: "auto" }}>
         <div className="d-flex justify-content-between">
@@ -996,15 +1049,15 @@ const VendorProductTable = () => {
           <div className="col-md-3 mb-2">
             <label className='fw-bold'>Status</label>
             <div title="Please select the status">
-            <Select
-              id="status"
-              value={selectedStatus}
-              onChange={handleChangeStatus}
-              onKeyDown={handleKeyDownStatus}
-              options={filteredOptionStatus}
-              placeholder=""
-              classNamePrefix="react-select"
-            />
+              <Select
+                id="status"
+                value={selectedStatus}
+                onChange={handleChangeStatus}
+                onKeyDown={handleKeyDownStatus}
+                options={filteredOptionStatus}
+                placeholder=""
+                classNamePrefix="react-select"
+              />
             </div>
           </div>
           <div className="col-md-2 mb-2">

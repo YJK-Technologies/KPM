@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { AgGridReact } from 'ag-grid-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   ModuleRegistry,
   ClientSideRowModelModule,
@@ -16,7 +16,7 @@ import { showConfirmationToast } from '../ToastConfirmation';
 import '../App.css';
 import LoadingScreen from '../BookLoader';
 import { ToastContainer, toast } from 'react-toastify';
-import secureLocalStorage from "react-secure-storage"; 
+import secureLocalStorage from "react-secure-storage";
 
 // Register necessary modules
 ModuleRegistry.registerModules([
@@ -48,12 +48,54 @@ const VendorProductTable = () => {
   const [modifiedDate, setModifiedDate] = useState("");
   const navigate = useNavigate();
 
+  const location = useLocation();
+
   const permissions = JSON.parse(sessionStorage.getItem('permissions')) || {};
   const rolePermissions = permissions
     .filter(permission => permission.screen_type === 'Role')
     .map(permission => permission.permission_type.toLowerCase());
 
-  const handleSearch = async () => {
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      const isReloadShortcut =
+        (event.ctrlKey && event.key.toLowerCase() === "r") ||
+        (event.altKey && event.key.toLowerCase() === "r") ||
+        event.key === "F5";
+
+      if (isReloadShortcut) {
+        event.preventDefault();
+        clearInputFields();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  useEffect(() => {
+    // if (location.state?.preservedRowData) {
+    //   setRowData(location.state.preservedRowData);
+    // }
+
+    if (location.state?.preservedInputs) {
+      const inputs = location.state.preservedInputs;
+      setrole_id(inputs.role_id || "");
+      setrole_name(inputs.role_name || "");
+
+      if (location.state?.refreshGrid) {
+        handleSearch(inputs);
+      }
+    }
+  }, [location.state]);
+
+  const clearInputFields = () => {
+    setrole_id("");
+    setrole_name("");
+    setRowData([]);
+  };
+
+  const handleSearch = async (searchParams = null) => {
     setLoading(true);
     try {
       const company_code = sessionStorage.getItem('selectedCompanyCode');
@@ -63,7 +105,11 @@ const VendorProductTable = () => {
           "Content-Type": "application/json",
           "company_code": company_code
         },
-        body: JSON.stringify({ company_code: company_code, role_id, role_name }) // Send company_no and company_name as search criteria
+        body: JSON.stringify({
+          company_code: company_code,
+          role_id: searchParams?.role_id ?? role_id,
+          role_name: searchParams?.role_name ?? role_name
+        })
       });
       if (response.ok) {
         const searchData = await response.json();
@@ -265,8 +311,17 @@ const VendorProductTable = () => {
   };
 
   const handleNavigateWithRowData = (selectedRow) => {
-    navigate("/AddRole", { state: { mode: "update", selectedRow } })
-  }
+    navigate("/AddRole", {
+      state: {
+        mode: "update",
+        role_id: selectedRow.role_id,
+        preservedInputs: {
+          role_id,
+          role_name,
+        },
+      },
+    });
+  };
 
   const onSelectionChanged = () => {
     const selectedNodes = gridApi.getSelectedNodes();
@@ -274,34 +329,21 @@ const VendorProductTable = () => {
     setSelectedRows(selectedData);
   };
 
-  // const onCellValueChanged = (params) => {
-  //   const updatedRowData = [...rowData];
-  //   const rowIndex = updatedRowData.findIndex(
-  //     (row) => row.role_id === params.data.role_id
-  //   );
-  //   if (rowIndex !== -1) {
-  //     updatedRowData[rowIndex][params.colDef.field] = params.newValue;
-  //     setRowData(updatedRowData);
-
-  //     setEditedData((prevData) => [...prevData, updatedRowData[rowIndex]]);
-  //   }
-  // };
-
   const onCellValueChanged = (params) => {
     const updatedRowData = [...rowData];
     const rowIndex = updatedRowData.findIndex(
       (row) => row.role_id === params.data.role_id
     );
-  
+
     if (rowIndex !== -1) {
       updatedRowData[rowIndex][params.colDef.field] = params.newValue;
       setRowData(updatedRowData);
-  
+
       setEditedData((prevData) => {
         const existingIndex = prevData.findIndex(
           (item) => item.role_id === params.data.role_id
         );
-  
+
         if (existingIndex !== -1) {
           const updatedEdited = [...prevData];
           updatedEdited[existingIndex] = updatedRowData[rowIndex];
@@ -354,7 +396,7 @@ const VendorProductTable = () => {
           toast.error("Error Updating Data: " + error.message);
         } finally {
           setLoading(false);
-      }
+        }
       },
       () => {
         toast.info("Data updated cancelled.");
