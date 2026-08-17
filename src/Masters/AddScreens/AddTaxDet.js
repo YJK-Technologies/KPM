@@ -1,20 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
 import Select from 'react-select';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import AttriHdrInputPopup from '../AddHdrScreens/AddTaxHdr.js';
-import {
-  ModuleRegistry,
-  ClientSideRowModelModule,
-  PaginationModule,
-  TextFilterModule,
-  NumberFilterModule,
-  DateFilterModule,
-  CustomFilterModule,
-  CellStyleModule,
-  ValidationModule
-} from 'ag-grid-community';
+import { ModuleRegistry, ClientSideRowModelModule, PaginationModule, TextFilterModule, NumberFilterModule,
+  DateFilterModule, CustomFilterModule, CellStyleModule, ValidationModule} from 'ag-grid-community';
 import '../../App.css';
-import { useLocation } from "react-router-dom";
 import { ToastContainer, toast } from 'react-toastify';
 import LoadingScreen from '../../BookLoader';
 import secureLocalStorage from "react-secure-storage"; 
@@ -179,8 +169,17 @@ const VendorProductTable = () => {
   const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false);
 
+  // const handleClick = () => {
+  //   navigate('/Tax', { selectedRows });
+  // };
+
   const handleClick = () => {
-    navigate('/Tax', { selectedRows });
+    navigate("/Tax", {
+      state: {
+        preservedRowData: location.state?.preservedRowData,
+        preservedInputs: location.state?.preservedInputs
+      }
+    });
   };
 
   const handleInsert = async () => {

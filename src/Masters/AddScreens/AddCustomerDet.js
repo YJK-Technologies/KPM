@@ -365,8 +365,17 @@ const VendorProductTable = () => {
     setdefaultCust(selectedCustomer ? selectedCustomer.value : '');
   };
 
+  // const handleClick = () => {
+  //   navigate('/Customer', { selectedRows });
+  // };
+
   const handleClick = () => {
-    navigate('/Customer', { selectedRows });
+    navigate("/Customer", {
+      state: {
+        preservedRowData: location.state?.preservedRowData,
+        preservedInputs: location.state?.preservedInputs
+      }
+    });
   };
 
   const handleInsert = async () => {

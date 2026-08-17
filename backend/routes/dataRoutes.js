@@ -422,6 +422,7 @@ router.post("/getRoleData",dataController.getRoleData)
 router.post("/getRoleMappingData",dataController.getRoleMappingData)
 router.post("/getRoleRightsData",dataController.getRoleRightsData)
 router.post("/getUserData",dataController.getUserData)
+router.post("/getAttributeData",dataController.getAttributeData)
 
 
 

@@ -18,17 +18,8 @@ import PurchaseWarehousePopup from '../Transactions/Popups/PurchaseWarehousePopu
 import PurchaseDeletePopup from '../Transactions/Popups/PurchaseDeletePopup';
 import { faTrash, faSearch, faCamera } from '@fortawesome/free-solid-svg-icons';
 import LoadingScreen from '../BookLoader';
-import {
-  ModuleRegistry,
-  ClientSideRowModelModule,
-  PaginationModule,
-  TextFilterModule,
-  NumberFilterModule,
-  DateFilterModule,
-  CustomFilterModule,
-  CellStyleModule,
-  ValidationModule
-} from 'ag-grid-community';
+import { ModuleRegistry, ClientSideRowModelModule, PaginationModule, TextFilterModule, NumberFilterModule,
+  DateFilterModule, CustomFilterModule, CellStyleModule, ValidationModule} from 'ag-grid-community';
 import secureLocalStorage from "react-secure-storage";
 import printDB from './printDB'; 
 

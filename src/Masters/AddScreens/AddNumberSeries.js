@@ -1,17 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import Select from 'react-select';
 import { useNavigate } from 'react-router-dom';
-import {
-  ModuleRegistry,
-  ClientSideRowModelModule,
-  PaginationModule,
-  TextFilterModule,
-  NumberFilterModule,
-  DateFilterModule,
-  CustomFilterModule,
-  CellStyleModule,
-  ValidationModule
-} from 'ag-grid-community';
+import { ModuleRegistry, ClientSideRowModelModule, PaginationModule, TextFilterModule, NumberFilterModule,
+  DateFilterModule, CustomFilterModule, CellStyleModule, ValidationModule} from 'ag-grid-community';
 import { ToastContainer, toast } from 'react-toastify';
 import { useLocation } from "react-router-dom";
 import '../../App.css';
@@ -320,8 +311,17 @@ const VendorProductTable = () => {
   };
 
   const handleClick = () => {
-    navigate('/NumberSeries');
+    navigate("/NumberSeries", {
+      state: {
+        preservedRowData: location.state?.preservedRowData,
+        preservedInputs: location.state?.preservedInputs,
+      },
+    });
   };
+
+  // const handleClick = () => {
+  //   navigate('/NumberSeries');
+  // };
 
   const handleKeyDown = async (e, nextFieldRef, value, hasValueChanged, setHasValueChanged) => {
     if (e.key === 'Enter') {

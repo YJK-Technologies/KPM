@@ -1,18 +1,9 @@
 import { AgGridReact } from 'ag-grid-react';
 import React, { useState, useEffect, useRef } from "react";
 import Select from 'react-select';
-import { useNavigate } from 'react-router-dom';
-import {
-  ModuleRegistry,
-  ClientSideRowModelModule,
-  PaginationModule,
-  TextFilterModule,
-  NumberFilterModule,
-  DateFilterModule,
-  CustomFilterModule,
-  CellStyleModule,
-  ValidationModule
-} from 'ag-grid-community';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { ModuleRegistry, ClientSideRowModelModule, PaginationModule, TextFilterModule, NumberFilterModule,
+  DateFilterModule, CustomFilterModule, CellStyleModule, ValidationModule} from 'ag-grid-community';
 import { ToastContainer, toast } from 'react-toastify';
 import { showConfirmationToast } from '../ToastConfirmation';
 import '../App.css';
@@ -35,7 +26,7 @@ const config = require('../ApiConfig');
 const VendorProductTable = () => {
   const [rowData, setRowData] = useState([]);
   const [selectedStatus, setSelectedStatus] = useState(null);
-  const [status, setStatus] = useState("");
+  const [status, setstatus] = useState("");
   const [statusdrop, setStatusdrop] = useState([]);
   const [hasValueChanged, setHasValueChanged] = useState(false);
   const [warehouse_code, setwarehouse_code] = useState("");
@@ -50,10 +41,32 @@ const VendorProductTable = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
 
+  const location = useLocation();
+
   const permissions = JSON.parse(sessionStorage.getItem('permissions')) || {};
   const warehousePermissions = permissions
     .filter(permission => permission.screen_type === 'Warehouse')
     .map(permission => permission.permission_type.toLowerCase());
+
+   useEffect(() => {
+         if (location.state?.preservedRowData) {
+           setRowData(location.state.preservedRowData);
+         }
+       
+         if (location.state?.preservedInputs) {
+           setwarehouse_code(location.state.preservedInputs.warehouse_code || "");
+           setwarehouse_name(location.state.preservedInputs.warehouse_name || "");
+           setstatus(location.state.preservedInputs.status || "");
+           setlocation_no(location.state.preservedInputs.location_no || "");
+       
+           if (location.state.preservedInputs.status) {
+             setSelectedStatus({
+               label: location.state.preservedInputs.status,
+               value: location.state.preservedInputs.status,
+             });
+           }
+         }
+       }, [location.state]);
 
   const handleClick = () => {
     navigate('/AddWarehouse', { state: { mode: "create" } });
@@ -91,7 +104,7 @@ const VendorProductTable = () => {
 
   const handleChangeStatus = (selectedStatus) => {
     setSelectedStatus(selectedStatus);
-    setStatus(selectedStatus ? selectedStatus.value : '');
+    setstatus(selectedStatus ? selectedStatus.value : '');
     setHasValueChanged(true);
   };
 
@@ -158,13 +171,19 @@ const VendorProductTable = () => {
     }
   };
 
-
-
   const onGridReady = (params) => {
     setGridApi(params.api);
     setGridColumnApi(params.columnApi);
   };
 
+  const clearInputFields = () => {
+    setwarehouse_code("");
+    setwarehouse_name("");
+    setstatus("");
+    setlocation_no("");
+    setSelectedStatus("");
+    setRowData([]);
+  };
 
   const onSelectionChanged = () => {
     const selectedNodes = gridApi.getSelectedNodes();
@@ -428,8 +447,26 @@ const VendorProductTable = () => {
   };
 
 
+  // const handleNavigateWithRowData = (selectedRow) => {
+  //   navigate("/AddWarehouse", { state: { mode: "update", selectedRow } });
+  // };
+
   const handleNavigateWithRowData = (selectedRow) => {
-    navigate("/AddWarehouse", { state: { mode: "update", selectedRow } });
+    navigate("/AddWarehouse", {
+      state: {
+        mode: "update",
+        selectedRow,
+
+        preservedRowData: rowData,
+
+        preservedInputs: {
+          warehouse_code,
+          warehouse_name,
+          status,
+          location_no,
+        },
+      },
+    });
   };
 
   const handleKeyDownStatus = async (e) => {
@@ -571,7 +608,7 @@ const VendorProductTable = () => {
                 </div>
               )}
               <div className="col-md-2 mt-1 mb-5">
-                <a className='border-none text-dark p-1' title="Reload" onClick={handleReload} style={{ cursor: "pointer" }}> <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
+                <a className='border-none text-dark p-1' title="Reload" onClick={clearInputFields} style={{ cursor: "pointer" }}> <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
                   <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2z" />
                   <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466" />
                 </svg>
@@ -623,7 +660,7 @@ const VendorProductTable = () => {
                         </svg>
                       </button>
                     )}
-                    <a className='border-none text-dark p-1 d-flex justify-content-center' onClick={handleReload} title="Reload" style={{ cursor: "pointer" }}> <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
+                    <a className='border-none text-dark p-1 d-flex justify-content-center' onClick={clearInputFields} title="Reload" style={{ cursor: "pointer" }}> <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
                       <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2z" />
                       <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466" />
                     </svg>

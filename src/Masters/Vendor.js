@@ -1,21 +1,12 @@
 import { AgGridReact } from 'ag-grid-react';
 import Select from 'react-select';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import React, { useState, useEffect, useRef } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import { showConfirmationToast } from '../ToastConfirmation';
 import LoadingScreen from '../BookLoader';
-import {
-  ModuleRegistry,
-  ClientSideRowModelModule,
-  PaginationModule,
-  TextFilterModule,
-  NumberFilterModule,
-  DateFilterModule,
-  CustomFilterModule,
-  CellStyleModule,
-  ValidationModule
-} from 'ag-grid-community';
+import { ModuleRegistry, ClientSideRowModelModule, PaginationModule, TextFilterModule, NumberFilterModule,
+        DateFilterModule, CustomFilterModule, CellStyleModule, ValidationModule} from 'ag-grid-community';
 import secureLocalStorage from "react-secure-storage"; 
 
 import '../App.css';
@@ -71,10 +62,46 @@ const VendorProductTable = () => {
   const [modifiedDate, setModifiedDate] = useState("");
   const config = require('../ApiConfig');
 
+  const location = useLocation();
+
   const permissions = JSON.parse(sessionStorage.getItem('permissions')) || {};
   const vendorPermissions = permissions
     .filter(permission => permission.screen_type === 'Vendor')
     .map(permission => permission.permission_type.toLowerCase());
+
+  useEffect(() => {
+    if (location.state?.preservedRowData) {
+      setRowData(location.state.preservedRowData);
+    }
+
+    if (location.state?.preservedInputs) {
+      setvendor_code(location.state.preservedInputs.vendor_code || "");
+      setvendor_name(location.state.preservedInputs.vendor_name || "");
+      setpanno(location.state.preservedInputs.panno || "");
+      setvendor_gst_no(location.state.preservedInputs.vendor_gst_no || "");
+      setvendor_addr_1(location.state.preservedInputs.vendor_addr_1 || "");
+      setvendor_area_code(
+        location.state.preservedInputs.vendor_area_code || "",
+      );
+      setvendor_state_code(
+        location.state.preservedInputs.vendor_state_code || "",
+      );
+      setvendor_country_code(
+        location.state.preservedInputs.vendor_country_code || "",
+      );
+      setvendor_mobile_no(
+        location.state.preservedInputs.vendor_mobile_no || "",
+      );
+      setstatus(location.state.preservedInputs.status || "");
+
+      if (location.state.preservedInputs.status) {
+        setSelectedStatus({
+          label: location.state.preservedInputs.status,
+          value: location.state.preservedInputs.status,
+        });
+      }
+    }
+  }, [location.state]);
 
   useEffect(() => {
     const company_code = sessionStorage.getItem('selectedCompanyCode');
@@ -415,8 +442,32 @@ const VendorProductTable = () => {
     setGridColumnApi(params.columnApi);
   };
 
-  const handleNavigateWithRowData = (selectedRow) => {
-    navigate("/AddVendorDet", { state: { mode: "update", selectedRow } });
+  // const handleNavigateWithRowData = (selectedRow) => {
+  //   navigate("/AddVendorDet", { state: { mode: "update", selectedRow } });
+  // };
+
+    const handleNavigateWithRowData = (selectedRow) => {
+    navigate("/AddVendorDet", {
+      state: {
+        mode: "update",
+        selectedRow,
+
+        preservedRowData: rowData,
+
+        preservedInputs: {
+          vendor_code,
+          vendor_name,
+          panno,
+          vendor_gst_no,
+          vendor_addr_1,
+          vendor_area_code,
+          vendor_state_code,
+          vendor_country_code,
+          vendor_mobile_no,
+          status,
+        },
+      },
+    });
   };
 
   const onSelectionChanged = () => {
@@ -463,6 +514,21 @@ const VendorProductTable = () => {
         }
       });
     }
+  };
+  
+  const clearInputFields = () => {
+    setvendor_code("");
+    setvendor_name("");
+    setpanno("");
+    setvendor_gst_no("");
+    setvendor_addr_1("");
+    setvendor_area_code("");
+    setvendor_state_code("");
+    setvendor_country_code("");
+    setvendor_mobile_no("");
+    setstatus("");
+    setSelectedStatus("");
+    setRowData([]);
   };
 
   const handleSearch = async () => {
@@ -850,7 +916,7 @@ const VendorProductTable = () => {
                 </div>
               )}
               <div className="col-md-2 mt-1 mb-5">
-                <a className='border-none text-dark p-1' title="Reload" onClick={handleReload} style={{ cursor: "pointer" }}> <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
+                <a className='border-none text-dark p-1' title="Reload" onClick={clearInputFields} style={{ cursor: "pointer" }}> <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
                   <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2z" />
                   <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466" />
                 </svg>
@@ -902,7 +968,7 @@ const VendorProductTable = () => {
                         </svg>
                       </button>
                     )}
-                    <a className='border-none text-dark p-1 d-flex justify-content-center' onClick={handleReload} title="Reload" style={{ cursor: "pointer" }}> <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
+                    <a className='border-none text-dark p-1 d-flex justify-content-center' onClick={clearInputFields} title="Reload" style={{ cursor: "pointer" }}> <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
                       <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2z" />
                       <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466" />
                     </svg>

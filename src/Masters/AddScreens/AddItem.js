@@ -5,18 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import { ToastContainer, toast } from 'react-toastify';
 import { useLocation } from "react-router-dom";
 import Barcode from 'react-barcode';
-
-import {
-  ModuleRegistry,
-  ClientSideRowModelModule,
-  PaginationModule,
-  TextFilterModule,
-  NumberFilterModule,
-  DateFilterModule,
-  CustomFilterModule,
-  CellStyleModule,
-  ValidationModule
-} from 'ag-grid-community';
+import { ModuleRegistry, ClientSideRowModelModule, PaginationModule, TextFilterModule, NumberFilterModule,
+  DateFilterModule, CustomFilterModule, CellStyleModule, ValidationModule} from 'ag-grid-community';
 import { useReactToPrint } from 'react-to-print';
 import '../../App.css';
 import LoadingScreen from '../../BookLoader';
@@ -116,12 +106,19 @@ const VendorProductTable = () => {
   const location = useLocation();
   const { mode, selectedRow } = location.state || {};
   const navigate = useNavigate();
-  const handleClick = () => { navigate('/Item'); };
+  // const handleClick = () => { navigate('/Item'); };
   const [Item_Description, setItem_Description] = useState("");
   const [Is_Default, setIs_Default] = useState("");
   const [Display_Order, setDisplay_Order] = useState("");
 
-
+  const handleClick = () => {
+    navigate("/Item", {
+      state: {
+        preservedRowData: location.state?.preservedRowData,
+        preservedInputs: location.state?.preservedInputs,
+      },
+    });
+  };
 
   // console.log(selectedRow)
   const clearInputFields = () => {
