@@ -8089,7 +8089,7 @@ const purauthstatus = async (req, res) => {
       .input("mode", sql.NVarChar, "TS")
       .input("company_code", sql.NVarChar, company_code)
       .input("transaction_no", sql.NVarChar, transaction_no)
-      .query(`EXEC sp_purcahse_hdr @mode,@company_code,'',@transaction_no,'','','','','',0,0,0,0,0,0,0,0,'','','','','','','',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL`);
+      .query(`EXEC sp_purchase_hdr @mode,@company_code,'',@transaction_no,'','','','','',0,0,0,0,0,0,0,0,'','','','','','','',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL`);
 
     // Check if any records were returned
     if (result.recordset.length === 0) {

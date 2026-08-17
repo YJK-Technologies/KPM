@@ -60,7 +60,7 @@ const VendorProductTable = () => {
   const [error, setError] = useState("");
   const [deleteError, setDeleteError] = useState("");
   const [authError, setAuthError] = useState("");
-  const [status, setStatus] = useState('');
+  const [status, setStatus] = useState([]);
   const [customerName, setCustomerName] = useState("");
   const [global, setGlobal] = useState(null)
   const [globalItem, setGlobalItem] = useState(null)
@@ -1667,7 +1667,11 @@ const VendorProductTable = () => {
   setCustomerName(header.CustomerName);
 
 
-  await handleRefNo(header.BillNo);
+  // await handleRefNo(header.BillNo);
+  const isSuccess = await handleRefNo(header.BillNo);
+      if (isSuccess) {
+        TransactionStatus(header.BillNo);
+      }
 };
 
 

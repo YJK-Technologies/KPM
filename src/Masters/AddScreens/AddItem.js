@@ -1303,7 +1303,7 @@ const VendorProductTable = () => {
             )}
           </div> */}
                     <div className="col-md-3 mb-2">
-            <label className={`fw-bold ${error && !Item_Description ? 'text-danger' : ''}`}>Item Description</label>
+            <label className={`fw-bold ${error && !Item_Description ? 'text-danger' : ''}`}>Item Description<span className="text-danger">*</span></label>
             <input
               type="text"
               className="form-control"
