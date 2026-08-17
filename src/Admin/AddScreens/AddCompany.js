@@ -16,7 +16,9 @@ import '../../App.css';
 import LoadingScreen from '../../BookLoader';
 import { ToastContainer, toast } from 'react-toastify';
 import { useLocation } from 'react-router-dom';
-import secureLocalStorage from "react-secure-storage"; 
+import secureLocalStorage from "react-secure-storage";
+import Logo from '../../DefaultImages/Logo.PNG';
+import Signature from '../../DefaultImages/Signature.png';
 
 // Register necessary modules
 ModuleRegistry.registerModules([
@@ -50,7 +52,7 @@ const VendorProductTable = () => {
   const [location_no, setlocation_no] = useState("");
   const [annualreportURL, setAnnualReportURL] = useState("");
   const [company_gst_no, setcompany_gst_no] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError] = useState(false);
   const [drop, setDrop] = useState([]);
   const [condrop, setCondrop] = useState([]);
   const [statedrop, setStatedrop] = useState([]);
@@ -62,8 +64,8 @@ const VendorProductTable = () => {
   const [selectedStatus, setselectedStatus] = useState('');
   const [selectedLocation, setselectedLocation] = useState('');
   const [selectedRows, setSelectedRows] = useState([]);
-  const [selectedImage, setSelectedImage] = useState(null);
-  const [selectedSignatureImage, setselectedSignatureImage] = useState(null);
+  const [selectedImage, setSelectedImage] = useState(Logo);
+  const [selectedSignatureImage, setselectedSignatureImage] = useState(Signature);
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
 
@@ -91,11 +93,122 @@ const VendorProductTable = () => {
   const [companyImage, setCompanyImage] = useState("");
   const [SignatureImage, setSignatureImage] = useState("");
   const created_by = sessionStorage.getItem('selectedUserCode')
+  const modified_by = sessionStorage.getItem("selectedUserCode");
 
   const [isUpdated, setIsUpdated] = useState(false);
+
   const location = useLocation();
-  const { mode, selectedRow } = location.state || {};
-  const modified_by = sessionStorage.getItem("selectedUserCode");
+  const locationState = location.state || {};
+  const mode = locationState.mode || "create"; // ✅ default fallback
+  const selectedRow = locationState.selectedRow || null;
+  const companyNo = location.state?.company_no;
+
+  useEffect(() => {
+    if (!location.state) {
+      clearInputFields();
+    }
+  }, []);
+
+  useEffect(() => {
+    if (mode === "update" && companyNo) {
+      fetchCompanyData();
+    }
+  }, [mode, companyNo]);
+
+  const fetchCompanyData = async () => {
+    try {
+      setLoading(true);
+
+      const response = await fetch(`${config.apiBaseUrl}/getCompanyData`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          company_no: companyNo,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.length > 0) {
+        const company = data[0];
+
+        setCompany_no(company.company_no || "");
+        setCompany_name(company.company_name || "");
+        setShort_name(company.short_name || "");
+        setAddress1(company.address1 || "");
+        setAddress2(company.address2 || "");
+        setAddress3(company.address3 || "");
+
+        setCity(company.city || "");
+        setSelectedCity({
+          label: company.city,
+          value: company.city,
+        });
+
+        setState(company.state || "");
+        setselectedState({
+          label: company.state,
+          value: company.state,
+        });
+
+        setCountry(company.country || "");
+        setselectedCountry({
+          label: company.country,
+          value: company.country,
+        });
+
+        setStatus(company.status || "");
+        setselectedStatus({
+          label: company.status,
+          value: company.status,
+        });
+
+        setlocation_no(company.location_no || "");
+        setselectedLocation({
+          label: company.location_no,
+          value: company.location_no,
+        });
+
+        setPincode(company.pincode || "");
+        setEmail_id(company.email_id || "");
+        setWebsiteURL(company.websiteURL || "");
+        setContact_no(company.contact_no || "");
+        setAnnualReportURL(company.annualReportURL || "");
+        setcompany_gst_no(company.company_gst_no || "");
+
+        if (company.foundedDate) {
+          setFoundedDate(
+            new Date(company.foundedDate).toISOString().split("T")[0]
+          );
+        }
+
+        if (company.company_logo && company.company_logo.data) {
+          const base64Image = arrayBufferToBase64(company.company_logo.data);
+          const file = base64ToFile(`data:image/jpeg;base64,${base64Image}`, 'company_logo.jpg');
+          setSelectedImage(`data:image/jpeg;base64,${base64Image}`);
+          setCompanyImage(file)
+        } else {
+          setSelectedImage(null);
+        }
+
+        if (company.authorisedSignatur && company.authorisedSignatur.data) {
+          const base64Image = arrayBufferToBase64(company.authorisedSignatur.data);
+          const file = base64ToFile(`data:image/jpeg;base64,${base64Image}`, 'authorisedSignatur.jpg');
+          setselectedSignatureImage(`data:image/jpeg;base64,${base64Image}`);
+          setSignatureImage(file)
+        } else {
+          setselectedSignatureImage(null);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to fetch company details");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const clearInputFields = () => {
     setCompany_no("");
@@ -115,9 +228,9 @@ const VendorProductTable = () => {
     setWebsiteURL("");
     setContact_no("");
     setAnnualReportURL("");
-    setSelectedImage("");
+    setSelectedImage(Logo);
     setcompany_gst_no("")
-    setselectedSignatureImage("")
+    setselectedSignatureImage(Signature)
     if (logo.current) {
       logo.current.value = null;
     }
@@ -136,76 +249,6 @@ const VendorProductTable = () => {
     }
     return window.btoa(binary);
   };
-
-  useEffect(() => {
-    if (mode === "update" && selectedRow && !isUpdated) {
-      setCompany_no(selectedRow.company_no || "");
-      setCompany_name(selectedRow.company_name || "");
-      setShort_name(selectedRow.short_name || "");
-      setAddress1(selectedRow.address1 || "");
-      setAddress2(selectedRow.address2 || "");
-      setAddress3(selectedRow.address3 || "");
-      setcompany_gst_no(selectedRow.company_gst_no || "");
-      setSelectedCity({
-        label: selectedRow.city,
-        value: selectedRow.city,
-      });
-      setCity(selectedRow.city || "")
-      setselectedState({
-        label: selectedRow.state,
-        value: selectedRow.state,
-      });
-      setState(selectedRow.state || "")
-      setselectedCountry({
-        label: selectedRow.country,
-        value: selectedRow.country,
-      });
-      setCountry(selectedRow.country || "")
-      setselectedStatus({
-        label: selectedRow.status,
-        value: selectedRow.status,
-      });
-      setStatus(selectedRow.status || '')
-      setselectedLocation({
-        label: selectedRow.location_no,
-        value: selectedRow.location_no,
-      });
-      setlocation_no(selectedRow.location_no || "")
-      setPincode(selectedRow.pincode || "");
-      setEmail_id(selectedRow.email_id || "");
-      setWebsiteURL(selectedRow.websiteURL || "");
-      setContact_no(selectedRow.contact_no || "");
-      setAnnualReportURL(selectedRow.annualReportURL || "");
-
-      if (selectedRow.foundedDate) {
-        const formattedDate = new Date(selectedRow.foundedDate).toISOString().split("T")[0];
-        setFoundedDate(formattedDate);
-      } else {
-        setFoundedDate("");
-      }
-
-      if (selectedRow.company_logo && selectedRow.company_logo.data) {
-        const base64Image = arrayBufferToBase64(selectedRow.company_logo.data);
-        const file = base64ToFile(`data:image/jpeg;base64,${base64Image}`, 'company_logo.jpg');
-        setSelectedImage(`data:image/jpeg;base64,${base64Image}`);
-        setCompanyImage(file)
-      } else {
-        setSelectedImage(null);
-      }
-
-      if (selectedRow.authorisedSignatur && selectedRow.authorisedSignatur.data) {
-        const base64Image = arrayBufferToBase64(selectedRow.authorisedSignatur.data);
-        const file = base64ToFile(`data:image/jpeg;base64,${base64Image}`, 'authorisedSignatur.jpg');
-        setselectedSignatureImage(`data:image/jpeg;base64,${base64Image}`);
-        setSignatureImage(file)
-      } else {
-        setselectedSignatureImage(null);
-      }
-
-    } else if (mode === "create") {
-      clearInputFields();
-    }
-  }, [mode, selectedRow, isUpdated]);
 
   const base64ToFile = (base64Data, fileName) => {
     if (!base64Data || !base64Data.startsWith("data:")) {
@@ -392,7 +435,7 @@ const VendorProductTable = () => {
       !contact_no ||
       !location_no
     ) {
-      setError(" ");
+      setError(true);
       toast.warning("Error: Missing required fields");
       return;
     }
@@ -401,6 +444,7 @@ const VendorProductTable = () => {
       toast.warning("Please enter a valid email address");
       return;
     }
+    setError(false);
     setLoading(true);
 
     try {
@@ -437,13 +481,14 @@ const VendorProductTable = () => {
         method: "POST",
         body: formData,
       });
-      if (response.status === 200) {
+      if (response.ok) {
         console.log("Data inserted successfully");
-        setTimeout(() => {
-          toast.success("Data inserted successfully!", {
-            onClose: () => window.location.reload(),
-          });
-        }, 1000);
+        toast.success("Data inserted successfully", {
+          onClose: () => {
+            clearInputFields();
+            setError(false)
+          }
+        });
       } else {
         const errorResponse = await response.json();
         console.error(errorResponse.message);
@@ -465,7 +510,13 @@ const VendorProductTable = () => {
   }
 
   const handleClick = () => {
-    navigate('/Company');
+    navigate("/Company", {
+      state: {
+        refreshGrid: true,
+        // preservedRowData: location.state?.preservedRowData,
+        preservedInputs: location.state?.preservedInputs
+      }
+    });
   };
 
   const handleKeyDown = async (e, nextFieldRef, value, hasValueChanged, setHasValueChanged) => {
@@ -505,7 +556,7 @@ const VendorProductTable = () => {
       !contact_no ||
       !location_no
     ) {
-      setError(" ");
+      setError(true);
       toast.warning("Error: Missing required fields");
       return;
     }
@@ -515,6 +566,7 @@ const VendorProductTable = () => {
       return;
     }
 
+    setError(false);
     setLoading(true);
 
     try {
@@ -552,11 +604,14 @@ const VendorProductTable = () => {
         body: formData,
       });
 
-      if (response.status === 200) {
+      if (response.ok) {
         console.log("Data Updated successfully");
-        setIsUpdated(true);
-        clearInputFields();
-        toast.success("Data Updated successfully!")
+        toast.success("Data updated successfully", {
+          onClose: () => {
+            // clearInputFields();
+            setError(false)
+          }
+        });
       } else {
         const errorResponse = await response.json();
         console.error(errorResponse.message);
@@ -674,37 +729,37 @@ const VendorProductTable = () => {
           </div>
           <div className="col-md-3 mb-2">
             <label className={`fw-bold ${error && !selectedCity ? 'text-danger' : ''}`}>
-  City<span className="text-danger">*</span>
-</label>
+              City<span className="text-danger">*</span>
+            </label>
             <div title="Please select the city">
-            <Select
-              type="text"
-              value={selectedCity}
-              onChange={handleChangeCity}
-              options={filteredOptionCity}
-              className=""
-              placeholder=""
-              classNamePrefix="react-select"
-              ref={City}
-              onKeyDown={(e) => handleKeyDown(e, State, City)}
-            />
-          </div>
+              <Select
+                type="text"
+                value={selectedCity}
+                onChange={handleChangeCity}
+                options={filteredOptionCity}
+                className=""
+                placeholder=""
+                classNamePrefix="react-select"
+                ref={City}
+                onKeyDown={(e) => handleKeyDown(e, State, City)}
+              />
+            </div>
           </div>
           <div className="col-md-3 mb-2">
             <label className={`fw-bold ${error && !selectedState ? 'text-danger' : ''}`}>State<span className="text-danger">*</span></label>
             <div title="Please select the state">
-            <Select
-              type="text"
-              value={selectedState}
-              onChange={handleChangeState}
-              options={filteredOptionState}
-              className=""
-              placeholder=""
-              classNamePrefix="react-select"
-              ref={State}
-              onKeyDown={(e) => handleKeyDown(e, Pincode, State)}
-            />
-          </div>
+              <Select
+                type="text"
+                value={selectedState}
+                onChange={handleChangeState}
+                options={filteredOptionState}
+                className=""
+                placeholder=""
+                classNamePrefix="react-select"
+                ref={State}
+                onKeyDown={(e) => handleKeyDown(e, Pincode, State)}
+              />
+            </div>
           </div>
           <div className="col-md-3 mb-2">
             <label className={`fw-bold ${error && !pincode ? 'text-danger' : ''}`}>Pin Code<span className="text-danger">*</span></label>
@@ -723,18 +778,18 @@ const VendorProductTable = () => {
           <div className="col-md-3 mb-2">
             <label className={`fw-bold ${error && !selectedCountry ? 'text-danger' : ''}`}>Country<span className="text-danger">*</span></label>
             <div title="Please select the country">
-            <Select
-              type="text"
-              className=""
-              value={selectedCountry}
-              onChange={handleChangeCountry}
-              options={filteredOptionCountry}
-              placeholder=""
-              classNamePrefix="react-select"
-              ref={Country}
-              onKeyDown={(e) => handleKeyDown(e, Email, Country)}
-            />
-          </div>
+              <Select
+                type="text"
+                className=""
+                value={selectedCountry}
+                onChange={handleChangeCountry}
+                options={filteredOptionCountry}
+                placeholder=""
+                classNamePrefix="react-select"
+                ref={Country}
+                onKeyDown={(e) => handleKeyDown(e, Email, Country)}
+              />
+            </div>
           </div>
           <div className="col-md-3 mb-2">
             <label className={`fw-bold ${error && !email_id ? 'text-danger' : ''}`}>Email<span className="text-danger">*</span></label>
@@ -753,17 +808,17 @@ const VendorProductTable = () => {
           <div className="col-md-3 mb-2">
             <label className={`fw-bold ${error && !selectedStatus ? 'text-danger' : ''}`}>Status<span className="text-danger">*</span></label>
             <div title="Please select the status">
-            <Select
-              className=""
-              value={selectedStatus}
-              onChange={handleChangeStatus}
-              options={filteredOptionStatus}
-              placeholder=""
-              classNamePrefix="react-select"
-              ref={Status}
-              onKeyDown={(e) => handleKeyDown(e, found, Status)}
-            />
-          </div>
+              <Select
+                className=""
+                value={selectedStatus}
+                onChange={handleChangeStatus}
+                options={filteredOptionStatus}
+                placeholder=""
+                classNamePrefix="react-select"
+                ref={Status}
+                onKeyDown={(e) => handleKeyDown(e, found, Status)}
+              />
+            </div>
           </div>
           <div className="col-md-3 mb-2">
             <label className="fw-bold">Founded Date</label>
@@ -837,18 +892,18 @@ const VendorProductTable = () => {
           <div className="col-md-3 mb-2">
             <label className={`fw-bold ${error && !selectedLocation ? 'text-danger' : ''}`}>Location No<span className="text-danger">*</span></label>
             <div title="Please select the location no">
-            <Select
-              type="text"
-              className=""
-              value={selectedLocation}
-              onChange={handleChangeLocation}
-              options={filteredOptionLocation}
-              placeholder=""
-              classNamePrefix="react-select"
-              ref={locatioN}
-              onKeyDown={(e) => handleKeyDown(e, logo, locatioN)}
-            />
-          </div>
+              <Select
+                type="text"
+                className=""
+                value={selectedLocation}
+                onChange={handleChangeLocation}
+                options={filteredOptionLocation}
+                placeholder=""
+                classNamePrefix="react-select"
+                ref={locatioN}
+                onKeyDown={(e) => handleKeyDown(e, logo, locatioN)}
+              />
+            </div>
           </div>
           <div className="col-md-3 mb-2">
             <label className='fw-bold'>Logo</label>
@@ -865,7 +920,7 @@ const VendorProductTable = () => {
             <div className="col-md-3 form-group mb-2">
               <div class="exp-form-floating">
                 <img
-                  src={selectedImage}
+                  src={selectedImage || Logo}
                   alt="Selected Preview"
                   className="avatar rounded sm mt-4"
                   style={{ height: '220px', width: '220px' }}
@@ -883,11 +938,11 @@ const VendorProductTable = () => {
               ref={sign}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
-                  e.preventDefault(); 
+                  e.preventDefault();
                   if (mode === "update") {
-                    handleUpdate();  
+                    handleUpdate();
                   } else {
-                    handleInsert();  
+                    handleInsert();
                   }
                 }
               }}
@@ -897,7 +952,7 @@ const VendorProductTable = () => {
             <div className="col-md-3 form-group mb-2">
               <div class="exp-form-floating">
                 <img
-                  src={selectedSignatureImage}
+                  src={selectedSignatureImage || Signature}
                   alt="Selected Preview"
                   className="avatar rounded sm mt-4"
                   style={{ height: '220px', width: '220px' }}

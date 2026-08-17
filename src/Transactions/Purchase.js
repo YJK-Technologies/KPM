@@ -18,17 +18,8 @@ import PurchaseWarehousePopup from '../Transactions/Popups/PurchaseWarehousePopu
 import PurchaseDeletePopup from '../Transactions/Popups/PurchaseDeletePopup';
 import { faTrash, faSearch, faCamera } from '@fortawesome/free-solid-svg-icons';
 import LoadingScreen from '../BookLoader';
-import {
-  ModuleRegistry,
-  ClientSideRowModelModule,
-  PaginationModule,
-  TextFilterModule,
-  NumberFilterModule,
-  DateFilterModule,
-  CustomFilterModule,
-  CellStyleModule,
-  ValidationModule
-} from 'ag-grid-community';
+import { ModuleRegistry, ClientSideRowModelModule, PaginationModule, TextFilterModule, NumberFilterModule,
+  DateFilterModule, CustomFilterModule, CellStyleModule, ValidationModule} from 'ag-grid-community';
 import secureLocalStorage from "react-secure-storage";
 import printDB from './printDB'; 
 
@@ -2224,6 +2215,7 @@ const VendorProductTable = () => {
   };
 
   const handlePurchaseData = async (data) => {
+    console.log(data)
     setLoading(true);
     if (data && data.length > 0) {
       if (!isChecked) {
@@ -2270,21 +2262,31 @@ const VendorProductTable = () => {
       }
 
       const purchasetype = document.getElementById('purchaseType');
+          
       if (purchasetype) {
-        const selectedPay = filteredOptionPurchase.find(option => option.value === PurchaseType);
-        setSelected(selectedPay);
-        setPurchaseType(selectedPay.value);
+          const selectedPay = filteredOptionPurchase.find(
+              option => option.value?.toLowerCase() === PurchaseType?.toLowerCase()
+          );
+        
+          setSelected(selectedPay);
+          setPurchaseType(selectedPay?.value?.toLowerCase());
       } else {
-        console.error('entry element not found');
+          console.error('entry element not found');
       }
-
+      
       const paytype = document.getElementById('paytype');
+      
       if (paytype) {
-        const selectedPay = filteredOptionPay.find(option => option.value === PayType);
-        setselectedPay(selectedPay);
-        setPayType(selectedPay.value);
+          const selectedPay = filteredOptionPay.find(
+              option => option.value?.toLowerCase() === PayType?.toLowerCase()
+          );
+        
+          console.log(selectedPay);
+        
+          setselectedPay(selectedPay);
+          setPayType(selectedPay?.value?.toLowerCase());
       } else {
-        console.error('entry element not found');
+          console.error('entry element not found');
       }
 
       const totalPurchaseAmount = document.getElementById('totalPurchaseAmount');

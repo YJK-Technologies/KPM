@@ -16,7 +16,7 @@ import {
 import '../../App.css';
 import { ToastContainer, toast } from 'react-toastify';
 import LoadingScreen from '../../BookLoader';
-import secureLocalStorage from "react-secure-storage"; 
+import secureLocalStorage from "react-secure-storage";
 
 // Register necessary modules
 ModuleRegistry.registerModules([
@@ -46,14 +46,12 @@ const VendorProductTable = () => {
   const [companynodrop, setcompanynodrop] = useState([]);
   const [locationnodrop, setlocationnodrop] = useState([]);
   const [statusdrop, setStatusdrop] = useState([]);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(false);
   const [hasValueChanged, setHasValueChanged] = useState(false);
   const created_by = sessionStorage.getItem("selectedUserCode");
   const modified_by = sessionStorage.getItem("selectedUserCode");
   const [isUpdated, setIsUpdated] = useState(false);
   const [keyfiels, setKeyfiels] = useState('');
-  const location = useLocation();
-  const { mode, selectedRow } = location.state || {};
   const usercode = useRef(null);
   const companycode = useRef(null);
   const locno = useRef(null);
@@ -62,41 +60,113 @@ const VendorProductTable = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
 
-  console.log(selectedRow);
+  const location = useLocation();
+  const locationState = location.state || {};
+  const mode = locationState.mode || "create"; // ✅ default fallback
+  const selectedRow = locationState.selectedRow || null;
+  const keyfields = location.state?.keyfiels;
+  const company_code = sessionStorage.getItem('selectedCompanyCode');
+
+  useEffect(() => {
+    if (!location.state) {
+      clearInputFields(); // ensure fresh create mode
+    }
+  }, []);
+
+  useEffect(() => {
+    if (mode === "update" && keyfields) {
+      fetchCompanyMappingData();
+    }
+  }, [mode, keyfields]);
+
+  const fetchCompanyMappingData = async () => {
+    try {
+      setLoading(true);
+
+      const response = await fetch(`${config.apiBaseUrl}/getCompanyMappingData`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          keyfiels: keyfields,
+          company_code
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.length > 0) {
+        const companyMapping = data[0];
+
+        setorder_no(companyMapping.order_no || "");
+        setKeyfiels(companyMapping.keyfiels || "");
+        setuser_code(companyMapping.user_code || "");
+        setcompany_no(companyMapping.company_no || "");
+        setlocation_no(companyMapping.location_no || "");
+        setstatus(companyMapping.status || "");
+        setSelectedUser({
+          label: companyMapping.user_code,
+          value: companyMapping.user_code,
+        });
+        setSelectedCompany({
+          label: companyMapping.company_no,
+          value: companyMapping.company_no,
+        });
+        setSelectedLocation({
+          label: companyMapping.location_no,
+          value: companyMapping.location_no,
+        });
+        setSelectedStatus({
+          label: companyMapping.status,
+          value: companyMapping.status,
+        });
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to fetch company mapping details");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const clearInputFields = () => {
     setSelectedUser("");
+    setuser_code("");
     setSelectedCompany("");
+    setcompany_no("");
     setSelectedLocation("");
+    setlocation_no("");
     setSelectedStatus("");
+    setstatus("");
     setorder_no("");
   };
 
-  useEffect(() => {
-    if (mode === "update" && selectedRow && !isUpdated) {
-      setorder_no(selectedRow.order_no || "");
-      setKeyfiels(selectedRow.keyfiels || "");
-      setSelectedUser({
-        label: selectedRow.user_code,
-        value: selectedRow.user_code,
-      });
-      setSelectedCompany({
-        label: selectedRow.company_no,
-        value: selectedRow.company_no,
-      });
-      setSelectedLocation({
-        label: selectedRow.location_no,
-        value: selectedRow.location_no,
-      });
-      setSelectedStatus({
-        label: selectedRow.status,
-        value: selectedRow.status,
-      });
+  // useEffect(() => {
+  //   if (mode === "update" && selectedRow && !isUpdated) {
+  //     setorder_no(selectedRow.order_no || "");
+  //     setKeyfiels(selectedRow.keyfiels || "");
+  //     setSelectedUser({
+  //       label: selectedRow.user_code,
+  //       value: selectedRow.user_code,
+  //     });
+  //     setSelectedCompany({
+  //       label: selectedRow.company_no,
+  //       value: selectedRow.company_no,
+  //     });
+  //     setSelectedLocation({
+  //       label: selectedRow.location_no,
+  //       value: selectedRow.location_no,
+  //     });
+  //     setSelectedStatus({
+  //       label: selectedRow.status,
+  //       value: selectedRow.status,
+  //     });
 
-    } else if (mode === "create") {
-      clearInputFields();
-    }
-  }, [mode, selectedRow, isUpdated]);
+  //   } else if (mode === "create") {
+  //     clearInputFields();
+  //   }
+  // }, [mode, selectedRow, isUpdated]);
 
   useEffect(() => {
     fetch(`${config.apiBaseUrl}/usercode`)
@@ -171,10 +241,11 @@ const VendorProductTable = () => {
 
   const handleInsert = async () => {
     if (!user_code || !company_no || !location_no || !status) {
-      setError(" ");
+      setError(true);
       toast.warning("Error: Missing required fields");
       return;
     }
+    setError(false);
     setLoading(true);
 
     try {
@@ -195,13 +266,13 @@ const VendorProductTable = () => {
           }),
         }
       );
-      if (response.status === 200) {
-        console.log("Data inserted successfully");
-        setTimeout(() => {
-          toast.success("Data inserted successfully!", {
-            onClose: () => window.location.reload(), // Reloads the page after the toast closes
-          });
-        }, 1000);
+      if (response.ok) {
+        toast.success("Data inserted successfully", {
+          onClose: () => {
+            clearInputFields();
+            setError(false)
+          }
+        });
       } else if (response.status === 400) {
         const errorResponse = await response.json();
         console.error(errorResponse.message);
@@ -219,7 +290,13 @@ const VendorProductTable = () => {
   };
 
   const handleClick = () => {
-    navigate('/CompanyMapping');
+    navigate("/CompanyMapping", {
+      state: {
+        refreshGrid: true,
+        // preservedRowData: location.state?.preservedRowData,
+        preservedInputs: location.state?.preservedInputs
+      }
+    });
   };
 
   const handleKeyDown = async (
@@ -250,10 +327,11 @@ const VendorProductTable = () => {
 
   const handleUpdate = async () => {
     if (!selectedUser || !selectedCompany || !selectedStatus || !selectedLocation) {
-      setError(" ");
+      setError(true);
       toast.warning("Error: Missing required fields");
       return;
     }
+    setError(false);
     setLoading(true);
 
     try {
@@ -264,20 +342,22 @@ const VendorProductTable = () => {
         },
         body: JSON.stringify({
           company_code: sessionStorage.getItem("selectedCompanyCode"),
-          user_code: selectedUser.value,
-          company_no: selectedCompany.value,
-          location_no: selectedLocation.value,
-          status: selectedStatus.value,
-          order_no: order_no,
+          user_code,
+          company_no,
+          location_no,
+          status,
+          order_no,
           modified_by,
           keyfiels
         }),
       });
-      if (response.status === 200) {
-        console.log("Data Updated successfully");
-        setIsUpdated(true);
-        clearInputFields();
-        toast.success("Data Updated successfully!")
+      if (response.ok) {
+        toast.success("Data updated successfully", {
+          onClose: () => {
+            // clearInputFields();
+            setError(false)
+          }
+        });
       } else {
         const errorResponse = await response.json();
         console.error(errorResponse.message);
@@ -311,69 +391,69 @@ const VendorProductTable = () => {
           <div className="col-md-3 mb-2">
             <label className={`fw-bold ${error && !selectedUser ? 'text-danger' : ''}`}>User Code<span className="text-danger">*</span></label>
             <div title="Please select the user code">
-            <Select
-              type="text"
-              className=""
-              classNamePrefix="react-select"
-              value={selectedUser}
-              onChange={handleChangeUser}
-              options={filteredOptionUser}
-              placeholder=""
-              ref={usercode}
-              onKeyDown={(e) =>
-                handleKeyDown(e, companycode, usercode)
-              }
-            />
-          </div>
+              <Select
+                type="text"
+                className=""
+                classNamePrefix="react-select"
+                value={selectedUser}
+                onChange={handleChangeUser}
+                options={filteredOptionUser}
+                placeholder=""
+                ref={usercode}
+                onKeyDown={(e) =>
+                  handleKeyDown(e, companycode, usercode)
+                }
+              />
+            </div>
           </div>
           <div className="col-md-3 mb-2">
             <label className={`fw-bold ${error && !selectedCompany ? 'text-danger' : ''}`}>Company Code<span className="text-danger">*</span></label>
             <div title="Please select the company code">
-            <Select
-              type="text"
-              className=""
-              value={selectedCompany}
-              onChange={handleChangeCompany}
-              options={filteredOptionCompany}
-              placeholder=""
-              classNamePrefix="react-select"
-              ref={companycode}
-              onKeyDown={(e) =>
-                handleKeyDown(e, locno, companycode)
-              }
-            />
-          </div>
+              <Select
+                type="text"
+                className=""
+                value={selectedCompany}
+                onChange={handleChangeCompany}
+                options={filteredOptionCompany}
+                placeholder=""
+                classNamePrefix="react-select"
+                ref={companycode}
+                onKeyDown={(e) =>
+                  handleKeyDown(e, locno, companycode)
+                }
+              />
+            </div>
           </div>
           <div className="col-md-3 mb-2">
             <label className={`fw-bold ${error && !selectedLocation ? 'text-danger' : ''}`}>Location No<span className="text-danger">*</span></label>
             <div title="Please select the location no">
-            <Select
-              className=""
-              value={selectedLocation}
-              onChange={handleChangeLocation}
-              options={filteredOptionLocation}
-              placeholder=""
-              classNamePrefix="react-select"
-              ref={locno}
-              onKeyDown={(e) => handleKeyDown(e, Status, locno)}
-            />
-          </div>
+              <Select
+                className=""
+                value={selectedLocation}
+                onChange={handleChangeLocation}
+                options={filteredOptionLocation}
+                placeholder=""
+                classNamePrefix="react-select"
+                ref={locno}
+                onKeyDown={(e) => handleKeyDown(e, Status, locno)}
+              />
+            </div>
           </div>
           <div className="col-md-3 mb-2">
             <label className={`fw-bold ${error && !selectedStatus ? 'text-danger' : ''}`}>Status<span className="text-danger">*</span></label>
             <div title="Please select the status">
-            <Select
-              type="text"
-              className=""
-              value={selectedStatus}
-              onChange={handleChangeStatus}
-              options={filteredOptionStatus}
-              placeholder=""
-              classNamePrefix="react-select"
-              ref={Status}
-              onKeyDown={(e) => handleKeyDown(e, Orderno, Status)}
-            />
-          </div>
+              <Select
+                type="text"
+                className=""
+                value={selectedStatus}
+                onChange={handleChangeStatus}
+                options={filteredOptionStatus}
+                placeholder=""
+                classNamePrefix="react-select"
+                ref={Status}
+                onKeyDown={(e) => handleKeyDown(e, Orderno, Status)}
+              />
+            </div>
           </div>
           <div className="col-md-3 mb-2">
             <label className='fw-bold'>Order No</label>

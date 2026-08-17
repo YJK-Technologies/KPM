@@ -352,7 +352,7 @@ export default function RetunrHelpPopup({ open, handleClose, ReturnHelp }) {
                           <path d="M8 1a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-.5.5H5a.5.5 0 0 1 0-1h2.5V1.5A.5.5 0 0 1 8 1z" />
                         </svg>
                       </button>
-                      <button className='btn btn-primary pt-1 ms-2'>
+                      <button className='btn btn-primary pt-1 ms-2' onClick={handleConfirm}>
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" className="bi bi-check" viewBox="0 0 16 16">
                           <path d="M13.854 3.646a.5.5 0 0 1 0 .708L6.707 11.5l-3.5-3.5a.5.5 0 0 1 .708-.708L6.707 10.293l6.439-6.439a.5.5 0 0 1 .708 0z" />
                         </svg>

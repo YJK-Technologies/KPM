@@ -1,5 +1,4 @@
 import { AgGridReact } from 'ag-grid-react';
-
 import Select from 'react-select';
 import { useNavigate, useLocation } from 'react-router-dom';
 import CustomerHelp from '../Transactions/Popups/CustomerHelpPopup';
@@ -8,17 +7,8 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import * as XLSX from 'xlsx';
 import LoadingScreen from '../BookLoader';
-import {
-  ModuleRegistry,
-  ClientSideRowModelModule,
-  PaginationModule,
-  TextFilterModule,
-  NumberFilterModule,
-  DateFilterModule,
-  CustomFilterModule,
-  CellStyleModule,
-  ValidationModule
-} from 'ag-grid-community';
+import { ModuleRegistry, ClientSideRowModelModule, PaginationModule, TextFilterModule, NumberFilterModule,
+  DateFilterModule, CustomFilterModule, CellStyleModule, ValidationModule} from 'ag-grid-community';
 import '../App.css';
 import React, { useState, useEffect, useRef } from 'react';
 import secureLocalStorage from "react-secure-storage"; 

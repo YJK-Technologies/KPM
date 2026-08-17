@@ -1,21 +1,12 @@
 import { AgGridReact } from 'ag-grid-react';
 import React, { useState, useEffect, useRef } from "react";
 import Select from 'react-select';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Barcode from 'react-barcode';
 import { ToastContainer, toast } from 'react-toastify';
 import { showConfirmationToast } from '../ToastConfirmation';
-import {
-  ModuleRegistry,
-  ClientSideRowModelModule,
-  PaginationModule,
-  TextFilterModule,
-  NumberFilterModule,
-  DateFilterModule,
-  CustomFilterModule,
-  CellStyleModule,
-  ValidationModule
-} from 'ag-grid-community';
+import { ModuleRegistry, ClientSideRowModelModule, PaginationModule, TextFilterModule, NumberFilterModule,
+  DateFilterModule, CustomFilterModule, CellStyleModule, ValidationModule} from 'ag-grid-community';
 import 'react-toastify/dist/ReactToastify.css';
 import LoadingScreen from '../BookLoader';
 import '../App.css';
@@ -80,6 +71,8 @@ const Category = () => {
   const [editedData, setEditedData] = useState([]);
   const [selectedRows, setSelectedRows] = useState([]);
 
+  const location = useLocation();
+
   const handleChangeStatus = (selectedStatus) => {
     setSelectedStatus(selectedStatus);
     setstatus(selectedStatus ? selectedStatus.value : '');
@@ -95,6 +88,60 @@ const Category = () => {
     .filter(permission => permission.screen_type === 'Item')
     .map(permission => permission.permission_type.toLowerCase());
 
+  useEffect(() => {
+  const state = location.state;
+
+  if (!state) {
+    return;
+  }
+
+  // Restore grid data
+  if (state.preservedRowData) {
+    setRowData(state.preservedRowData);
+  }
+
+  // Restore search input values
+  if (state.preservedInputs) {
+    setItem_Category_Code(
+      state.preservedInputs.Item_Category_Code || ""
+    );
+
+    setItem_Category_Name(
+      state.preservedInputs.Item_Category_Name || ""
+    );
+
+    setItem_Category_Description(
+      state.preservedInputs.Item_Category_Description || ""
+    );
+
+    setRegion_Code(
+      state.preservedInputs.Region_Code || ""
+    );
+
+    setDisplay_Order(
+      state.preservedInputs.Display_Order || ""
+    );
+
+    setdefault(
+      state.preservedInputs.Is_Default || ""
+    );
+
+    setstatus(
+      state.preservedInputs.status || ""
+    );
+  }
+
+  // Restore Select values
+  if (state.preservedSelects) {
+    setselectedDefault(
+      state.preservedSelects.selectedDefault || null
+    );
+
+    setSelectedStatus(
+      state.preservedSelects.selectedStatus || null
+    );
+  }
+  }, [location.state]);
 
   useEffect(() => {
     const company_code = sessionStorage.getItem('selectedCompanyCode');
@@ -258,8 +305,37 @@ const Category = () => {
     label: option.attributedetails_name,
   }));
 
+  // const handleNavigateWithRowData = (selectedRow) => {
+  //   navigate("/AddCategory", { state: { mode: "update", selectedRow } });
+  // };
+
   const handleNavigateWithRowData = (selectedRow) => {
-    navigate("/AddCategory", { state: { mode: "update", selectedRow } });
+  navigate("/AddCategory", {
+    state: {
+      mode: "update",
+      selectedRow: selectedRow,
+
+      // Preserve current grid data
+      preservedRowData: rowData,
+
+      // Preserve all search inputs
+      preservedInputs: {
+        Item_Category_Code: Item_Category_Code,
+        Item_Category_Name: Item_Category_Name,
+        Item_Category_Description: Item_Category_Description,
+        Region_Code: Region_Code,
+        Display_Order: Display_Order,
+        Is_Default: Is_Default,
+        status: status,
+      },
+
+      // Preserve React Select values
+      preservedSelects: {
+        selectedDefault: selectedDefault,
+        selectedStatus: selectedStatus,
+      },
+    },
+  });
   };
 
   const arrayBufferToBase64 = (buffer) => {
@@ -751,6 +827,33 @@ const Category = () => {
     wrapText: true,
   };
 
+  const clearInputFields = () => {
+  // Clear text inputs
+  setItem_Category_Code("");
+  setItem_Category_Name("");
+  setItem_Category_Description("");
+  setRegion_Code("");
+  setDisplay_Order("");
+
+  // Clear Default select
+  setselectedDefault(null);
+  setdefault("");
+
+  // Clear Status select
+  setSelectedStatus(null);
+  setstatus("");
+
+  // Clear grid
+  setRowData([]);
+
+  // Clear edited/selected rows also
+  setEditedData([]);
+  setSelectedRows([]);
+
+  // Clear error/loading states if needed
+  setError("");
+  };
+
   return (
     <div className="container-fluid ">
       {loading && <LoadingScreen />}
@@ -790,7 +893,7 @@ const Category = () => {
                 </div>
               )}
               <div className="col-md-2 mt-1 mb-5">
-                <a className='border-none text-dark p-1' title="Reload" onClick={handleReload} style={{ cursor: "pointer" }}> <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
+                <a className='border-none text-dark p-1' title="Reload" onClick={clearInputFields} style={{ cursor: "pointer" }}> <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
                   <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2z" />
                   <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466" />
                 </svg>
@@ -842,7 +945,7 @@ const Category = () => {
                         </svg>
                       </button>
                     )}
-                    <a className='border-none text-dark p-1 d-flex justify-content-center' onClick={handleReload} title="Reload" style={{ cursor: "pointer" }}> <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
+                    <a className='border-none text-dark p-1 d-flex justify-content-center' onClick={clearInputFields} title="Reload" style={{ cursor: "pointer" }}> <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
                       <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2z" />
                       <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466" />
                     </svg>

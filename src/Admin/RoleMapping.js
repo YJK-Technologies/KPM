@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { AgGridReact } from 'ag-grid-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   ModuleRegistry,
   ClientSideRowModelModule,
@@ -16,7 +16,7 @@ import { showConfirmationToast } from '../ToastConfirmation';
 import { ToastContainer, toast } from 'react-toastify';
 import '../App.css';
 import LoadingScreen from '../BookLoader';
-import secureLocalStorage from "react-secure-storage"; 
+import secureLocalStorage from "react-secure-storage";
 
 // Register necessary modules
 ModuleRegistry.registerModules([
@@ -51,10 +51,57 @@ const VendorProductTable = () => {
   const [modifiedDate, setModifiedDate] = useState("");
   const navigate = useNavigate();
 
+  const location = useLocation();
+
   const permissions = JSON.parse(sessionStorage.getItem('permissions')) || {};
   const roleMappingPermissions = permissions
     .filter(permission => permission.screen_type === 'RoleMapping')
     .map(permission => permission.permission_type.toLowerCase());
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      const isReloadShortcut =
+        (event.ctrlKey && event.key.toLowerCase() === "r") ||
+        (event.altKey && event.key.toLowerCase() === "r") ||
+        event.key === "F5";
+
+      if (isReloadShortcut) {
+        event.preventDefault();
+        clearInputFields();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  useEffect(() => {
+    // if (location.state?.preservedRowData) {
+    //   setRowData(location.state.preservedRowData);
+    // }
+
+    if (location.state?.preservedInputs) {
+      const inputs = location.state.preservedInputs;
+
+      setuser_code(inputs.user_code || "");
+      setuser_name(inputs.user_name || "");
+      setrole_id(inputs.role_id || "");
+      setrole_name(inputs.role_name || "");
+
+      if (location.state?.refreshGrid) {
+        handleSearch(inputs);
+      }
+    }
+  }, [location.state]);
+
+  const clearInputFields = () => {
+    setuser_code("");
+    setuser_name("");
+    setrole_id("");
+    setrole_name("");
+    setRowData([]);
+  };
 
   useEffect(() => {
     fetch(`${config.apiBaseUrl}/usercode`)
@@ -162,7 +209,7 @@ const VendorProductTable = () => {
     editable: true,
   };
 
-  const handleSearch = async () => {
+  const handleSearch = async (searchParams = null) => {
     setLoading(true);
     try {
       const company_code = sessionStorage.getItem('selectedCompanyCode');
@@ -172,7 +219,13 @@ const VendorProductTable = () => {
           "Content-Type": "application/json",
           company_code: company_code,
         },
-        body: JSON.stringify({ company_code, user_code, user_name, role_id, role_name }) // Send user_no and user_name as search criteria
+        body: JSON.stringify({
+          company_code,
+          user_code: searchParams?.user_code ?? user_code,
+          user_name: searchParams?.user_name ?? user_name,
+          role_id: searchParams?.role_id ?? role_id,
+          role_name: searchParams?.role_name ?? role_name,
+        })
       });
       if (response.ok) {
         const searchData = await response.json();
@@ -314,13 +367,24 @@ const VendorProductTable = () => {
     reportWindow.document.write("</body></html>");
     reportWindow.document.close();
   };
-  
+
   const handleClick = () => {
     navigate('/AddRoleMapping', { state: { mode: "create" } });
   };
 
   const handleNavigateWithRowData = (selectedRow) => {
-    navigate("/AddRoleMapping", { state: { mode: "update", selectedRow } });
+    navigate("/AddRoleMapping", {
+      state: {
+        mode: "update",
+        keyfield: selectedRow.keyfield,
+        preservedInputs: {
+          user_code,
+          user_name,
+          role_id,
+          role_name,
+        },
+      },
+    });
   };
 
   const onSelectionChanged = () => {
@@ -329,34 +393,21 @@ const VendorProductTable = () => {
     setSelectedRows(selectedData);
   };
 
-  // const onCellValueChanged = (params) => {
-  //   const updatedRowData = [...rowData];
-  //   const rowIndex = updatedRowData.findIndex(
-  //     (row) => row.keyfield === params.data.keyfield
-  //   );
-  //   if (rowIndex !== -1) {
-  //     updatedRowData[rowIndex][params.colDef.field] = params.newValue;
-  //     setRowData(updatedRowData);
-
-  //     setEditedData((prevData) => [...prevData, updatedRowData[rowIndex]]);
-  //   }
-  // };
-
   const onCellValueChanged = (params) => {
     const updatedRowData = [...rowData];
     const rowIndex = updatedRowData.findIndex(
       (row) => row.keyfield === params.data.keyfield
     );
-  
+
     if (rowIndex !== -1) {
       updatedRowData[rowIndex][params.colDef.field] = params.newValue;
       setRowData(updatedRowData);
-  
+
       setEditedData((prevData) => {
         const existingIndex = prevData.findIndex(
           (item) => item.keyfield === params.data.keyfield
         );
-  
+
         if (existingIndex !== -1) {
           const updatedEdited = [...prevData];
           updatedEdited[existingIndex] = updatedRowData[rowIndex];

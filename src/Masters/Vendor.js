@@ -1,22 +1,15 @@
 import { AgGridReact } from 'ag-grid-react';
 import Select from 'react-select';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import React, { useState, useEffect, useRef } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import { showConfirmationToast } from '../ToastConfirmation';
 import LoadingScreen from '../BookLoader';
 import {
-  ModuleRegistry,
-  ClientSideRowModelModule,
-  PaginationModule,
-  TextFilterModule,
-  NumberFilterModule,
-  DateFilterModule,
-  CustomFilterModule,
-  CellStyleModule,
-  ValidationModule
+  ModuleRegistry, ClientSideRowModelModule, PaginationModule, TextFilterModule, NumberFilterModule,
+  DateFilterModule, CustomFilterModule, CellStyleModule, ValidationModule
 } from 'ag-grid-community';
-import secureLocalStorage from "react-secure-storage"; 
+import secureLocalStorage from "react-secure-storage";
 
 import '../App.css';
 // Register necessary modules
@@ -71,10 +64,70 @@ const VendorProductTable = () => {
   const [modifiedDate, setModifiedDate] = useState("");
   const config = require('../ApiConfig');
 
+  const location = useLocation();
+
   const permissions = JSON.parse(sessionStorage.getItem('permissions')) || {};
   const vendorPermissions = permissions
     .filter(permission => permission.screen_type === 'Vendor')
     .map(permission => permission.permission_type.toLowerCase());
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      const isReloadShortcut =
+        (event.ctrlKey && event.key.toLowerCase() === "r") ||
+        (event.altKey && event.key.toLowerCase() === "r") ||
+        event.key === "F5";
+
+      if (isReloadShortcut) {
+        event.preventDefault();
+        clearInputFields();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  useEffect(() => {
+    // if (location.state?.preservedRowData) {
+    //   setRowData(location.state.preservedRowData);
+    // }
+
+    if (location.state?.preservedInputs) {
+      const inputs = location.state.preservedInputs;
+
+      setvendor_code(inputs.vendor_code || "");
+      setvendor_name(inputs.vendor_name || "");
+      setpanno(inputs.panno || "");
+      setvendor_gst_no(inputs.vendor_gst_no || "");
+      setvendor_addr_1(inputs.vendor_addr_1 || "");
+      setvendor_area_code(
+        inputs.vendor_area_code || "",
+      );
+      setvendor_state_code(
+        inputs.vendor_state_code || "",
+      );
+      setvendor_country_code(
+        inputs.vendor_country_code || "",
+      );
+      setvendor_mobile_no(
+        inputs.vendor_mobile_no || "",
+      );
+      setstatus(inputs.status || "");
+
+      if (inputs.status) {
+        setSelectedStatus({
+          label: location.state.preservedInputs.status,
+          value: location.state.preservedInputs.status,
+        });
+      }
+
+      if (location.state?.refreshGrid) {
+        handleSearch(inputs);
+      }
+    }
+  }, [location.state]);
 
   useEffect(() => {
     const company_code = sessionStorage.getItem('selectedCompanyCode');
@@ -346,7 +399,7 @@ const VendorProductTable = () => {
           });
         }
       },
-    }, 
+    },
     {
       headerName: "Residential No",
       field: "vendor_resi_no",
@@ -363,7 +416,7 @@ const VendorProductTable = () => {
           params.data.vendor_resi_no = newValue;
           return true;
         }
-        return false; 
+        return false;
       },
     },
     {
@@ -382,7 +435,7 @@ const VendorProductTable = () => {
           params.data.vendor_mobile_no = newValue;
           return true;
         }
-        return false; 
+        return false;
       },
     },
     {
@@ -415,8 +468,29 @@ const VendorProductTable = () => {
     setGridColumnApi(params.columnApi);
   };
 
+  // const handleNavigateWithRowData = (selectedRow) => {
+  //   navigate("/AddVendorDet", { state: { mode: "update", selectedRow } });
+  // };
+
   const handleNavigateWithRowData = (selectedRow) => {
-    navigate("/AddVendorDet", { state: { mode: "update", selectedRow } });
+    navigate("/AddVendorDet", {
+      state: {
+        mode: "update",
+        keyfield: selectedRow.keyfield,
+        preservedInputs: {
+          vendor_code,
+          vendor_name,
+          panno,
+          vendor_gst_no,
+          vendor_addr_1,
+          vendor_area_code,
+          vendor_state_code,
+          vendor_country_code,
+          vendor_mobile_no,
+          status,
+        },
+      },
+    });
   };
 
   const onSelectionChanged = () => {
@@ -444,16 +518,16 @@ const VendorProductTable = () => {
     const rowIndex = updatedRowData.findIndex(
       (row) => row.vendor_code === params.data.vendor_code && row.company_code === params.data.company_code && row.keyfield == params.data.keyfield
     );
-  
+
     if (rowIndex !== -1) {
       updatedRowData[rowIndex][params.colDef.field] = params.newValue;
       setRowData(updatedRowData);
-  
+
       setEditedData((prevData) => {
         const existingIndex = prevData.findIndex(
           (item) => item.vendor_code === params.data.vendor_code && item.company_code === params.data.company_code && item.keyfield == params.data.keyfield
         );
-  
+
         if (existingIndex !== -1) {
           const updatedEdited = [...prevData];
           updatedEdited[existingIndex] = updatedRowData[rowIndex];
@@ -465,7 +539,22 @@ const VendorProductTable = () => {
     }
   };
 
-  const handleSearch = async () => {
+  const clearInputFields = () => {
+    setvendor_code("");
+    setvendor_name("");
+    setpanno("");
+    setvendor_gst_no("");
+    setvendor_addr_1("");
+    setvendor_area_code("");
+    setvendor_state_code("");
+    setvendor_country_code("");
+    setvendor_mobile_no("");
+    setstatus("");
+    setSelectedStatus("");
+    setRowData([]);
+  };
+
+  const handleSearch = async (searchParams = null) => {
     setLoading(true);
     try {
       const response = await fetch(`${config.apiBaseUrl}/vendorsearchdata`, {
@@ -473,7 +562,19 @@ const VendorProductTable = () => {
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ company_code: sessionStorage.getItem('selectedCompanyCode'), vendor_code, vendor_name, panno, vendor_gst_no, vendor_addr_1, vendor_area_code, vendor_state_code, vendor_country_code, vendor_mobile_no, status })
+        body: JSON.stringify({
+          company_code: sessionStorage.getItem('selectedCompanyCode'),
+          vendor_code: searchParams?.vendor_code ?? vendor_code,
+          vendor_name: searchParams?.vendor_name ?? vendor_name,
+          panno: searchParams?.panno ?? panno,
+          vendor_gst_no: searchParams?.vendor_gst_no ?? vendor_gst_no,
+          vendor_addr_1: searchParams?.vendor_addr_1 ?? vendor_addr_1,
+          vendor_area_code: searchParams?.vendor_area_code ?? vendor_area_code,
+          vendor_state_code: searchParams?.vendor_state_code ?? vendor_state_code,
+          vendor_country_code: searchParams?.vendor_country_code ?? vendor_country_code,
+          vendor_mobile_no: searchParams?.vendor_mobile_no ?? vendor_mobile_no,
+          status: searchParams?.status ?? status,
+        })
       });
       if (response.ok) {
         const searchData = await response.json();
@@ -499,7 +600,6 @@ const VendorProductTable = () => {
   const handleChangeStatus = (selectedStatus) => {
     setSelectedStatus(selectedStatus);
     setstatus(selectedStatus ? selectedStatus.value : '');
-    setError(false);
   };
 
   const filteredOptionStatus = statusdrop.map((option) => ({
@@ -850,7 +950,7 @@ const VendorProductTable = () => {
                 </div>
               )}
               <div className="col-md-2 mt-1 mb-5">
-                <a className='border-none text-dark p-1' title="Reload" onClick={handleReload} style={{ cursor: "pointer" }}> <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
+                <a className='border-none text-dark p-1' title="Reload" onClick={clearInputFields} style={{ cursor: "pointer" }}> <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
                   <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2z" />
                   <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466" />
                 </svg>
@@ -902,7 +1002,7 @@ const VendorProductTable = () => {
                         </svg>
                       </button>
                     )}
-                    <a className='border-none text-dark p-1 d-flex justify-content-center' onClick={handleReload} title="Reload" style={{ cursor: "pointer" }}> <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
+                    <a className='border-none text-dark p-1 d-flex justify-content-center' onClick={clearInputFields} title="Reload" style={{ cursor: "pointer" }}> <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
                       <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2z" />
                       <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466" />
                     </svg>
@@ -1043,16 +1143,16 @@ const VendorProductTable = () => {
           <div className="col-md-3 mb-2">
             <label className='fw-bold'>Status</label>
             <div title="Please select the status">
-            <Select
-              id="status"
-              value={selectedStatus}
-              onChange={handleChangeStatus}
-              // onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              options={filteredOptionStatus}
-              classNamePrefix="react-select"
-              placeholder=""
-            />
-          </div>
+              <Select
+                id="status"
+                value={selectedStatus}
+                onChange={handleChangeStatus}
+                // onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                options={filteredOptionStatus}
+                classNamePrefix="react-select"
+                placeholder=""
+              />
+            </div>
           </div>
           <div className="col-md-2 mb-2 mt-4">
             <button title="Search" onClick={handleSearch} className="button2 " >

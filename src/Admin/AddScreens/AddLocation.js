@@ -1,7 +1,7 @@
 import { AgGridReact } from 'ag-grid-react';
 import Select from 'react-select';
 import { useNavigate } from 'react-router-dom';
-import React,{useState,useRef,useEffect} from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useLocation } from 'react-router-dom';
@@ -17,10 +17,7 @@ import {
   CellStyleModule,
   ValidationModule
 } from 'ag-grid-community';
-import secureLocalStorage from "react-secure-storage"; 
-
-// Use a single modern theme
-
+import secureLocalStorage from "react-secure-storage";
 import '../../App.css';
 // Register necessary modules
 ModuleRegistry.registerModules([
@@ -34,20 +31,18 @@ ModuleRegistry.registerModules([
   ValidationModule,
 ]);
 
-
 const VendorProductTable = () => {
   const navigate = useNavigate();
 
-  const handleClick = () => { navigate('/Location'); };
-  const [location_no, setlocation_no] = useState(""); 
-  const [location_name, setlocation_name] = useState(""); 
+  const [location_no, setlocation_no] = useState("");
+  const [location_name, setlocation_name] = useState("");
   const [short_name, setshort_name] = useState("");
   const [address1, setaddress1] = useState("");
-  const [address2, setaddress2] = useState("");  
-  const [address3, setaddress3] = useState(""); 
-  const [selectedCity, setSelectedCity] = useState(""); 
-  const [city, setcity] = useState(""); 
-  const [selectedState, setselectedState] = useState(""); 
+  const [address2, setaddress2] = useState("");
+  const [address3, setaddress3] = useState("");
+  const [selectedCity, setSelectedCity] = useState("");
+  const [city, setcity] = useState("");
+  const [selectedState, setselectedState] = useState("");
   const [state, setstate] = useState("");
   const [pincode, setpincode] = useState("");
   const [selectedCountry, setselectedCountry] = useState("");
@@ -60,13 +55,10 @@ const VendorProductTable = () => {
   const [status, setstatus] = useState("");
   const [statusdrop, setstatusdrop] = useState([]);
   const [contact_no, setcontact_no] = useState("");
-  const [isUpdated, setIsUpdated] = useState(false); 
+  const [isUpdated, setIsUpdated] = useState(false);
   const [loading, setLoading] = useState(false);
-  
-  const location = useLocation();
-  const { mode, selectedRow } = location.state || {};
-  
-  const [error, setError] = useState("");
+
+  const [error, setError] = useState(false);
   const locationno = useRef(null);
   const locationname = useRef(null);
   const shortname = useRef(null);
@@ -84,7 +76,92 @@ const VendorProductTable = () => {
   const config = require("../../ApiConfig");
   const created_by = sessionStorage.getItem("selectedUserCode");
   const modified_by = sessionStorage.getItem("selectedUserCode");
-  
+
+  const location = useLocation();
+  const locationState = location.state || {};
+  const mode = locationState.mode || "create"; // ✅ default fallback
+  const selectedRow = locationState.selectedRow || null;
+  const locationNo = location.state?.location_no;
+
+  useEffect(() => {
+    if (!location.state) {
+      clearInputFields(); // ensure fresh create mode
+    }
+  }, []);
+
+  useEffect(() => {
+    if (mode === "update" && locationNo) {
+      fetchLocationData();
+    }
+  }, [mode, locationNo]);
+
+  const fetchLocationData = async () => {
+    try {
+      setLoading(true);
+
+      const response = await fetch(`${config.apiBaseUrl}/getLocationData`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          location_no: locationNo,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.length > 0) {
+        const location = data[0];
+
+        setlocation_no(location.location_no || "");
+        setlocation_name(location.location_name || "");
+        setshort_name(location.short_name || "");
+        setaddress1(location.address1 || "");
+        setaddress2(location.address2 || "");
+        setaddress3(location.address3 || "");
+        setcity(location.city || "");
+        setstate(location.state || "");
+        setcountry(location.country || "");
+        setstatus(location.status || "");;
+        setSelectedCity({
+          label: location.city,
+          value: location.city,
+        });
+        setselectedState({
+          label: location.state,
+          value: location.state,
+        });
+        setselectedCountry({
+          label: location.country,
+          value: location.country,
+        });
+        setselectedStatus({
+          label: location.status,
+          value: location.status,
+        });
+        setpincode(location.pincode || "");
+        setemail_id(location.email_id || "");
+        setcontact_no(location.contact_no || "");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to fetch location details");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleClick = () => {
+    navigate("/Location", {
+      state: {
+        refreshGrid: true,
+        // preservedRowData: location.state?.preservedRowData,
+        preservedInputs: location.state?.preservedInputs,
+      },
+    });
+  };
+
   const handleKeyDown = async (
     e,
     nextFieldRef,
@@ -116,52 +193,53 @@ const VendorProductTable = () => {
     setaddress2("");
     setaddress3("");
     setSelectedCity(null);
+    setcity("");
     setselectedState(null);
+    setstate("");
     setselectedCountry(null);
+    setcountry("");
     setselectedStatus(null);
+    setstatus("");
     setpincode("");
     setemail_id("");
     setcontact_no("");
   };
 
-
-    useEffect(() => {
-      if (mode === "update" && selectedRow && !isUpdated) {
-        setlocation_no(selectedRow.location_no || "");
-        setlocation_name(selectedRow.location_name || "");
-        setshort_name(selectedRow.short_name || "");
-        setaddress1(selectedRow.address1 || "");
-        setaddress2(selectedRow.address2 || "");
-        setaddress3(selectedRow.address3 || "");
-        setSelectedCity({
-          label: selectedRow.city,
-          value: selectedRow.city,
-        });
-        setselectedState({
-          label: selectedRow.state,
-          value: selectedRow.state,
-        });
-        setselectedCountry({
-          label: selectedRow.country,
-          value: selectedRow.country,
-        });
-        setselectedStatus({
-          label: selectedRow.status,
-          value: selectedRow.status,
-        });
-        setpincode(selectedRow.pincode || "");
-        setemail_id(selectedRow.email_id || "");
-        setcontact_no(selectedRow.contact_no || "");
-      } else if (mode === "create") {
-        clearInputFields();
-      }
-    }, [mode, selectedRow, isUpdated]);
+  // useEffect(() => {
+  //   if (mode === "update" && selectedRow && !isUpdated) {
+  //     setlocation_no(selectedRow.location_no || "");
+  //     setlocation_name(selectedRow.location_name || "");
+  //     setshort_name(selectedRow.short_name || "");
+  //     setaddress1(selectedRow.address1 || "");
+  //     setaddress2(selectedRow.address2 || "");
+  //     setaddress3(selectedRow.address3 || "");
+  //     setSelectedCity({
+  //       label: selectedRow.city,
+  //       value: selectedRow.city,
+  //     });
+  //     setselectedState({
+  //       label: selectedRow.state,
+  //       value: selectedRow.state,
+  //     });
+  //     setselectedCountry({
+  //       label: selectedRow.country,
+  //       value: selectedRow.country,
+  //     });
+  //     setselectedStatus({
+  //       label: selectedRow.status,
+  //       value: selectedRow.status,
+  //     });
+  //     setpincode(selectedRow.pincode || "");
+  //     setemail_id(selectedRow.email_id || "");
+  //     setcontact_no(selectedRow.contact_no || "");
+  //   } else if (mode === "create") {
+  //     clearInputFields();
+  //   }
+  // }, [mode, selectedRow, isUpdated]);
 
   const handleKeyDownStatus = async (e) => {
     if (e.key === "Enter" && hasValueChanged) {
-      // Only trigger search if the value has changed
-      // Trigger the search function
-      setHasValueChanged(false); // Reset the flag after search
+      setHasValueChanged(false);
     }
   };
 
@@ -189,7 +267,7 @@ const VendorProductTable = () => {
     value: option.attributedetails_name,
     label: option.attributedetails_name,
   }));
-  
+
   const filteredOptionCountry = condrop.map((option) => ({
     value: option.attributedetails_name,
     label: option.attributedetails_name,
@@ -197,7 +275,7 @@ const VendorProductTable = () => {
 
   useEffect(() => {
     const company_code = sessionStorage.getItem('selectedCompanyCode');
-    
+
     fetch(`${config.apiBaseUrl}/country`, {
       method: 'POST',
       headers: {
@@ -212,7 +290,7 @@ const VendorProductTable = () => {
 
   useEffect(() => {
     const company_code = sessionStorage.getItem('selectedCompanyCode');
-    
+
     fetch(`${config.apiBaseUrl}/city`, {
       method: 'POST',
       headers: {
@@ -227,7 +305,7 @@ const VendorProductTable = () => {
 
   useEffect(() => {
     const company_code = sessionStorage.getItem('selectedCompanyCode');
-    
+
     fetch(`${config.apiBaseUrl}/state`, {
       method: 'POST',
       headers: {
@@ -254,7 +332,7 @@ const VendorProductTable = () => {
 
   useEffect(() => {
     const company_code = sessionStorage.getItem('selectedCompanyCode');
-    
+
     fetch(`${config.apiBaseUrl}/status`, {
       method: 'POST',
       headers: {
@@ -266,7 +344,7 @@ const VendorProductTable = () => {
       .then((val) => setstatusdrop(val))
       .catch((error) => console.error('Error fetching data:', error));
   }, []);
-  
+
   function validateEmail(email) {
     const emailRegex = /^[A-Za-z\._\-0-9]*[@][A-Za-z]*[\.][a-z]{2,4}$/;
     return emailRegex.test(email);
@@ -288,7 +366,7 @@ const VendorProductTable = () => {
       !contact_no ||
       !short_name
     ) {
-      setError(" ");
+      setError(true);
       toast.warning("Error: Missing required fields");
       return;
     }
@@ -298,6 +376,7 @@ const VendorProductTable = () => {
       return;
     }
 
+    setError(false);
     setLoading(true);
 
     try {
@@ -323,31 +402,24 @@ const VendorProductTable = () => {
           created_by: sessionStorage.getItem("selectedUserCode"),
         }),
       });
-      if (response.status === 200) {
-        console.log("Data inserted successfully");
-        setTimeout(() => {
-          toast.success("Data inserted successfully!", {
-            onClose: () => window.location.reload(), // Reloads the page after the toast closes
-          });
-        }, 1000);
+      if (response.ok) {
+        toast.success("Data inserted successfully", {
+          onClose: () => {
+            clearInputFields();
+            setError(false)
+          }
+        });
       } else if (response.status === 400) {
         const errorResponse = await response.json();
         console.error(errorResponse.message);
-        //setError(errorResponse.error);
-        toast.warning(errorResponse.message, {
-
-        });
+        toast.warning(errorResponse.message);
       } else {
         console.error("Failed to insert data");
-        toast.error('Failed to insert data', {
-
-        });
+        toast.error('Failed to insert data');
       }
     } catch (error) {
       console.error("Error inserting data:", error);
-      toast.error('Error inserting data: ' + error.message, {
-
-      });
+      toast.error('Error inserting data: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -367,15 +439,16 @@ const VendorProductTable = () => {
       !contact_no ||
       !short_name
     ) {
-      setError(" ");
+      setError(true);
       toast.warning("Error: Missing required fields");
       return;
     }
     if (!validateEmail(email_id)) {
-       toast.warning("Please enter a valid email address");
+      toast.warning("Please enter a valid email address");
       return;
     }
 
+    setError(false);
     setLoading(true);
 
     try {
@@ -391,29 +464,28 @@ const VendorProductTable = () => {
           address1,
           address2,
           address3,
-          city: selectedCity.value,
-          state: selectedState.value,
+          city,
+          state,
           pincode,
-          country: selectedCountry.value,
+          country,
           email_id,
-          status: selectedStatus.value,
+          status,
           contact_no,
           created_by,
           modified_by,
         }),
       });
-      if (response.status === 200) {
-        console.log("Data Updated successfully");
-        setIsUpdated(true);
-        clearInputFields();
-        toast.success("Data Updated successfully!")
-      } else if (response.status === 400) {
+      if (response.ok) {
+        toast.success("Data updated successfully", {
+          onClose: () => {
+            // clearInputFields();
+            setError(false)
+          }
+        });
+      } else {
         const errorResponse = await response.json();
         console.error(errorResponse.message);
         toast.warning(errorResponse.message);
-      } else {
-        console.error("Failed to insert data");
-        toast.error("Failed to Update data");
       }
     } catch (error) {
       console.error("Error Update data:", error);
@@ -527,7 +599,7 @@ const VendorProductTable = () => {
             />
           </div>
           <div className="col-md-3 mb-2">
-            <label className= "fw-bold">Address 3</label>
+            <label className="fw-bold">Address 3</label>
             <input
               id="address3"
               class="exp-input-field form-control"
@@ -545,46 +617,46 @@ const VendorProductTable = () => {
           <div className="col-md-3 mb-2">
             <label className={`fw-bold ${error && !selectedCity ? 'text-danger' : ''}`}>City<span className="text-danger">*</span></label>
             <div title="Please select the city">
-            <Select
-              id="city"
-              value={selectedCity}
-              onChange={handleChangeCity}
-              options={filteredOptionCity}
-              className="exp-input-field"
-              classNamePrefix="react-select"
-              placeholder=""
-              maxLength={100}
-              ref={City}
-              onKeyDown={(e) =>
-                handleKeyDown(e,State,City,hasValueChanged,setHasValueChanged)
-              }
-            />
-          </div>
+              <Select
+                id="city"
+                value={selectedCity}
+                onChange={handleChangeCity}
+                options={filteredOptionCity}
+                className="exp-input-field"
+                classNamePrefix="react-select"
+                placeholder=""
+                maxLength={100}
+                ref={City}
+                onKeyDown={(e) =>
+                  handleKeyDown(e, State, City, hasValueChanged, setHasValueChanged)
+                }
+              />
+            </div>
           </div>
           <div className="col-md-3 mb-2">
             <label className={`fw-bold ${error && !selectedState ? 'text-danger' : ''}`}>State<span className="text-danger">*</span></label>
             <div title="Please select the state">
-            <Select
-              id="state"
-              value={selectedState}
-              onChange={handleChangeState}
-              options={filteredOptionState}
-              className="exp-input-field"
-              placeholder=""
-              classNamePrefix="react-select"
-              maxLength={100}
-              ref={State}
-              onKeyDown={(e) =>
-                handleKeyDown(
-                  e,
-                  Pincode,
-                  State,
-                  hasValueChanged,
-                  setHasValueChanged
-                )
-              }
-            />
-          </div>
+              <Select
+                id="state"
+                value={selectedState}
+                onChange={handleChangeState}
+                options={filteredOptionState}
+                className="exp-input-field"
+                placeholder=""
+                classNamePrefix="react-select"
+                maxLength={100}
+                ref={State}
+                onKeyDown={(e) =>
+                  handleKeyDown(
+                    e,
+                    Pincode,
+                    State,
+                    hasValueChanged,
+                    setHasValueChanged
+                  )
+                }
+              />
+            </div>
           </div>
           <div className="col-md-3 mb-2">
             <label className={`fw-bold ${error && !pincode ? 'text-danger' : ''}`}>Pin Code<span className="text-danger">*</span></label>
@@ -609,19 +681,19 @@ const VendorProductTable = () => {
           <div className="col-md-3 mb-2">
             <label className={`fw-bold ${error && !selectedCountry ? 'text-danger' : ''}`}>Country<span className="text-danger">*</span></label>
             <div title="Please select the country">
-            <Select
-              id="country"
-              value={selectedCountry}
-              onChange={handleChangeCountry}
-              options={filteredOptionCountry}
-              className="exp-input-field"
-              placeholder=""
-              classNamePrefix="react-select"
-              maxLength={100}
-              ref={Country}
-              onKeyDown={(e) => handleKeyDown(e, email, Status)}
-            />
-          </div>
+              <Select
+                id="country"
+                value={selectedCountry}
+                onChange={handleChangeCountry}
+                options={filteredOptionCountry}
+                className="exp-input-field"
+                placeholder=""
+                classNamePrefix="react-select"
+                maxLength={100}
+                ref={Country}
+                onKeyDown={(e) => handleKeyDown(e, email, Status)}
+              />
+            </div>
           </div>
           <div className="col-md-3 mb-2">
             <label className={`fw-bold ${error && !email_id ? 'text-danger' : ''}`}>Email<span className="text-danger">*</span></label>
@@ -642,18 +714,18 @@ const VendorProductTable = () => {
           <div className="col-md-3 mb-2">
             <label className={`fw-bold ${error && !selectedStatus ? 'text-danger' : ''}`}>Status<span className="text-danger">*</span></label>
             <div title="Please select the status">
-            <Select
-              id="status"
-              value={selectedStatus}
-              onChange={handleChangeStatus}
-              options={filteredOptionStatus}
-              className="exp-input-field"
-              placeholder=""
-              classNamePrefix="react-select"
-              ref={Status}
-              onKeyDown={(e) => handleKeyDown(e, Contactno, Status)}
-            />
-          </div>
+              <Select
+                id="status"
+                value={selectedStatus}
+                onChange={handleChangeStatus}
+                options={filteredOptionStatus}
+                className="exp-input-field"
+                placeholder=""
+                classNamePrefix="react-select"
+                ref={Status}
+                onKeyDown={(e) => handleKeyDown(e, Contactno, Status)}
+              />
+            </div>
           </div>
           <div className="col-md-3 mb-2">
             <label className={`fw-bold ${error && !contact_no ? 'text-danger' : ''}`}>Contact No<span className="text-danger">*</span></label>

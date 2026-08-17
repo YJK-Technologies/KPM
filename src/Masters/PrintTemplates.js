@@ -81,14 +81,21 @@ function PrintTemplate({ }) {
     };
 
     const handleSave = async () => {
+    const hasMissingFields = Academic.some((relationGroup) =>
+        relationGroup.members.some(
+            (member) =>
+                !member.screenName?.trim() ||
+                !member.templatename?.trim()
+        )
+    );
 
-        for (const relationGroup of Academic) {
-            for (const member of relationGroup.members) {
-                if (!validateMember(member)) {
-                    return;
-                }
-            }
-        }
+    if (hasMissingFields) {
+        setError(" ");
+        toast.warning("Please fill all required fields");
+        return;
+    }
+
+    setError("");
 
         const employeeData = await Promise.all(
 
