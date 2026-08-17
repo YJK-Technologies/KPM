@@ -45,8 +45,7 @@ const VendorProductTable = () => {
 
   const location = useLocation();
 
-const permissions = JSON.parse(sessionStorage.getItem('permissions')) || [];
-
+const permissions = JSON.parse(sessionStorage.getItem('permissions')) || {};
 const numberSeriesPermissions = permissions
   .filter(permission => permission.screen_type === 'NumberSeries')
   .map(permission => permission.permission_type.toLowerCase());
@@ -180,6 +179,7 @@ const clearInputFields = () => {
       checkboxSelection: true,
       headerName: "Screen Type",
       field: "Screen_Type",
+      cellClass: "ag-link-cell",
       cellStyle: { textAlign: "left" },
       cellRenderer: (params) => {
         const handleClick = () => {
@@ -600,6 +600,7 @@ const clearInputFields = () => {
   const hasPermission = (perm) =>
     numberSeriesPermissions.includes(perm) || numberSeriesPermissions.includes('all permission');
 
+  console.log(numberSeriesPermissions)
 
 
   return (

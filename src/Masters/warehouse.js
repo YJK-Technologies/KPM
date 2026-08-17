@@ -482,6 +482,7 @@ const VendorProductTable = () => {
       checkboxSelection: true,
       headerName: "Warehouse Code",
       field: "warehouse_code",
+      cellClass: "ag-link-cell",
       cellStyle: { textAlign: "left" },
       cellEditorParams: {
         maxLength: 18,
