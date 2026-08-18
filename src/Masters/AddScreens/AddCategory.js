@@ -4,8 +4,10 @@ import Select from "react-select";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
 import Barcode from "react-barcode";
-import { ModuleRegistry, ClientSideRowModelModule, PaginationModule, TextFilterModule, NumberFilterModule,
-  DateFilterModule, CustomFilterModule, CellStyleModule, ValidationModule,} from "ag-grid-community";
+import {
+  ModuleRegistry, ClientSideRowModelModule, PaginationModule, TextFilterModule, NumberFilterModule,
+  DateFilterModule, CustomFilterModule, CellStyleModule, ValidationModule,
+} from "ag-grid-community";
 import { useReactToPrint } from "react-to-print";
 import "../../App.css";
 import LoadingScreen from "../../BookLoader";
@@ -26,43 +28,19 @@ const config = require("../../ApiConfig");
 const AddCategory = () => {
   const [Item_Category_Code, setItem_Category_Code] = useState("");
   const inputRef = useRef(null);
-  const [Item_variant, setItem_variant] = useState("");
   const [Item_Category_Name, setItem_Category_Name] = useState("");
   const [Region_Code, setRegion_Code] = useState("");
   const [Country_Code, setCountry_Code] = useState("");
-
-  const [Item_Category_Description, setItem_Category_Description] =
-    useState("");
-  const [Item_BaseUOM, setItem_BaseUOM] = useState("");
-  const [Item_SecondaryUOM, setItem_SecondaryUOM] = useState("");
-  const [Item_short_name, setItem_short_name] = useState("");
+  const [Item_Category_Description, setItem_Category_Description] = useState("");
   const [Is_Default, setIs_Default] = useState(0);
   const [Display_Order, setDisplay_Order] = useState(0);
   const [Record_Version, setRecord_Version] = useState("");
-  const [Item_std_sales_price, setItem_std_sales_price] = useState("");
-  // const [Item_stock_code, setItem_stock_code] = useState("");
-  const [Item_purch_tax_type, setItem_purch_tax_type] = useState("");
-  const [Item_purch_othertax_type, setItem_purch_othertax_type] = useState("");
-  const [Item_sales_tax_type, setItem_sales_tax_type] = useState("");
-  // const [Item_stock_type, setItem_stock_type] = useState("");
   const [Item_Category_Image, setItem_Category_Image] = useState("");
-  const [hsn, sethsn] = useState("");
-  const [Item_Register_Brand, setItem_Register_Brand] = useState("");
-  const [Item_Our_Brand, setItem_Our_Brand] = useState("");
   const [status, setStatus] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError] = useState(false);
 
   const [statusdrop, setStatusdrop] = useState([]);
 
-  const [selectedvarient, setselectedvarient] = useState("");
-  const [selectedpurtax, setselectedpurtax] = useState("");
-  const [selectedOtherpurtax, setselectedOtherpurtax] = useState("");
-  const [selectedOthersaltax, setselectedOthersaltax] = useState("");
-  const [Item_sales_Othertax_type, setItem_sales_Othertax_type] = useState("");
-  const [selectedsaltax, setselectedsaltax] = useState("");
-  const [selectedSuom, setSelectedSuom] = useState("");
-  const [selectedRegister, setSelectedRegister] = useState("");
-  const [selectedBrand, setSelectedBrand] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("");
   const [selectedImage, setSelectedImage] = useState(null);
   const purchaseprice = useRef(null);
@@ -97,61 +75,130 @@ const AddCategory = () => {
   const modified_by = sessionStorage.getItem("selectedUserCode");
   const [isUpdated, setIsUpdated] = useState(false);
   const [loading, setLoading] = useState(false);
-  const location = useLocation();
-  const { mode, selectedRow } = location.state || {};
+  const [keyfield, setKeyfield] = useState('');
+
   const navigate = useNavigate();
-  // const handleClick = () => { navigate('/Category'); };
+
+  const location = useLocation();
+  const locationState = location.state || {};
+  const mode = locationState.mode || "create"; // ✅ default fallback
+  const selectedRow = locationState.selectedRow || null;
+  const Keyfields = location.state?.Keyfield;
+  const company_code = sessionStorage.getItem('selectedCompanyCode');
+
+  useEffect(() => {
+    if (!location.state) {
+      clearInputFields(); // ensure fresh create mode
+    }
+  }, []);
+
+  useEffect(() => {
+    if (mode === "update" && Keyfields) {
+      fetchCategoryData();
+    }
+  }, [mode, Keyfields, statusdrop]);
+
+  const fetchCategoryData = async () => {
+    try {
+      setLoading(true);
+
+      const response = await fetch(`${config.apiBaseUrl}/getCategoryData`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          Keyfield: Keyfields,
+          company_code
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.length > 0) {
+        const category = data[0];
+
+        setItem_Category_Code(category.Item_Category_Code || "");
+        setItem_Category_Name(category.Item_Category_Name || "");
+        setItem_Category_Description(category.Item_Category_Description || "");
+        setRecord_Version(category.Record_Version || 0);
+        setDisplay_Order(category.Display_Order || 0);
+        setKeyfield(category.Keyfield || '');
+
+        const isDefaultBit =
+          category.Is_Default === true ||
+          category.Is_Default === 1 ||
+          category.Is_Default === "1";
+
+        // Set state as 1 (True) or 0 (False) for Toggle switch UI component
+        setIs_Default(isDefaultBit ? 1 : 0);
+
+        const isActiveBit =
+          category.Is_Active === true ||
+          category.Is_Active === 1 ||
+          category.Is_Active === "1";
+
+        console.log(isActiveBit)
+
+        // Select 'Active' or 'Close' option object based on boolean status
+        const targetStatusValue = isActiveBit ? "Active" : "Close";
+        const statusOption = filteredOptionStatus.find(
+          (opt) => opt.value === targetStatusValue
+        );
+
+        setSelectedStatus(statusOption)
+        setStatus(statusOption || { value: targetStatusValue, label: targetStatusValue });
+
+        setRegion_Code(category.Region_Code || "");
+        setCountry_Code(category.Country_Code || "");
+
+        if (
+          category.Item_Category_Image &&
+          category.Item_Category_Image.data
+        ) {
+          const base64Image = arrayBufferToBase64(
+            category.Item_Category_Image.data,
+          );
+          const file = base64ToFile(
+            `data:image/jpeg;base64,${base64Image}`,
+            "Item_Category_Image.jpg",
+          );
+          setSelectedImage(`data:image/jpeg;base64,${base64Image}`);
+          setItem_Category_Image(file);
+        } else {
+          setSelectedImage(null);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to fetch category details");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleClick = () => {
-  const previousState = location.state;
-
-  navigate("/Category", {
-    state: {
-      preservedRowData: previousState?.preservedRowData || [],
-      preservedInputs: previousState?.preservedInputs || {},
-      preservedSelects: previousState?.preservedSelects || {},
-    },
-  });
-};
+    navigate("/Category", {
+      state: {
+        refreshGrid: true,
+        preservedInputs: location.state?.preservedInputs,
+      },
+    });
+  };
 
   // console.log(selectedRow)
   const clearInputFields = () => {
-    setBarcodeValue("");
     setItem_Category_Code("");
     setItem_Category_Name("");
-    setItem_Category_Description(0);
-    sethsn("");
-    // setItem_stock_type("");
-    // setItem_stock_code("");
-    setItem_std_sales_price("");
+    setItem_Category_Description("");
     setRecord_Version("");
     setDisplay_Order(0);
     setIs_Default(0);
-    setItem_short_name("");
     setRegion_Code("");
     setCountry_Code("");
-    setSelectedSuom("");
-    setSelectedRegister("");
-    setSelectedBrand("");
     setSelectedStatus("");
-    setselectedsaltax("");
-    setselectedOthersaltax("");
-    setSelectedImage("");
-    setselectedOtherpurtax("");
-    setselectedpurtax("");
-    setselectedvarient("");
-    setMRPPrice(0);
-    setDiscount(0);
-    setItem_BaseUOM("");
-    setItem_SecondaryUOM("");
-    setItem_Register_Brand("");
-    setItem_Our_Brand("");
+    setSelectedImage(null);
     setStatus("");
-    setItem_sales_Othertax_type("");
-    setItem_sales_tax_type("");
-    setItem_purch_tax_type("");
-    setItem_purch_othertax_type("");
-    setItem_variant("");
   };
 
   const arrayBufferToBase64 = (buffer) => {
@@ -168,64 +215,47 @@ const AddCategory = () => {
     label: option.attributedetails_name,
   }));
 
-  useEffect(() => {
-    if (mode === "update" && selectedRow && !isUpdated) {
-      setItem_Category_Code(selectedRow.Item_Category_Code || "");
-      setItem_Category_Name(selectedRow.Item_Category_Name || "");
-      setItem_Category_Description(selectedRow.Item_Category_Description || "");
-      setRecord_Version(selectedRow.Record_Version || 0);
-      setDisplay_Order(selectedRow.Display_Order || 0);
-      setIs_Default(selectedRow.Is_Default || 0);
-      const statusOption = filteredOptionStatus.find(
-        (opt) => opt.value === (selectedRow.Is_Active ? 1 : 0),
-      );
+  // useEffect(() => {
+  //   if (mode === "update" && selectedRow && !isUpdated) {
+  //     setItem_Category_Code(selectedRow.Item_Category_Code || "");
+  //     setItem_Category_Name(selectedRow.Item_Category_Name || "");
+  //     setItem_Category_Description(selectedRow.Item_Category_Description || "");
+  //     setRecord_Version(selectedRow.Record_Version || 0);
+  //     setDisplay_Order(selectedRow.Display_Order || 0);
+  //     setIs_Default(selectedRow.Is_Default || 0);
+  //     const statusOption = filteredOptionStatus.find(
+  //       (opt) => opt.value === (selectedRow.Is_Active ? 1 : 0),
+  //     );
 
-      setSelectedStatus(statusOption);
-      setStatus(statusOption?.value ?? "");
+  //     setSelectedStatus(statusOption);
+  //     setStatus(statusOption?.value ?? "");
 
-      setRegion_Code(selectedRow.Region_Code || "");
-      setCountry_Code(selectedRow.Country_Code || "");
+  //     setRegion_Code(selectedRow.Region_Code || "");
+  //     setCountry_Code(selectedRow.Country_Code || "");
 
-      if (
-        selectedRow.Item_Category_Image &&
-        selectedRow.Item_Category_Image.data
-      ) {
-        const base64Image = arrayBufferToBase64(
-          selectedRow.Item_Category_Image.data,
-        );
-        const file = base64ToFile(
-          `data:image/jpeg;base64,${base64Image}`,
-          "Item_Category_Image.jpg",
-        );
-        setSelectedImage(`data:image/jpeg;base64,${base64Image}`);
-        setItem_Category_Image(file);
-      } else {
-        setSelectedImage(null);
-      }
-    } else if (mode === "create") {
-      clearInputFields();
-    }
-  }, [mode, selectedRow, isUpdated]);
+  //     if (
+  //       selectedRow.Item_Category_Image &&
+  //       selectedRow.Item_Category_Image.data
+  //     ) {
+  //       const base64Image = arrayBufferToBase64(
+  //         selectedRow.Item_Category_Image.data,
+  //       );
+  //       const file = base64ToFile(
+  //         `data:image/jpeg;base64,${base64Image}`,
+  //         "Item_Category_Image.jpg",
+  //       );
+  //       setSelectedImage(`data:image/jpeg;base64,${base64Image}`);
+  //       setItem_Category_Image(file);
+  //     } else {
+  //       setSelectedImage(null);
+  //     }
+  //   } else if (mode === "create") {
+  //     clearInputFields();
+  //   }
+  // }, [mode, selectedRow, isUpdated]);
+
   useEffect(() => {
     if (mode === "create" && statusdrop.length > 0) {
-      const defaultStatus = statusdrop.find(
-        (item) => item.attributedetails_name === "Active",
-      );
-
-      if (defaultStatus) {
-        const defaultOption = {
-          value: defaultStatus.attributedetails_name,
-          label: defaultStatus.attributedetails_name,
-        };
-
-        setSelectedStatus(defaultOption);
-        setStatus(defaultOption.value);
-      }
-    }
-  }, [mode, statusdrop]);
-
-  useEffect(() => {
-    if (mode === "update  " && statusdrop.length > 0) {
       const defaultStatus = statusdrop.find(
         (item) => item.attributedetails_name === "Active",
       );
@@ -306,73 +336,59 @@ const AddCategory = () => {
   };
 
   const handleInsert = async () => {
-    // 1️⃣ Basic validation
-    if (!Item_Category_Code || !Item_Category_Name) {
-      setError("");
+    if (!Item_Category_Code || !Item_Category_Name || !status) {
+      setError(true);
       toast.warning("Error: Missing required fields");
       return;
     }
-
+    setError(false);
     setLoading(true);
 
     try {
-      // 2️⃣ Prepare form data
       const formData = new FormData();
-      formData.append(
-        "company_code",
-        sessionStorage.getItem("selectedCompanyCode"),
-      );
+      formData.append("company_code", sessionStorage.getItem("selectedCompanyCode"),);
       formData.append("Item_Category_Code", Item_Category_Code);
       formData.append("Item_Category_Name", Item_Category_Name);
       formData.append("Item_Category_Description", Item_Category_Description);
       formData.append("Region_Code", Region_Code);
       formData.append("Country_Code", Country_Code);
-      formData.append("Is_Default", Number(Is_Default));
       formData.append("Display_Order", Display_Order);
       formData.append("Record_Version", Record_Version);
-      formData.append("Is_Active", status);
+      const activeBitValue = status && status === "Active" ? 1 : 0;
+      formData.append("Is_Active", activeBitValue);
+      const defaultBitValue = Is_Default === true || Is_Default === 1 || Is_Default === "1" ? 1 : 0;
+      formData.append("Is_Default", defaultBitValue);
       formData.append("created_by", sessionStorage.getItem("selectedUserCode"));
 
       if (Item_Category_Image) {
         formData.append("Item_Category_Image", Item_Category_Image);
       }
 
-      // 3️⃣ API call
-      const response = await fetch(
-        `${config.apiBaseUrl}/Item_Category_MasterInsert`,
+      const response = await fetch(`${config.apiBaseUrl}/Item_Category_MasterInsert`,
         {
           method: "POST",
           body: formData,
         },
       );
 
-      // 4️⃣ Handle response
       if (response.ok) {
-        // Success (200–299)
-        toast.success("Data inserted successfully!");
+        console.log("Data inserted successfully");
+        toast.success("Data inserted successfully!", {
+          onClose: () => clearInputFields(), // Reloads the page after the toast closes
+        });
       } else {
-        // Handle ALL backend errors
-        let errorMessage = "Failed to insert data";
-
-        try {
-          const errorResponse = await response.json();
-          if (errorResponse?.message) {
-            errorMessage = errorResponse.message;
-          }
-        } catch {
-          // response is not JSON
-        }
-
-        toast.warning(errorMessage);
+        const errorResponse = await response.json();
+        console.error(errorResponse.message);
+        toast.warning(errorResponse.message);
       }
     } catch (error) {
-      // Network / unexpected error
       console.error("Error inserting data:", error);
-      toast.error("Error inserting data: " + error.message);
+      toast.error('Error inserting data: ' + error.message);
     } finally {
       setLoading(false);
     }
   };
+
   const handleKeyDown = async (
     e,
     nextFieldRef,
@@ -401,59 +417,54 @@ const AddCategory = () => {
   };
 
   const handleUpdate = async () => {
-    if (!Item_Category_Code) {
-      setError(" ");
+    if (!Item_Category_Code || !Item_Category_Name || !status) {
+      setError(true);
       toast.warning("Error: Missing required fields");
       return;
     }
+    setError(false);
     setLoading(true);
 
     try {
       const formData = new FormData();
-      formData.append(
-        "company_code",
-        sessionStorage.getItem("selectedCompanyCode"),
-      );
+      formData.append("company_code", sessionStorage.getItem("selectedCompanyCode"),);
       formData.append("Item_Category_Code", Item_Category_Code);
-      formData.append("Item_variant", selectedvarient.value);
       formData.append("Item_Category_Name", Item_Category_Name);
       formData.append("Item_Category_Description", Item_Category_Description);
       formData.append("Region_Code", Region_Code);
       formData.append("Country_Code", Country_Code);
-      formData.append("Is_Default", Is_Default);
       formData.append("Display_Order", Display_Order);
       formData.append("Record_Version", Record_Version);
-      formData.append("status", selectedStatus.value);
+      const activeBitValue = status && status === "Active" ? 1 : 0;
+      formData.append("Is_Active", activeBitValue);
+      const defaultBitValue = Is_Default === true || Is_Default === 1 || Is_Default === "1" ? 1 : 0;
+      formData.append("Is_Default", defaultBitValue);
+      formData.append("Keyfield", keyfield);
       formData.append("created_by", sessionStorage.getItem("selectedUserCode"));
 
       if (Item_Category_Image) {
         formData.append("Item_Category_Image", Item_Category_Image);
       }
 
-      const response = await fetch(
-        `${config.apiBaseUrl}/Item_Category_MasterUpdate`,
+      const response = await fetch(`${config.apiBaseUrl}/Item_Category_MasterUpdate`,
         {
           method: "POST",
           body: formData,
         },
       );
 
-      if (response.status === 200) {
-        console.log("Data inserted successfully");
-        toast.success("Data Updated successfully!");
-        setIsUpdated(true);
-        clearInputFields();
-      } else if (response.status === 400) {
+      if (response.ok) {
+        toast.success("Data updated successfully", {
+          // onClose: () => clearInputFields()
+        });
+      } else {
         const errorResponse = await response.json();
         console.error(errorResponse.message);
         toast.warning(errorResponse.message);
-      } else {
-        console.error("Failed to insert data");
-        toast.error("Failed to Update data");
       }
     } catch (error) {
-      console.error("Error inserting data:", error);
-      toast.error("Error inserting data: " + error.message);
+      console.error("Error updating data:", error);
+      toast.error("Error updating data: " + error.message);
     } finally {
       setLoading(false);
     }
@@ -462,11 +473,7 @@ const AddCategory = () => {
   return (
     <div className="container-fluid sidenav">
       {loading && <LoadingScreen />}
-      <ToastContainer
-        position="top-right"
-        className="toast-design"
-        theme="colored"
-      />
+      <ToastContainer position="top-right" className="toast-design" theme="colored" />
       <div className="card shadow-lg border-0 p-3  rounded-5">
         <div className="d-flex justify-content-between">
           <div className="d-flex justify-content-start">
@@ -517,7 +524,7 @@ const AddCategory = () => {
           </div> */}
           <div className="col-md-3 mb-2">
             <label
-              className={`fw-bold ${error && !selectedvarient ? "text-danger" : ""}`}
+              className={`fw-bold ${error && !Item_Category_Code ? "text-danger" : ""}`}
             >
               Category Code<span className="text-danger">*</span>
             </label>
@@ -610,7 +617,7 @@ const AddCategory = () => {
                     </div> */}
           <div className="col-md-3 mb-2">
             <label
-              className={`fw-bold ${error && !selectedStatus ? "text-danger" : ""}`}
+              className={`fw-bold ${error && !status ? "text-danger" : ""}`}
             >
               Status<span className="text-danger">*</span>
             </label>

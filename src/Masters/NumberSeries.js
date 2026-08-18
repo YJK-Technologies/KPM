@@ -2,8 +2,10 @@ import React, { useState, useEffect, useRef } from "react";
 import { AgGridReact } from 'ag-grid-react';
 import Select from 'react-select';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ModuleRegistry, ClientSideRowModelModule, PaginationModule, TextFilterModule, NumberFilterModule,
-  DateFilterModule, CustomFilterModule, CellStyleModule, ValidationModule} from 'ag-grid-community';
+import {
+  ModuleRegistry, ClientSideRowModelModule, PaginationModule, TextFilterModule, NumberFilterModule,
+  DateFilterModule, CustomFilterModule, CellStyleModule, ValidationModule
+} from 'ag-grid-community';
 import '../App.css';
 import { showConfirmationToast } from '../ToastConfirmation';
 import { ToastContainer, toast } from 'react-toastify';
@@ -45,27 +47,51 @@ const VendorProductTable = () => {
 
   const location = useLocation();
 
-const permissions = JSON.parse(sessionStorage.getItem('permissions')) || {};
-const numberSeriesPermissions = permissions
-  .filter(permission => permission.screen_type === 'NumberSeries')
-  .map(permission => permission.permission_type.toLowerCase());
+  const permissions = JSON.parse(sessionStorage.getItem('permissions')) || {};
+  const numberSeriesPermissions = permissions
+    .filter(permission => permission.screen_type === 'NumberSeries')
+    .map(permission => permission.permission_type.toLowerCase());
 
   useEffect(() => {
-      if (location.state?.preservedRowData) {
-        setRowData(location.state.preservedRowData);
+    const handleKeyDown = (event) => {
+      const isReloadShortcut =
+        (event.ctrlKey && event.key.toLowerCase() === "r") ||
+        (event.altKey && event.key.toLowerCase() === "r") ||
+        event.key === "F5";
+
+      if (isReloadShortcut) {
+        event.preventDefault();
+        clearInputFields();
       }
-    
-      if (location.state?.preservedInputs) {
-        setScreen_Type(location.state.preservedInputs.Screen_Type || "");
-    
-        if (location.state.preservedInputs.Screen_Type) {
-          setselectedscreentype({
-            label: location.state.preservedInputs.Screen_Type,
-            value: location.state.preservedInputs.Screen_Type,
-          });
-        }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  useEffect(() => {
+    // if (location.state?.preservedRowData) {
+    //   setRowData(location.state.preservedRowData);
+    // }
+
+    if (location.state?.preservedInputs) {
+      const inputs = location.state.preservedInputs;
+
+      setScreen_Type(inputs.Screen_Type || "");
+
+      if (inputs.Screen_Type) {
+        setselectedscreentype({
+          label: inputs.Screen_Type,
+          value: inputs.Screen_Type,
+        });
       }
-    }, [location.state]);
+
+      if (location.state?.refreshGrid) {
+        handleSearch(inputs);
+      }
+    }
+  }, [location.state]);
 
   // const permissions = JSON.parse(sessionStorage.getItem('permissions')) || {};
   // const numberSeriesPermissions = permissions
@@ -133,13 +159,13 @@ const numberSeriesPermissions = permissions
     window.location.reload();
   };
 
-const clearInputFields = () => {
-  setScreen_Type("");
-  setselectedscreentype("");
-  setRowData([]);
- };
+  const clearInputFields = () => {
+    setScreen_Type("");
+    setselectedscreentype("");
+    setRowData([]);
+  };
 
-  const handleSearch = async () => {
+  const handleSearch = async (searchParams = null) => {
     setLoading(true);
     try {
       const company_code = sessionStorage.getItem("selectedCompanyCode");
@@ -150,7 +176,10 @@ const clearInputFields = () => {
             "Content-Type": "application/json",
             company_code: company_code,
           },
-          body: JSON.stringify({ company_code: company_code, Screen_Type }), // Send company_no and company_name as search criteria
+          body: JSON.stringify({ 
+            company_code, 
+            Screen_Type: searchParams?.Screen_Type ?? Screen_Type,
+          }), 
         }
       );
       if (response.ok) {
@@ -401,8 +430,9 @@ const clearInputFields = () => {
     navigate("/AddNumberSeries", {
       state: {
         mode: "update",
-        selectedRow,
-        preservedRowData: rowData,
+        Screen_Type: selectedRow.Screen_Type,
+        Start_Year: selectedRow.Start_Year,
+        End_Year: selectedRow.End_Year,
         preservedInputs: {
           Screen_Type,
         },
@@ -434,16 +464,16 @@ const clearInputFields = () => {
     const rowIndex = updatedRowData.findIndex(
       (row) => row.Screen_Type === params.data.Screen_Type
     );
-  
+
     if (rowIndex !== -1) {
       updatedRowData[rowIndex][params.colDef.field] = params.newValue;
       setRowData(updatedRowData);
-  
+
       setEditedData((prevData) => {
         const existingIndex = prevData.findIndex(
           (item) => item.Screen_Type === params.data.Screen_Type
         );
-  
+
         if (existingIndex !== -1) {
           const updatedEdited = [...prevData];
           updatedEdited[existingIndex] = updatedRowData[rowIndex];
@@ -709,18 +739,18 @@ const clearInputFields = () => {
           <div className="col-md-3 mb-2">
             <label className='fw-bold'>Screen Type</label>
             <div title="Please select the screen type">
-            <Select
-              value={selectedscreentype}
-              onChange={handleChangescreentype}
-              // onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-              options={filteredOptionscreentype}
-              classNamePrefix="react-select"
-              placeholder=""
-              required
-              title="Please select a screen type"
-              maxLength={50}
-            />
-          </div>
+              <Select
+                value={selectedscreentype}
+                onChange={handleChangescreentype}
+                // onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                options={filteredOptionscreentype}
+                classNamePrefix="react-select"
+                placeholder=""
+                required
+                title="Please select a screen type"
+                maxLength={50}
+              />
+            </div>
           </div>
           <div className="col-md-2 mb-2 mt-4">
             <button className="button2" onClick={handleSearch} title="Search">

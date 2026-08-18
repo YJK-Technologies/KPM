@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useRef } from "react";
 import Select from 'react-select';
 import { useNavigate } from 'react-router-dom';
-import { ModuleRegistry, ClientSideRowModelModule, PaginationModule, TextFilterModule, NumberFilterModule,
-  DateFilterModule, CustomFilterModule, CellStyleModule, ValidationModule} from 'ag-grid-community';
+import {
+  ModuleRegistry, ClientSideRowModelModule, PaginationModule, TextFilterModule, NumberFilterModule,
+  DateFilterModule, CustomFilterModule, CellStyleModule, ValidationModule
+} from 'ag-grid-community';
 import { ToastContainer, toast } from 'react-toastify';
 import { useLocation } from "react-router-dom";
 import '../../App.css';
 import LoadingScreen from '../../BookLoader';
-import secureLocalStorage from "react-secure-storage"; 
+import secureLocalStorage from "react-secure-storage";
 
 // Register necessary modules
 ModuleRegistry.registerModules([
@@ -39,7 +41,7 @@ const VendorProductTable = () => {
   const [selectedBoolean, setselectedBoolean] = useState('');
   const [status, setStatus] = useState("");
   const [number_prefix, setNumber_prefix] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError] = useState(false);
   const startyear = useRef(null);
   const screentype = useRef(null);
   const endyear = useRef(null);
@@ -57,7 +59,77 @@ const VendorProductTable = () => {
   const modified_by = sessionStorage.getItem("selectedUserCode");
 
   const location = useLocation();
-  const { mode, selectedRow } = location.state || {};
+  const locationState = location.state || {};
+  const mode = locationState.mode || "create"; // ✅ default fallback
+  const selectedRow = locationState.selectedRow || null;
+  const screenType = location.state?.Screen_Type;
+  const startYear = location.state?.Start_Year;
+  const endYear = location.state?.End_Year;
+  const company_code = sessionStorage.getItem('selectedCompanyCode');
+
+  useEffect(() => {
+    if (!location.state) {
+      clearInputFields(); // ensure fresh create mode
+    }
+  }, []);
+
+  useEffect(() => {
+    if (mode === "update" && screenType && startYear && endYear) {
+      fetchNumberSeriesData();
+    }
+  }, [mode, screenType, startYear, endYear]);
+
+  const fetchNumberSeriesData = async () => {
+    try {
+      setLoading(true);
+
+      const response = await fetch(`${config.apiBaseUrl}/getNumberSeriesData`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          Screen_Type: screenType,
+          Start_Year: startYear,
+          End_Year: endYear,
+          company_code
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.length > 0) {
+        const numberSeries = data[0];
+
+        setStart_Year(numberSeries.Start_Year || "");
+        setEnd_Year(numberSeries.End_Year || "");
+        setStart_No(numberSeries.Start_No || "");
+        setRunning_No(numberSeries.Running_No || "");
+        setEnd_No(numberSeries.End_No || "");
+        secomtext(numberSeries.comtext || "");
+        setScreen_Type(numberSeries.Screen_Type || "");
+        setStatus(numberSeries.Status || "");
+        setNumber_prefix(numberSeries.number_prefix || "");
+        setselectedscreentype({
+          label: numberSeries.Screen_Type,
+          value: numberSeries.Screen_Type,
+        });
+        setselectedStatus({
+          label: numberSeries.Status,
+          value: numberSeries.Status,
+        });
+        setselectedBoolean({
+          label: numberSeries.number_prefix,
+          value: numberSeries.number_prefix,
+        });
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to fetch number series details");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const clearInputFields = () => {
     setStart_Year("");
@@ -65,44 +137,46 @@ const VendorProductTable = () => {
     setStart_No("");
     setRunning_No("");
     setEnd_No("");
+    setScreen_Type("");
+    setStatus("");
+    setNumber_prefix("");
+    secomtext("");
+    setselectedscreentype("");
     setselectedStatus("");
     setselectedBoolean("");
-    secomtext("");
-    setScreen_Type("");
-    setselectedscreentype("");
   }
 
-  useEffect(() => {
-    if (mode === "update" && selectedRow && !isUpdated) {
-      setStart_Year(selectedRow.Start_Year || "");
-      setEnd_Year(selectedRow.End_Year || "");
-      setStart_No(selectedRow.Start_No || 1);
-      setRunning_No(selectedRow.Running_No || 0);
-      setEnd_No(selectedRow.End_No || 10000);
-      secomtext(selectedRow.comtext || "");
+  // useEffect(() => {
+  //   if (mode === "update" && selectedRow && !isUpdated) {
+  //     setStart_Year(selectedRow.Start_Year || "");
+  //     setEnd_Year(selectedRow.End_Year || "");
+  //     setStart_No(selectedRow.Start_No || 1);
+  //     setRunning_No(selectedRow.Running_No || 0);
+  //     setEnd_No(selectedRow.End_No || 10000);
+  //     secomtext(selectedRow.comtext || "");
 
-      setselectedscreentype({
-        label: selectedRow.Screen_Type,
-        value: selectedRow.Screen_Type,
-      });
-      setScreen_Type(selectedRow.Screen_Type);
+  //     setselectedscreentype({
+  //       label: selectedRow.Screen_Type,
+  //       value: selectedRow.Screen_Type,
+  //     });
+  //     setScreen_Type(selectedRow.Screen_Type);
 
-      setselectedStatus({
-        label: selectedRow.Status,
-        value: selectedRow.status,
-      });
-      setStatus(selectedRow.Status || '')
+  //     setselectedStatus({
+  //       label: selectedRow.Status,
+  //       value: selectedRow.status,
+  //     });
+  //     setStatus(selectedRow.Status || '')
 
-      setselectedBoolean({
-        label: selectedRow.number_prefix,
-        value: selectedRow.number_prefix,
-      });
-      setNumber_prefix(selectedRow.number_prefix || '')
+  //     setselectedBoolean({
+  //       label: selectedRow.number_prefix,
+  //       value: selectedRow.number_prefix,
+  //     });
+  //     setNumber_prefix(selectedRow.number_prefix || '')
 
-    } else if (mode === "create") {
-      clearInputFields();
-    }
-  }, [mode, selectedRow, isUpdated]);
+  //   } else if (mode === "create") {
+  //     clearInputFields();
+  //   }
+  // }, [mode, selectedRow, isUpdated]);
 
   const handleUpdate = async () => {
     if (
@@ -116,10 +190,11 @@ const VendorProductTable = () => {
       !number_prefix ||
       !status
     ) {
-      setError(" ");
+      setError(true);
       toast.warning("Error: Missing required fields");
       return;
     }
+    setError(false);
     setLoading(true);
 
     try {
@@ -143,11 +218,10 @@ const VendorProductTable = () => {
           modified_by,
         }),
       });
-      if (response.status === 200) {
-        console.log("Data Updated successfully");
-        setIsUpdated(true);
-        clearInputFields();
-        toast.success("Data Updated successfully!")
+      if (response.ok) {
+        toast.success("Data updated successfully", {
+          // onClose: () => clearInputFields()
+        });
       }
       else {
         const errorResponse = await response.json();
@@ -219,23 +293,25 @@ const VendorProductTable = () => {
   }));
 
   useEffect(() => {
-    const today = new Date();
-    const currentYear = today.getFullYear();
-    const currentMonth = today.getMonth();
+    if (mode === "create") {
+      const today = new Date();
+      const currentYear = today.getFullYear();
+      const currentMonth = today.getMonth();
 
-    let financialYearStartDate, financialYearEndDate;
+      let financialYearStartDate, financialYearEndDate;
 
-    if (currentMonth < 3) {
-      financialYearStartDate = `${currentYear - 1}-04-01`;
-      financialYearEndDate = `${currentYear}-03-31`;
-    } else {
-      financialYearStartDate = `${currentYear}-04-01`;
-      financialYearEndDate = `${currentYear + 1}-03-31`;
+      if (currentMonth < 3) {
+        financialYearStartDate = `${currentYear - 1}-04-01`;
+        financialYearEndDate = `${currentYear}-03-31`;
+      } else {
+        financialYearStartDate = `${currentYear}-04-01`;
+        financialYearEndDate = `${currentYear + 1}-03-31`;
+      }
+
+      setStart_Year(financialYearStartDate);
+      setEnd_Year(financialYearEndDate);
     }
-    setStart_Year(financialYearStartDate);
-    setEnd_Year(financialYearEndDate);
-
-  }, []);
+  }, [mode]);
 
   const handleChangescreentype = (selectedscreentype) => {
     setselectedscreentype(selectedscreentype);
@@ -264,10 +340,11 @@ const VendorProductTable = () => {
       !number_prefix ||
       !status
     ) {
-      setError(" ");
+      setError(true);
       toast.warning("Error: Missing required fields");
       return;
     }
+    setError(false);
     setLoading(true);
 
     try {
@@ -290,13 +367,10 @@ const VendorProductTable = () => {
           created_by: sessionStorage.getItem('selectedUserCode')
         }),
       });
-      if (response.status === 200) {
-        console.log("Data inserted successfully");
-        setTimeout(() => {
-          toast.success("Data inserted successfully!", {
-            onClose: () => window.location.reload(),
-          });
-        }, 1000);
+      if (response.ok) {
+        toast.success("Data inserted Successfully", {
+          onClose: () => clearInputFields()
+        });
       } else {
         const errorResponse = await response.json();
         console.error(errorResponse.message);
@@ -313,7 +387,8 @@ const VendorProductTable = () => {
   const handleClick = () => {
     navigate("/NumberSeries", {
       state: {
-        preservedRowData: location.state?.preservedRowData,
+        refreshGrid: true,
+        // preservedRowData: location.state?.preservedRowData,
         preservedInputs: location.state?.preservedInputs,
       },
     });
@@ -465,41 +540,41 @@ const VendorProductTable = () => {
           <div className="col-md-3 mb-2">
             <label className={`fw-bold ${error && !selectedStatus ? 'text-danger' : ''}`}>Status<span className="text-danger">*</span></label>
             <div title="Please select the status">
-            <Select
-              classNamePrefix="react-select"
-              value={selectedStatus}
-              onChange={handleChangeStatus}
-              options={filteredOptionStatus}
-              placeholder=""
-              ref={Status}
-              required title="Please select a status"
-              onKeyDown={(e) => handleKeyDown(e, numpre, Status)}
-            />
-          </div>
+              <Select
+                classNamePrefix="react-select"
+                value={selectedStatus}
+                onChange={handleChangeStatus}
+                options={filteredOptionStatus}
+                placeholder=""
+                ref={Status}
+                required title="Please select a status"
+                onKeyDown={(e) => handleKeyDown(e, numpre, Status)}
+              />
+            </div>
           </div>
           <div className="col-md-3 mb-2">
             <label className={`fw-bold ${error && !selectedBoolean ? 'text-danger' : ''}`}>Number Prefix<span className="text-danger">*</span></label>
             <div title="Please select the number prefix">
-            <Select
-              classNamePrefix="react-select"
-              value={selectedBoolean}
-              onChange={handleChangeBoolean}
-              options={filteredOptionBoolean}
-              placeholder=""
-              required title="Please select a Number Prefix status"
-              ref={numpre}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  if (mode === "create") {
-                    handleInsert();
-                  } else {
-                    handleUpdate();
+              <Select
+                classNamePrefix="react-select"
+                value={selectedBoolean}
+                onChange={handleChangeBoolean}
+                options={filteredOptionBoolean}
+                placeholder=""
+                required title="Please select a Number Prefix status"
+                ref={numpre}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    if (mode === "create") {
+                      handleInsert();
+                    } else {
+                      handleUpdate();
+                    }
                   }
-                }
-              }}
+                }}
               // onKeyDown={(e) => handleKeyDown(e, numpre)}
-            />
-          </div>
+              />
+            </div>
           </div>
           {/* <div className="col-md-3 mb-2">
             {mode === "create" ? (
@@ -523,14 +598,14 @@ const VendorProductTable = () => {
             )}
           </div> */}
           <div className="col-md-2 mb-2 mt-4">
-          {mode === "create" ? (
-            <button className="btn btn-primary" onClick={handleInsert} title="Submit">
-              Submit
-            </button>
+            {mode === "create" ? (
+              <button className="btn btn-primary" onClick={handleInsert} title="Submit">
+                Submit
+              </button>
             ) : (
-            <button className="btn btn-primary" onClick={handleUpdate} title="Update">
-              Update
-            </button>
+              <button className="btn btn-primary" onClick={handleUpdate} title="Update">
+                Update
+              </button>
             )}
           </div>
         </div>

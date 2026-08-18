@@ -980,7 +980,7 @@ const VendorProductTable = () => {
           </div>
           <div className="col-md-3 mb-2">
             <label className={`fw-bold ${error && !selectedvarient ? 'text-danger' : ''}`}>Category<span className="text-danger">*</span></label>
-            <div title="Please select the variant">
+            <div title="Please select the category">
               <Select
                 id="SUOM"
                 value={selectedvarient}
@@ -1426,7 +1426,7 @@ const VendorProductTable = () => {
               id="Item_Description"
               class="exp-input-field form-control"
               placeholder=""
-              required title="Please enter the name"
+              required title="Please enter the item description"
               value={Item_Description}
               onChange={(e) => setItem_Description(e.target.value)}
               maxLength={40}
@@ -1444,7 +1444,7 @@ const VendorProductTable = () => {
               id="Is_Default"
               class="exp-input-field form-control"
               placeholder=""
-              required title="Please enter the name"
+              required title="Please enter the is default"
               value={Is_Default}
               onChange={(e) => setIs_Default(e.target.value)}
               maxLength={40}
@@ -1462,7 +1462,7 @@ const VendorProductTable = () => {
               id="Display_Order"
               class="exp-input-field form-control"
               placeholder=""
-              required title="Please enter the name"
+              required title="Please enter the display order"
               value={Display_Order}
               onChange={(e) => setDisplay_Order(e.target.value)}
               maxLength={40}

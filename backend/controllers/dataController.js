@@ -10934,15 +10934,14 @@ const Item_Category_MasterInsert = async (req, res) => {
     created_by
   } = req.body;
 
-  // ✅ FORCE BIT VALUES
-  const Is_Default = req.body.Is_Default === "1" ? 1 : 0;
-  const Is_Active = req.body.Is_Active === "1" ? 1 : 0;
-  const Is_Deleted = req.body.Is_Deleted === "1" ? 1 : 0;
-
   let Item_Category_Image = null;
   if (req.file) {
     Item_Category_Image = req.file.buffer;
   }
+
+  const Is_Active = (req.body.Is_Active === 1 || req.body.Is_Active === "1" || req.body.Is_Active === true || req.body.status === "Active") ? 1 : 0;
+  const Is_Default = (req.body.Is_Default === 1 || req.body.Is_Default === "1" || req.body.Is_Default === true) ? 1 : 0;
+  const Is_Deleted = (req.body.Is_Deleted === 1 || req.body.Is_Deleted === "1" || req.body.Is_Deleted === true) ? 1 : 0;
 
   try {
 
@@ -10989,17 +10988,16 @@ const Item_Category_MasterUpdate = async (req, res) => {
     Display_Order,
     Record_Version,
     status,
-    modified_by
+    modified_by,
+    Keyfield
   } = req.body;
+
 
   let Item_Category_Image = null;
   if (req.file) Item_Category_Image = req.file.buffer;
 
-  const Is_Default = status == 1 ? 1 : 0;
-  const Is_Active = status == 1 ? 1 : 0;
-
-  // 🔑 CRITICAL FIX
-  const Keyfield = `${Item_Category_Code}_${company_code}`;
+  const Is_Active = (req.body.Is_Active === 1 || req.body.Is_Active === "1" || req.body.Is_Active === true || req.body.status === "Active") ? 1 : 0;
+  const Is_Default = (req.body.Is_Default === 1 || req.body.Is_Default === "1" || req.body.Is_Default === true) ? 1 : 0;
 
   try {
     pool = await connection.connectToDatabase();
@@ -11013,17 +11011,14 @@ const Item_Category_MasterUpdate = async (req, res) => {
       .input("Region_Code", sql.NVarChar, Region_Code)
       .input("Country_Code", sql.NVarChar, Country_Code)
       .input("Is_Active", sql.Bit, Is_Active)
-      .input("Is_Deleted", sql.Bit, 0)
       .input("Is_Default", sql.Bit, Is_Default)
       .input("Display_Order", sql.Int, Display_Order)
       .input("Record_Version", sql.Int, Record_Version)
-      .input("Row_GUID", sql.NVarChar, "")
-      .input("Source_System", sql.NVarChar, "")
-      .input("Sync_Status", sql.Int, 0)
       .input("Keyfield", sql.NVarChar, Keyfield)
       .input("company_code", sql.NVarChar, company_code)
       .input("modified_by", sql.NVarChar, modified_by)
-      .query(`EXEC sp_Item_Category_Master @mode,'',@Item_Category_Code,@Item_Category_Name,@Item_Category_Description,@Item_Category_Image,@Region_Code,@Country_Code,@Is_Active,@Is_Deleted,@Is_Default,@Display_Order,@Record_Version,@Row_GUID,@Source_System,@Sync_Status,@Keyfield,@company_code,'','',@modified_by,''`);
+      .query(`EXEC sp_Item_Category_Master @mode,'',@Item_Category_Code,@Item_Category_Name,@Item_Category_Description,@Item_Category_Image,
+        @Region_Code,@Country_Code,@Is_Active,0,@Is_Default,@Display_Order,@Record_Version,'','',0,@Keyfield,@company_code,'','',@modified_by,''`);
 
     res.status(200).json("Updated successfully");
 
@@ -11047,7 +11042,7 @@ const Item_Category_MasterDelete = async (req, res) => {
         .input("mode", sql.NVarChar, "D")
         .input("Keyfield", sql.NVarChar, keyfield)
         .input("modified_by", sql.NVarChar, modified_by)
-        .query(`  EXEC sp_Item_Category_Master @mode, '', '', '', '', '', '', '', 0, 0, 0, 0, '', '','', '',@Keyfield,'', '','', @modified_by, ''`);
+        .query(`EXEC sp_Item_Category_Master @mode, '', '', '', '', '', '', '', 0, 0, 0, 0, '', '','', '',@Keyfield,'', '','', @modified_by, ''`);
     }
 
     res.status(200).json({
@@ -11144,17 +11139,13 @@ const Item_Category_MasterUpdateRow = async (req, res) => {
 
     for (const row of editedData) {
 
-      // 🖼 Image handling (Buffer-safe)
       let Item_Category_Image = null;
       if (row.Item_Category_Image?.type === "Buffer") {
         Item_Category_Image = Buffer.from(row.Item_Category_Image.data);
       }
 
-      const Is_Default = row.status == 1 ? 1 : 0;
-      const Is_Active = row.status == 1 ? 1 : 0;
-
-      // 🔑 Composite Keyfield (CRITICAL)
-      const Keyfield = `${row.Item_Category_Code}_${row.company_code}`;
+      const Is_Active = (row.Is_Active === true || row.Is_Active === 1 || row.Is_Active === "1" || row.status === "Active") ? 1 : 0;
+      const Is_Default = (row.Is_Default === true || row.Is_Default === 1 || row.Is_Default === "1") ? 1 : 0;
 
       await pool.request()
         .input("mode", sql.NVarChar, "U")
@@ -11165,18 +11156,14 @@ const Item_Category_MasterUpdateRow = async (req, res) => {
         .input("Region_Code", sql.NVarChar, row.Region_Code)
         .input("Country_Code", sql.NVarChar, row.Country_Code)
         .input("Is_Active", sql.Bit, Is_Active)
-        .input("Is_Deleted", sql.Bit, 0)
         .input("Is_Default", sql.Bit, Is_Default)
         .input("Display_Order", sql.Int, row.Display_Order)
         .input("Record_Version", sql.Int, row.Record_Version)
-        .input("Row_GUID", sql.NVarChar, "")
-        .input("Source_System", sql.NVarChar, "")
-        .input("Sync_Status", sql.Int, 0)
-        .input("Keyfield", sql.NVarChar, Keyfield)
-        .input("company_code", sql.NVarChar, row.company_code)
+        .input("Keyfield", sql.NVarChar, row.Keyfield)
+        .input("company_code", sql.NVarChar, req.headers['company_code'])
         .input("modified_by", sql.NVarChar, req.headers["modified-by"])
         .query(`EXEC sp_Item_Category_Master @mode,'',@Item_Category_Code,@Item_Category_Name,@Item_Category_Description,@Item_Category_Image,
-        @Region_Code,@Country_Code,@Is_Active,@Is_Deleted,@Is_Default,@Display_Order,@Record_Version,@Row_GUID,@Source_System,@Sync_Status,@Keyfield,@company_code,'','',@modified_by,''`);
+        @Region_Code,@Country_Code,@Is_Active,0,@Is_Default,@Display_Order,@Record_Version,'','',0,@Keyfield,@company_code,'','',@modified_by,''`);
     }
 
     res.status(200).json("Item Category rows updated successfully");
@@ -11607,6 +11594,57 @@ const getItemData = async (req, res) => {
 };
 //Code Ended by Pavun on 17-08-2026
 
+//Code Added by Pavun on 18-08-2026
+const getCategoryData = async (req, res) => {
+  const { company_code, Keyfield } = req.body;
+
+  try {
+    const pool = await connection.connectToDatabase();
+
+    const result = await pool
+      .request()
+      .input("mode", sql.NVarChar, "GCD")
+      .input("company_code", sql.NVarChar, company_code)
+      .input("Keyfield", sql.NVarChar, Keyfield)
+      .query(`EXEC sp_Item_Category_Master @mode,'','','','','','','',0,0,0,0,'','','','',@Keyfield,@company_code,'','','',''`);
+
+    if (result.recordset.length > 0) {
+      res.status(200).json(result.recordset);
+    } else {
+      res.status(404).json("Data not found");
+    }
+  } catch (err) {
+    console.error("Error", err.message);
+    return res.status(500).json({ message: err.message || "Internal Server Error" });
+  }
+};
+
+const getNumberSeriesData = async (req, res) => {
+  const { company_code, Screen_Type, Start_Year, End_Year } = req.body;
+
+  try {
+    const pool = await connection.connectToDatabase();
+    const result = await pool
+      .request()
+      .input("mode", sql.NVarChar, "GN")
+      .input("company_code", sql.NVarChar, company_code)
+      .input("Screen_Type", sql.NVarChar, Screen_Type)
+      .input("Start_Year", sql.NVarChar, Start_Year)
+      .input("End_Year", sql.NVarChar, End_Year)
+      .query(`EXEC sp_numberseries @mode,@company_code,@Screen_Type,@Start_Year,@End_Year,0,0,0,'','','','','',null,null,null,null,null,null,null,null,''`);
+
+    if (result.recordset.length > 0) {
+      res.status(200).json(result.recordset);
+    } else {
+      res.status(404).json("Data not found");
+    }
+  } catch (err) {
+    console.error("Error", err);
+    res.status(500).json({ message: err.message || 'Internal Server Error' });
+  }
+};
+//Code Ended by Pavun on 18-08-2026
+
 module.exports = {
   login,
   forgetPassword,
@@ -12026,6 +12064,8 @@ module.exports = {
   getVendorData,
   getTaxData,
   getWarehouseData,
-  getItemData
+  getItemData,
+  getCategoryData,
+  getNumberSeriesData
 
 };
