@@ -160,6 +160,8 @@ const VendorProductTable = () => {
         setItem_Last_salesRate_IncludingTax(Item.Item_Last_salesRate_IncludingTax || 0);
         setItem_Last_salesRate_ExTax(Item.Item_Last_salesRate_ExTax || 0);
         setItem_short_name(Item.Item_short_name || "");
+        setItem_Description(Item.Item_Description || "");
+        setIs_Default(Item.Is_Default ? 1 : 0);
         setMRPPrice(Item.MRP_Price || 0);
         setDiscount(Item.discount_Percentage || 0);
         setItem_BaseUOM(Item.Item_BaseUOM || "");
@@ -1439,15 +1441,17 @@ const VendorProductTable = () => {
           <div className="col-md-3 mb-2">
             <label className={`fw-bold ${error && !Is_Default ? 'text-danger' : ''}`}>Is Default<span className="text-danger">*</span></label>
             <input
-              type="text"
-              className="form-control"
+              type="number"
+              className="exp-input-field form-control"
               id="Is_Default"
               class="exp-input-field form-control"
               placeholder=""
-              required title="Please enter the name"
+              required title="Please enter 0 or 1"
               value={Is_Default}
               onChange={(e) => setIs_Default(e.target.value)}
-              maxLength={40}
+              min={0}
+              max={1}
+              maxLength={1}
               defaultValue={0}
               ref={nam}
               onKeyDown={(e) => handleKeyDown(e, weigh, nam)}

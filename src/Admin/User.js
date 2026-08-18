@@ -829,6 +829,15 @@ const VendorProductTable = () => {
     window.location.reload();
   };
 
+  const today = new Date();
+  const maxDob = new Date(
+    today.getFullYear() - 18,
+    today.getMonth(),
+    today.getDate()
+  )
+    .toISOString()
+    .split("T")[0];
+      
   return (
     <div className="container-fluid ">
       {loading && <LoadingScreen />}
@@ -1030,6 +1039,7 @@ const VendorProductTable = () => {
               required
               title="Please fill the DOB here"
               value={dob}
+              max={maxDob}
               onChange={(e) => setdob(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSearch()}
             />

@@ -2928,57 +2928,100 @@ const VendorProductTable = () => {
     window.location.reload();
   };
 
+  const companyName = sessionStorage.getItem('selectedCompanyName');
+
   const handleExcelDownload = () => {
-    const filteredRowData = rowData.filter(row => row.salesQty > 0 && row.TotalItemAmount > 0 && row.purchaseAmt > 0);
-    const filteredRowDataTax = rowDataTax.filter(taxRow => taxRow.TaxAmount > 0 && taxRow.TaxPercentage > 0);
+  const filteredRowData = rowData.filter(
+    row =>
+      row.salesQty > 0 &&
+      row.TotalItemAmount > 0 &&
+      row.purchaseAmt > 0
+  );
 
-    const headerData = [{
-      "Company Code": sessionStorage.getItem('selectedCompanyCode'),
-      "Customer Code": customerCode,
-      "Customer Name": customerName,
-      "Pay Type": payType,
-      "Sales Type": salesType,
-      "Order Type": orderType,
-      "Bill No": billNo,
-      "Bill Date": billDate,
-      "Total Sales Amount": Totalsales,
-      "Tax Amount": TotalTax,
-      "Total Bill Amount": TotalBill,
-      "Round Off": round_difference,
-    }];
+  const filteredRowDataTax = rowDataTax.filter(
+    taxRow =>
+      taxRow.TaxAmount > 0 &&
+      taxRow.TaxPercentage > 0
+  );
 
-    // Map rowData using columnDefs headerName
-    const formattedRowData = filteredRowData.map(row => {
-      const newRow = {};
-      columnDefs.forEach(col => {
-        if (!col.hide && col.field !== 'delete' && col.headerName) {
-          newRow[col.headerName] = row[col.field];
-        }
-      });
-      return newRow;
+  const headerData = [{
+    "Company Code": sessionStorage.getItem("selectedCompanyCode"),
+    "Customer Code": customerCode,
+    "Customer Name": customerName,
+    "Pay Type": payType,
+    "Sales Type": salesType,
+    "Order Type": orderType,
+    "Bill No": billNo,
+    "Bill Date": billDate,
+    "Total Sales Amount": Totalsales,
+    "Tax Amount": TotalTax,
+    "Total Bill Amount": TotalBill,
+    "Round Off": round_difference,
+  }];
+
+  // Map rowData using columnDefs headerName
+  const formattedRowData = filteredRowData.map(row => {
+    const newRow = {};
+
+    columnDefs.forEach(col => {
+      if (
+        !col.hide &&
+        col.field !== "delete" &&
+        col.headerName
+      ) {
+        newRow[col.headerName] = row[col.field];
+      }
     });
+    return newRow;
+  });
 
-    // Map rowDataTax using columnDefsTax headerName
-    const formattedRowDataTax = filteredRowDataTax.map(row => {
-      const newRow = {};
-      columnDefsTax.forEach(col => {
-        if (!col.hide) {
-          newRow[col.headerName] = row[col.field];
-        }
-      });
-      return newRow;
+  // Map rowDataTax using columnDefsTax headerName
+  const formattedRowDataTax = filteredRowDataTax.map(row => {
+    const newRow = {};
+
+    columnDefsTax.forEach(col => {
+      if (!col.hide && col.headerName) {
+        newRow[col.headerName] = row[col.field];
+      }
     });
+    return newRow;
+  });
 
-    const headerSheet = XLSX.utils.json_to_sheet(headerData);
-    const rowDataSheet = XLSX.utils.json_to_sheet(formattedRowData);
-    const rowDataTaxSheet = XLSX.utils.json_to_sheet(formattedRowDataTax);
+  // =========================
+  // Header Sheet
+  // =========================
+  const headerSheet = XLSX.utils.aoa_to_sheet([
+    ["Sales"],
+    [`Company Name: ${companyName}`],
+    []
+  ]);
 
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, headerSheet, "Header Data");
-    XLSX.utils.book_append_sheet(workbook, rowDataSheet, "Item Details");
-    XLSX.utils.book_append_sheet(workbook, rowDataTaxSheet, "Tax Details");
+  // Add existing header data from row 4
+  XLSX.utils.sheet_add_json(
+    headerSheet,
+    headerData,
+    {origin: "A4",skipHeader: false}
+  );
 
-    XLSX.writeFile(workbook, "Sales_data.xlsx");
+  // =========================
+  // Item Details Sheet
+  // =========================
+  const rowDataSheet = XLSX.utils.json_to_sheet(formattedRowData);
+
+  // =========================
+  // Tax Details Sheet
+  // =========================
+  const rowDataTaxSheet = XLSX.utils.json_to_sheet(formattedRowDataTax);
+
+  // =========================
+  // Create Workbook
+  // =========================
+
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook,headerSheet,"Header Data");
+  XLSX.utils.book_append_sheet(workbook,rowDataSheet,"Item Details");
+  XLSX.utils.book_append_sheet(workbook,rowDataTaxSheet,"Tax Details");
+  XLSX.writeFile(workbook,"Sales_data.xlsx");
   };
 
   const handleKeyDownStatus = async (e) => {

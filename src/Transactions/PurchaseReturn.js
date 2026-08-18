@@ -1734,39 +1734,74 @@ function PurchaseReturn() {
     }
   };
 
-
+  const companyName = sessionStorage.getItem('selectedCompanyName');
   const handleExcelDownload = () => {
-    const filteredRowData = rowData.filter(row => row.returnQty > 0 && row.totalReturnAmount > 0 && row.purchaseAmt > 0);
-    const filteredRowDataTax = rowDataTax.filter(taxRow => taxRow.TaxAmount > 0 && taxRow.TaxPercentage > 0);
+  const filteredRowData = rowData.filter(
+    row =>
+      row.returnQty > 0 &&
+      row.totalReturnAmount > 0 &&
+      row.purchaseAmt > 0
+  );
 
-    const headerData = [{
-      company_code: sessionStorage.getItem('selectedCompanyCode'),
-      vendor_code: vendorcode,
-      pay_type: payType,
-      purchase_type: purchaseType,
-      Entry_date: entryDate,
-      transaction_no: purch_autono.toString(),
-      transaction_date: transactionDate,
-      purchase_amount_returne: parseFloat(TotalBillAmount),
-      tax_amount: parseFloat(TotalTaxAmount),
-      total_amount: parseFloat(TotalPurchaseAmount),
-      Return_date: returnDate,
-      return_reason: returnreason,
-      return_person: returnperson,
-      vendor_name: vendor_name,
-      rounded_off: parseFloat(round_difference),
-    }];
+  const filteredRowDataTax = rowDataTax.filter(
+    taxRow =>
+      taxRow.TaxAmount > 0 &&
+      taxRow.TaxPercentage > 0
+  );
 
-    const headerSheet = XLSX.utils.json_to_sheet(headerData);
-    const rowDataSheet = XLSX.utils.json_to_sheet(filteredRowData);
-    const rowDataTaxSheet = XLSX.utils.json_to_sheet(filteredRowDataTax);
+  const headerData = [{
+    company_code: sessionStorage.getItem("selectedCompanyCode"),
+    vendor_code: vendorcode,
+    pay_type: payType,
+    purchase_type: purchaseType,
+    Entry_date: entryDate,
+    transaction_no: purch_autono.toString(),
+    transaction_date: transactionDate,
+    purchase_amount_returne: parseFloat(TotalBillAmount),
+    tax_amount: parseFloat(TotalTaxAmount),
+    total_amount: parseFloat(TotalPurchaseAmount),
+    Return_date: returnDate,
+    return_reason: returnreason,
+    return_person: returnperson,
+    vendor_name: vendor_name,
+    rounded_off: parseFloat(round_difference),
+  }];
 
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, headerSheet, "Header Data");
-    XLSX.utils.book_append_sheet(workbook, rowDataSheet, "Details Data");
-    XLSX.utils.book_append_sheet(workbook, rowDataTaxSheet, "Tax Details Data");
+  // =========================
+  // Header Sheet
+  // =========================
 
-    XLSX.writeFile(workbook, "Purchase_Return_data.xlsx");
+  const headerSheet = XLSX.utils.aoa_to_sheet([
+    ["Purchase Return"],
+    [`Company Name: ${companyName}`],
+    []
+  ]);
+
+  // Add existing header data from row 4
+  XLSX.utils.sheet_add_json(
+    headerSheet,
+    headerData,
+    {origin: "A4",skipHeader: false}
+  );
+
+  // =========================
+  // Details Sheet
+  // =========================
+  const rowDataSheet = XLSX.utils.json_to_sheet(filteredRowData);
+
+  // =========================
+  // Tax Details Sheet
+  // =========================
+  const rowDataTaxSheet = XLSX.utils.json_to_sheet(filteredRowDataTax);
+
+  // =========================
+  // Create Workbook
+  // =========================
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook,headerSheet,"Header Data");
+  XLSX.utils.book_append_sheet(workbook,rowDataSheet,"Details Data");
+  XLSX.utils.book_append_sheet(workbook,rowDataTaxSheet,"Tax Details Data");
+  XLSX.writeFile(workbook,"Purchase_Return_data.xlsx");
   };
 
   const handleChangeStatus = (selectedOption) => {
@@ -1919,7 +1954,7 @@ function PurchaseReturn() {
                   </div>
                 }
                 {['view', 'all permission'].some(permission => purchaseReturnPermission.includes(permission)) && (
-                  <div className='col-md-3 mt-1 mb-5' ><a className='border-none text-success p-1' onClick={generateReport} title='Excel' style={{ cursor: "pointer" }}><svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-file-earmark-excel-fill" viewBox="0 0 16 16">
+                  <div className='col-md-3 mt-1 mb-5' ><a className='border-none text-success p-1' onClick={handleExcelDownload} title='Excel' style={{ cursor: "pointer" }}><svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-file-earmark-excel-fill" viewBox="0 0 16 16">
                   <path d="M9.293 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4.707A1 1 0 0 0 13.707 4L10 .293A1 1 0 0 0 9.293 0M9.5 3.5v-2l3 3h-2a1 1 0 0 1-1-1M5.884 6.68 8 9.219l2.116-2.54a.5.5 0 1 1 .768.641L8.651 10l2.233 2.68a.5.5 0 0 1-.768.64L8 10.781l-2.116 2.54a.5.5 0 0 1-.768-.641L7.349 10 5.116 7.32a.5.5 0 1 1 .768-.64"/>
                 </svg>
                   </a>
