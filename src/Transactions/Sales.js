@@ -7,8 +7,10 @@ import CustomerHelp from '../Transactions/Popups/CustomerHelpPopup';
 import ItemHelp from '../Transactions/Popups/SalesItemHelpPopup';
 import WarehouseHelp from '../Transactions/Popups/SalesWarehouseHelpPopup';
 import SalesDeletedHelp from '../Transactions/Popups/DeletedSalesHelpPopup';
-import { ModuleRegistry, ClientSideRowModelModule, PaginationModule, TextFilterModule, NumberFilterModule,
-  DateFilterModule, CustomFilterModule, CellStyleModule, ValidationModule} from 'ag-grid-community';
+import {
+  ModuleRegistry, ClientSideRowModelModule, PaginationModule, TextFilterModule, NumberFilterModule,
+  DateFilterModule, CustomFilterModule, CellStyleModule, ValidationModule
+} from 'ag-grid-community';
 import '../App.css';
 import { ToastContainer, toast } from 'react-toastify';
 import { Modal, Button } from "react-bootstrap";
@@ -18,8 +20,8 @@ import * as XLSX from 'xlsx';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faTrash, faSearch, faCamera } from '@fortawesome/free-solid-svg-icons';
 import LoadingScreen from '../BookLoader';
-import secureLocalStorage from "react-secure-storage"; 
-import printDB from './printDB'; 
+import secureLocalStorage from "react-secure-storage";
+import printDB from './printDB';
 
 // Register necessary modules
 ModuleRegistry.registerModules([
@@ -723,14 +725,14 @@ const VendorProductTable = () => {
   const handleCellValueChanged = (params) => {
     const { colDef, rowIndex } = params;
     const lastRowIndex = rowData.length - 1;
-  if (colDef.field === 'salesQty' && rowIndex === lastRowIndex) {
+    if (colDef.field === 'salesQty' && rowIndex === lastRowIndex) {
       const serialNumber = rowData.length + 1;
       const newRowData = {
         serialNumber, delete: null, itemName: null, unitWeight: null, warehouse: null, salesQty: 0, totalWeight: null, purchaseAmt: null, taxAmt: null, totalAmt: null
       };
       setRowData(prevRowData => [...prevRowData, newRowData]);
     }
-  
+
   };
 
   const handleRowClicked = (event) => {
@@ -1658,21 +1660,21 @@ const VendorProductTable = () => {
     console.log('Updated rowData:', updatedRowData);
   };
 
- const handleData = async ({ header }) => {
-  if (!header?.BillNo) return;
-
- 
-  setBillNo(header.BillNo);
-  setCustomerCode(header.CustomerCode);
-  setCustomerName(header.CustomerName);
+  const handleData = async ({ header }) => {
+    if (!header?.BillNo) return;
 
 
-  // await handleRefNo(header.BillNo);
-  const isSuccess = await handleRefNo(header.BillNo);
-      if (isSuccess) {
-        TransactionStatus(header.BillNo);
-      }
-};
+    setBillNo(header.BillNo);
+    setCustomerCode(header.CustomerCode);
+    setCustomerName(header.CustomerName);
+
+
+    // await handleRefNo(header.BillNo);
+    const isSuccess = await handleRefNo(header.BillNo);
+    if (isSuccess) {
+      TransactionStatus(header.BillNo);
+    }
+  };
 
 
 
@@ -2928,12 +2930,24 @@ const VendorProductTable = () => {
     window.location.reload();
   };
 
+  const companyName = sessionStorage.getItem('selectedCompanyName');
+
   const handleExcelDownload = () => {
-    const filteredRowData = rowData.filter(row => row.salesQty > 0 && row.TotalItemAmount > 0 && row.purchaseAmt > 0);
-    const filteredRowDataTax = rowDataTax.filter(taxRow => taxRow.TaxAmount > 0 && taxRow.TaxPercentage > 0);
+    const filteredRowData = rowData.filter(
+      row =>
+        row.salesQty > 0 &&
+        row.TotalItemAmount > 0 &&
+        row.purchaseAmt > 0
+    );
+
+    const filteredRowDataTax = rowDataTax.filter(
+      taxRow =>
+        taxRow.TaxAmount > 0 &&
+        taxRow.TaxPercentage > 0
+    );
 
     const headerData = [{
-      "Company Code": sessionStorage.getItem('selectedCompanyCode'),
+      "Company Code": sessionStorage.getItem("selectedCompanyCode"),
       "Customer Code": customerCode,
       "Customer Name": customerName,
       "Pay Type": payType,
@@ -2950,8 +2964,13 @@ const VendorProductTable = () => {
     // Map rowData using columnDefs headerName
     const formattedRowData = filteredRowData.map(row => {
       const newRow = {};
+
       columnDefs.forEach(col => {
-        if (!col.hide && col.field !== 'delete' && col.headerName) {
+        if (
+          !col.hide &&
+          col.field !== "delete" &&
+          col.headerName
+        ) {
           newRow[col.headerName] = row[col.field];
         }
       });
@@ -2961,24 +2980,53 @@ const VendorProductTable = () => {
     // Map rowDataTax using columnDefsTax headerName
     const formattedRowDataTax = filteredRowDataTax.map(row => {
       const newRow = {};
+
       columnDefsTax.forEach(col => {
-        if (!col.hide) {
+        if (!col.hide && col.headerName) {
           newRow[col.headerName] = row[col.field];
         }
       });
       return newRow;
     });
 
-    const headerSheet = XLSX.utils.json_to_sheet(headerData);
+    // =========================
+    // Header Sheet
+    // =========================
+    const headerSheet = XLSX.utils.aoa_to_sheet([
+      [`${Screen}`],
+      [`Company Name: ${companyName}`],
+      []
+    ]);
+
+    // Add existing header data from row 4
+    XLSX.utils.sheet_add_json(
+      headerSheet,
+      headerData,
+      { origin: "A4", skipHeader: false }
+    );
+
+    // =========================
+    // Item Details Sheet
+    // =========================
     const rowDataSheet = XLSX.utils.json_to_sheet(formattedRowData);
+
+    // =========================
+    // Tax Details Sheet
+    // =========================
     const rowDataTaxSheet = XLSX.utils.json_to_sheet(formattedRowDataTax);
+
+    // =========================
+    // Create Workbook
+    // =========================
 
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, headerSheet, "Header Data");
     XLSX.utils.book_append_sheet(workbook, rowDataSheet, "Item Details");
     XLSX.utils.book_append_sheet(workbook, rowDataTaxSheet, "Tax Details");
+    const safeScreenName = Screen ? String(Screen).replace(/[/\\?%*:|"<>]/g, '_') : 'Screen';
+    const fileName = `${safeScreenName}_data.xlsx`;
 
-    XLSX.writeFile(workbook, "Sales_data.xlsx");
+    XLSX.writeFile(workbook, fileName);
   };
 
   const handleKeyDownStatus = async (e) => {
@@ -3536,17 +3584,18 @@ const VendorProductTable = () => {
                         class="feather feather-settings">
                         <circle cx="12" cy="12" r="3"></circle>
                         <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 
-           1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 
-           1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 
-           1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 
-           1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 
-           1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 
-           2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.09a1.65 
-           1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 
-           1 1.51h.09a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 
-           1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.09a1.65 
-           1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 
-           0-1.51 1z"/>
+                          1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 
+                          1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 
+                          1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 
+                          1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 
+                          1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 
+                          2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.09a1.65 
+                          1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 
+                          1 1.51h.09a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 
+                          1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.09a1.65 
+                          1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 
+                          0-1.51 1z"
+                        />
                       </svg>
                     </a>
                     </div>

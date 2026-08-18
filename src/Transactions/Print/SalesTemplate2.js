@@ -20,22 +20,44 @@ const SalesTemplate = () => {
         return () => window.removeEventListener('beforeunload', clearSpecificPrintData);
     }, []);
 
-    useEffect(() => {
-        const fetchDataFromIDB = async () => {
-            const header = await printDB.reportData.get('SheaderData');
-            const detail = await printDB.reportData.get('SdetailData');
-            const tax = await printDB.reportData.get('StaxData');
+    // useEffect(() => {
+    //     const fetchDataFromIDB = async () => {
+    //         const header = await printDB.reportData.get('SheaderData');
+    //         const detail = await printDB.reportData.get('SdetailData');
+    //         const tax = await printDB.reportData.get('StaxData');
 
-            if (header && detail && tax) {
-                setHeaderData(header.value);
-                setDetailData(detail.value);
-                setTaxData(tax.value);
-            } else {
-                console.error('Data not found in IndexedDB');
+    //         if (header && detail && tax) {
+    //             setHeaderData(header.value);
+    //             setDetailData(detail.value);
+    //             setTaxData(tax.value);
+    //         } else {
+    //             console.error('Data not found in IndexedDB');
+    //         }
+    //     };
+
+    //     fetchDataFromIDB();
+    // }, []);
+
+    useEffect(() => {
+        const fetchDataFromSession = () => {
+            try {
+                const header = sessionStorage.getItem('SheaderData');
+                const detail = sessionStorage.getItem('SdetailData');
+                const tax = sessionStorage.getItem('StaxData');
+
+                if (header && detail && tax) {
+                    setHeaderData(JSON.parse(header));
+                    setDetailData(JSON.parse(detail));
+                    setTaxData(JSON.parse(tax));
+                } else {
+                    console.error('Data not found in sessionStorage');
+                }
+            } catch (error) {
+                console.error('Error parsing sessionStorage data:', error);
             }
         };
 
-        fetchDataFromIDB();
+        fetchDataFromSession();
     }, []);
 
     useEffect(() => {

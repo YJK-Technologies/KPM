@@ -5,12 +5,14 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import Barcode from 'react-barcode';
 import { ToastContainer, toast } from 'react-toastify';
 import { showConfirmationToast } from '../ToastConfirmation';
-import { ModuleRegistry, ClientSideRowModelModule, PaginationModule, TextFilterModule, NumberFilterModule,
-  DateFilterModule, CustomFilterModule, CellStyleModule, ValidationModule} from 'ag-grid-community';
+import {
+  ModuleRegistry, ClientSideRowModelModule, PaginationModule, TextFilterModule, NumberFilterModule,
+  DateFilterModule, CustomFilterModule, CellStyleModule, ValidationModule
+} from 'ag-grid-community';
 import 'react-toastify/dist/ReactToastify.css';
 import LoadingScreen from '../BookLoader';
 import '../App.css';
-import secureLocalStorage from "react-secure-storage"; 
+import secureLocalStorage from "react-secure-storage";
 
 // Register necessary modules
 ModuleRegistry.registerModules([
@@ -89,58 +91,55 @@ const Category = () => {
     .map(permission => permission.permission_type.toLowerCase());
 
   useEffect(() => {
-  const state = location.state;
+    const handleKeyDown = (event) => {
+      const isReloadShortcut =
+        (event.ctrlKey && event.key.toLowerCase() === "r") ||
+        (event.altKey && event.key.toLowerCase() === "r") ||
+        event.key === "F5";
 
-  if (!state) {
-    return;
-  }
+      if (isReloadShortcut) {
+        event.preventDefault();
+        clearInputFields();
+      }
+    };
 
-  // Restore grid data
-  if (state.preservedRowData) {
-    setRowData(state.preservedRowData);
-  }
+    window.addEventListener("keydown", handleKeyDown);
 
-  // Restore search input values
-  if (state.preservedInputs) {
-    setItem_Category_Code(
-      state.preservedInputs.Item_Category_Code || ""
-    );
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
-    setItem_Category_Name(
-      state.preservedInputs.Item_Category_Name || ""
-    );
+  useEffect(() => {
+    // Restore search input values
+    if (location.state?.preservedInputs) {
+      const inputs = location.state.preservedInputs;
 
-    setItem_Category_Description(
-      state.preservedInputs.Item_Category_Description || ""
-    );
+      setItem_Category_Code(inputs.Item_Category_Code || "");
+      setItem_Category_Name(inputs.Item_Category_Name || "");
+      setItem_Category_Description(inputs.Item_Category_Description || "");
+      setRegion_Code(inputs.Region_Code || "");
+      setDisplay_Order(inputs.Display_Order || "");
+      setdefault(inputs.Is_Default || "");
+      setstatus(inputs.status || "");
 
-    setRegion_Code(
-      state.preservedInputs.Region_Code || ""
-    );
+      if (inputs.Is_Default) {
+        setselectedDefault({
+          label: inputs.Is_Default,
+          value: inputs.Is_Default,
+        });
+      }
 
-    setDisplay_Order(
-      state.preservedInputs.Display_Order || ""
-    );
+      if (inputs.status) {
+        setSelectedStatus({
+          label: inputs.status,
+          value: inputs.status,
+        });
+      }
 
-    setdefault(
-      state.preservedInputs.Is_Default || ""
-    );
+      if (location.state?.refreshGrid) {
+        handleSearch(inputs);
+      }
+    }
 
-    setstatus(
-      state.preservedInputs.status || ""
-    );
-  }
-
-  // Restore Select values
-  if (state.preservedSelects) {
-    setselectedDefault(
-      state.preservedSelects.selectedDefault || null
-    );
-
-    setSelectedStatus(
-      state.preservedSelects.selectedStatus || null
-    );
-  }
   }, [location.state]);
 
   useEffect(() => {
@@ -263,7 +262,7 @@ const Category = () => {
   }, []);
 
 
-  const handleSearch = async () => {
+  const handleSearch = async (searchParams = null) => {
     setLoading(true);
     try {
       const company_code = sessionStorage.getItem('selectedCompanyCode')
@@ -272,7 +271,16 @@ const Category = () => {
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ company_code, Item_Category_Code, Item_Category_Description, Item_Category_Name, Region_Code,Display_Order, Is_Default, status }) // Send company_no and company_name as search criteria
+        body: JSON.stringify({ 
+          company_code, 
+          Item_Category_Code: searchParams?.Item_Category_Code ?? Item_Category_Code,
+          Item_Category_Description: searchParams?.Item_Category_Description ?? Item_Category_Description,
+          Item_Category_Name: searchParams?.Item_Category_Name ?? Item_Category_Name,
+          Region_Code: searchParams?.Region_Code ?? Region_Code,
+          Display_Order: searchParams?.Display_Order ?? Display_Order, 
+          Is_Default: searchParams?.Is_Default ?? Is_Default, 
+          status: searchParams?.status ?? status, 
+        }) 
       });
       if (response.ok) {
         const searchData = await response.json();
@@ -310,32 +318,21 @@ const Category = () => {
   // };
 
   const handleNavigateWithRowData = (selectedRow) => {
-  navigate("/AddCategory", {
-    state: {
-      mode: "update",
-      selectedRow: selectedRow,
-
-      // Preserve current grid data
-      preservedRowData: rowData,
-
-      // Preserve all search inputs
-      preservedInputs: {
-        Item_Category_Code: Item_Category_Code,
-        Item_Category_Name: Item_Category_Name,
-        Item_Category_Description: Item_Category_Description,
-        Region_Code: Region_Code,
-        Display_Order: Display_Order,
-        Is_Default: Is_Default,
-        status: status,
+    navigate("/AddCategory", {
+      state: {
+        mode: "update",
+        Keyfield: selectedRow.Keyfield,
+        preservedInputs: {
+          Item_Category_Code: Item_Category_Code,
+          Item_Category_Name: Item_Category_Name,
+          Item_Category_Description: Item_Category_Description,
+          Region_Code: Region_Code,
+          Display_Order: Display_Order,
+          Is_Default: Is_Default,
+          status: status,
+        },
       },
-
-      // Preserve React Select values
-      preservedSelects: {
-        selectedDefault: selectedDefault,
-        selectedStatus: selectedStatus,
-      },
-    },
-  });
+    });
   };
 
   const arrayBufferToBase64 = (buffer) => {
@@ -423,8 +420,8 @@ const Category = () => {
       field: "Is_Default",
       editable: true,
       cellStyle: { textAlign: "center" },
-        maxLength: 60,
-      
+      maxLength: 60,
+
     },
     {
       headerName: "Version",
@@ -459,14 +456,12 @@ const Category = () => {
       headerName: "Keyfield",
       field: "Keyfield",
       editable: true,
-       hide: true,  
+      hide: true,
       cellStyle: { textAlign: "center" },
       cellEditorParams: {
         maxLength: 20,
       },
     },
-    
-    
     {
       headerName: "Category Image",
       field: "Item_Category_Image",
@@ -498,42 +493,41 @@ const Category = () => {
   };
 
   const saveEditedData = async () => {
-  const company_code = sessionStorage.getItem("selectedCompanyCode");
-  const modified_by = sessionStorage.getItem("selectedUserCode");
+    const company_code = sessionStorage.getItem("selectedCompanyCode");
+    const modified_by = sessionStorage.getItem("selectedUserCode");
 
-  // Take only selected + edited rows
-  const selectedRowsData = editedData.filter(row =>
-    selectedRows.some(
-      selectedRow => selectedRow.Item_Category_Code === row.Item_Category_Code
-    )
-  );
+    // Take only selected + edited rows
+    const selectedRowsData = editedData.filter(row =>
+      selectedRows.some(
+        selectedRow => selectedRow.Item_Category_Code === row.Item_Category_Code
+      )
+    );
 
-  if (selectedRowsData.length === 0) {
-    toast.warning("Please select and edit at least one row");
-    return;
-  }
+    if (selectedRowsData.length === 0) {
+      toast.warning("Please select and edit at least one row");
+      return;
+    }
 
-  showConfirmationToast(
-    "Are you sure you want to update the selected rows?",
-    async () => {
-      setLoading(true);
-      try {
-        const response = await fetch(
-          `${config.apiBaseUrl}/Item_Category_MasterUpdateRow`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
+    showConfirmationToast(
+      "Are you sure you want to update the selected rows?",
+      async () => {
+        setLoading(true);
+        try {
+          const response = await fetch(`${config.apiBaseUrl}/Item_Category_MasterUpdateRow`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "company_code": company_code,
+                "Modified-By": modified_by
+              },
+              body: JSON.stringify({ editedData: selectedRowsData }), // Send only the selected rows for saving
               "company_code": company_code,
-              "Modified-By": modified_by
-            },
-            body: JSON.stringify({ editedData: selectedRowsData }), // Send only the selected rows for saving
-            "company_code": company_code,
-            "modified_by": modified_by
-          });
-         
-       
-        if (response.status === 200) {
+              "modified_by": modified_by
+            });
+
+
+          if (response.status === 200) {
             toast.success("Data Updated Successfully", {
               onClose: () => handleSearch(),
               autoClose: 1000,
@@ -558,60 +552,60 @@ const Category = () => {
 
 
   const deleteSelectedRows = async () => {
-  const selectedRows = gridApi.getSelectedRows();
+    const selectedRows = gridApi.getSelectedRows();
 
-  if (selectedRows.length === 0) {
-    toast.warning("Please select at least one row to delete");
-    return;
-  }
+    if (selectedRows.length === 0) {
+      toast.warning("Please select at least one row to delete");
+      return;
+    }
 
-  const company_code = sessionStorage.getItem("selectedCompanyCode");
-  const modified_by = sessionStorage.getItem("selectedUserCode");
+    const company_code = sessionStorage.getItem("selectedCompanyCode");
+    const modified_by = sessionStorage.getItem("selectedUserCode");
 
-  // ✅ Collect Keyfields
-  const keyfieldsToDelete = selectedRows.map(row => row.Keyfield);
+    // ✅ Collect Keyfields
+    const keyfieldsToDelete = selectedRows.map(row => row.Keyfield);
 
-  console.log("Keyfields to delete:", keyfieldsToDelete);
+    console.log("Keyfields to delete:", keyfieldsToDelete);
 
-  showConfirmationToast(
-    "Are you sure you want to delete the selected rows?",
-    async () => {
-      setLoading(true);
-      try {
-        const response = await fetch(
-          `${config.apiBaseUrl}/Item_Category_MasterDelete`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              keyfields: keyfieldsToDelete,
-              company_code,
-              modified_by
-            })
+    showConfirmationToast(
+      "Are you sure you want to delete the selected rows?",
+      async () => {
+        setLoading(true);
+        try {
+          const response = await fetch(
+            `${config.apiBaseUrl}/Item_Category_MasterDelete`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({
+                keyfields: keyfieldsToDelete,
+                company_code,
+                modified_by
+              })
+            }
+          );
+
+          if (response.ok) {
+            toast.success("Data deleted successfully", {
+              autoClose: 1000,
+              onClose: () => handleSearch()
+            });
+          } else {
+            const errorResponse = await response.json();
+            toast.warning(errorResponse.message || "Delete failed");
           }
-        );
-
-        if (response.ok) {
-          toast.success("Data deleted successfully", {
-            autoClose: 1000,
-            onClose: () => handleSearch()
-          });
-        } else {
-          const errorResponse = await response.json();
-          toast.warning(errorResponse.message || "Delete failed");
+        } catch (error) {
+          console.error("Delete Error:", error);
+          toast.error("Error deleting data: " + error.message);
+        } finally {
+          setLoading(false);
         }
-      } catch (error) {
-        console.error("Delete Error:", error);
-        toast.error("Error deleting data: " + error.message);
-      } finally {
-        setLoading(false);
-      }
-    },
-    () => toast.info("Delete cancelled")
-  );
-};
+      },
+      () => toast.info("Delete cancelled")
+    );
+  };
 
 
   const generateReport = () => {
@@ -757,16 +751,16 @@ const Category = () => {
     const rowIndex = updatedRowData.findIndex(
       (row) => row.Item_Category_Code === params.data.Item_Category_Code && row.Item_Category_Name === params.data.Item_Category_Name
     );
-  
+
     if (rowIndex !== -1) {
       updatedRowData[rowIndex][params.colDef.field] = params.newValue;
       setRowData(updatedRowData);
-  
+
       setEditedData((prevData) => {
         const existingIndex = prevData.findIndex(
           (item) => item.Item_Category_Code === params.data.Item_Category_Code && item.Item_Category_Name === params.data.Item_Category_Name
         );
-  
+
         if (existingIndex !== -1) {
           const updatedEdited = [...prevData];
           updatedEdited[existingIndex] = updatedRowData[rowIndex];
@@ -828,30 +822,30 @@ const Category = () => {
   };
 
   const clearInputFields = () => {
-  // Clear text inputs
-  setItem_Category_Code("");
-  setItem_Category_Name("");
-  setItem_Category_Description("");
-  setRegion_Code("");
-  setDisplay_Order("");
+    // Clear text inputs
+    setItem_Category_Code("");
+    setItem_Category_Name("");
+    setItem_Category_Description("");
+    setRegion_Code("");
+    setDisplay_Order("");
 
-  // Clear Default select
-  setselectedDefault(null);
-  setdefault("");
+    // Clear Default select
+    setselectedDefault(null);
+    setdefault("");
 
-  // Clear Status select
-  setSelectedStatus(null);
-  setstatus("");
+    // Clear Status select
+    setSelectedStatus(null);
+    setstatus("");
 
-  // Clear grid
-  setRowData([]);
+    // Clear grid
+    setRowData([]);
 
-  // Clear edited/selected rows also
-  setEditedData([]);
-  setSelectedRows([]);
+    // Clear edited/selected rows also
+    setEditedData([]);
+    setSelectedRows([]);
 
-  // Clear error/loading states if needed
-  setError("");
+    // Clear error/loading states if needed
+    setError("");
   };
 
   return (
@@ -1013,7 +1007,7 @@ const Category = () => {
               maxLength={50}
             />
           </div>
-         
+
           <div className="col-md-3 mb-2">
             <label className='fw-bold'>Display order</label>
             <input
@@ -1031,32 +1025,32 @@ const Category = () => {
           <div className="col-md-3 mb-2">
             <label className='fw-bold'>Default</label>
             <div title="Please select the our brand">
-            <Select
-              id="ahsts"
-              value={selectedDefault}
-              onChange={handleChangeBrand}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              options={filteredOptionBrand}
-              classNamePrefix="react-select"
-              placeholder=""
-              maxLength={30}
-            />
-          </div>
+              <Select
+                id="ahsts"
+                value={selectedDefault}
+                onChange={handleChangeBrand}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                options={filteredOptionBrand}
+                classNamePrefix="react-select"
+                placeholder=""
+                maxLength={30}
+              />
+            </div>
           </div>
           <div className="col-md-3 mb-2">
             <label className='fw-bold'>Status</label>
             <div title="Please select the status">
-            <Select
-              type="text"
-              id="ahsts"
-              value={selectedStatus}
-              onChange={handleChangeStatus}
-              // onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              options={filteredOptionStatus}
-              classNamePrefix="react-select"
-              placeholder=""
-            />
-          </div>
+              <Select
+                type="text"
+                id="ahsts"
+                value={selectedStatus}
+                onChange={handleChangeStatus}
+                // onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                options={filteredOptionStatus}
+                classNamePrefix="react-select"
+                placeholder=""
+              />
+            </div>
           </div>
           <div className="col-md-2 mb-2 mt-4">
             <button className="button2" onClick={handleSearch} title="Search" >

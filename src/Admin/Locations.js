@@ -326,55 +326,123 @@ const VendorProductTable = () => {
   };
 
 
+  // const deleteSelectedRows = async () => {
+  //   const selectedRows = gridApi.getSelectedRows();
+
+  //   if (selectedRows.length === 0) {
+  //     toast.warning("Please select atleast One Row to Delete");
+  //     return;
+  //   }
+
+  //   const modified_by = sessionStorage.getItem('selectedUserCode');
+
+  //   const location_nosToDelete = selectedRows.map((row) => row.location_no);
+
+  //   showConfirmationToast(
+  //     "Are you sure you want to Delete the data in the selected rows?",
+  //     async () => {
+  //       setLoading(true);
+  //       try {
+  //         const response = await fetch(`${config.apiBaseUrl}/deletelocation`, {
+  //           method: "POST",
+  //           headers: {
+  //             "Content-Type": "application/json",
+  //             "Modified-By": modified_by
+  //           },
+  //           body: JSON.stringify({ location_nos: location_nosToDelete }),
+  //           "modified_by": modified_by
+
+  //         });
+
+  //         if (response.ok) {
+  //           console.log("Rows deleted successfully:", location_nosToDelete);
+  //           setTimeout(() => {
+  //             toast.success("Data Deleted Successfully")
+  //             handleSearch();
+  //           }, 1000);
+  //         } else {
+  //           const errorResponse = await response.json();
+  //           toast.warning(errorResponse.message || "Failed to Delete Location data");
+  //         }
+  //       } catch (error) {
+  //         console.error("Error saving data:", error);
+  //         toast.error("Error Deleting Data: " + error.message);
+  //       } finally {
+  //         setLoading(false);
+  //       }
+  //     },
+  //     () => {
+  //       toast.info("Data Delete cancelled.");
+  //     }
+  //   );
+  // };
+
   const deleteSelectedRows = async () => {
-    const selectedRows = gridApi.getSelectedRows();
+  const selectedRows = gridApi.getSelectedRows();
 
-    if (selectedRows.length === 0) {
-      toast.warning("Please select atleast One Row to Delete");
-      return;
-    }
+  if (selectedRows.length === 0) {
+    toast.warning("Please select atleast One Row to Delete");
+    return;
+  }
 
-    const modified_by = sessionStorage.getItem('selectedUserCode');
+  const modified_by = sessionStorage.getItem("selectedUserCode");
 
-    const location_nosToDelete = selectedRows.map((row) => row.location_no);
+  const location_nosToDelete = selectedRows.map(
+    (row) => row.location_no
+  );
 
-    showConfirmationToast(
-      "Are you sure you want to Delete the data in the selected rows?",
-      async () => {
-        setLoading(true);
-        try {
-          const response = await fetch(`${config.apiBaseUrl}/deletelocation`, {
+  showConfirmationToast(
+    "Are you sure you want to Delete the data in the selected rows?",
+    async () => {
+      setLoading(true);
+
+      try {
+        const response = await fetch(
+          `${config.apiBaseUrl}/deletelocation`,
+          {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
               "Modified-By": modified_by
             },
-            body: JSON.stringify({ location_nos: location_nosToDelete }),
-            "modified_by": modified_by
-
-          });
-
-          if (response.ok) {
-            console.log("Rows deleted successfully:", location_nosToDelete);
-            setTimeout(() => {
-              toast.success("Data Deleted Successfully")
-              handleSearch();
-            }, 1000);
-          } else {
-            const errorResponse = await response.json();
-            toast.warning(errorResponse.message || "Failed to Delete Location data");
+            body: JSON.stringify({
+              location_nos: location_nosToDelete,
+              modified_by: modified_by
+            })
           }
-        } catch (error) {
-          console.error("Error saving data:", error);
-          toast.error("Error Deleting Data: " + error.message);
-        } finally {
-          setLoading(false);
+        );
+
+        // Always read the response body
+        const result = await response.json();
+
+        if (response.ok) {
+          console.log(
+            "Rows deleted successfully:",
+            location_nosToDelete
+          );
+
+          toast.success(result.message || "Data Deleted Successfully");
+
+          setTimeout(() => {
+            handleSearch();
+          }, 1000);
+        } else {
+          // Show API returned error message
+          toast.warning(
+            result.message || "Failed to Delete Location data"
+          );
         }
-      },
-      () => {
-        toast.info("Data Delete cancelled.");
+      } catch (error) {
+        console.error("Error deleting data:", error);
+        toast.error("Error Deleting Data: " + error.message);
+      } finally {
+        setLoading(false);
       }
-    );
+    },
+    () => {
+      toast.info("Data Delete cancelled.");
+    }
+  );
   };
 
   const saveEditedData = async () => {

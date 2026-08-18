@@ -294,7 +294,7 @@ const VendorProductTable = () => {
         </div>
         <div className="row">
           <div className="col-md-3 mb-2">
-            <label className={`fw-bold ${error && !selectedHeader ? 'text-danger' : ''}`}>Code<span className="text-danger">*</span></label>
+            <label className={`fw-bold ${error && !attributeheader_code ? 'text-danger' : ''}`}>Code<span className="text-danger">*</span></label>
             <div className="position-relative">
               <div title="Please select the code">
               <Select

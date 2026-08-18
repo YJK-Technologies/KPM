@@ -1510,10 +1510,67 @@ const VendorProductTable = () => {
     }
   };
 
+  // const handleExcelDownload = () => {
+  //   const filteredRowData = rowData.filter(row => row.returnQty > 0 && row.totalReturnAmt > 0 && row.itemAmt > 0);
+  //   const filteredRowDataTax = rowDataTax.filter(taxRow => taxRow.TaxAmount > 0 && taxRow.TaxPercentage > 0);
+  
+  //   const headerData = [{
+  //     "Company Code": sessionStorage.getItem('selectedCompanyCode'),
+  //     "Customer Name": customerName,
+  //     "Customer Code": customerCode,
+  //     "Return Date": return_date,
+  //     "Return Reason": return_reason,
+  //     "Return Person": return_person,
+  //     "Bill Date": billDate,
+  //     "Bill No": billNo,
+  //     "Pay Type": payType,
+  //     "Sales Type": salesType,
+  //     "Round Off": roundOff,
+  //     "Sale Amount": saleAmount,
+  //     "Bill Amount": totalAmount,
+  //     "Total Tax": TotalTax,
+  //   }];
+  
+  //   // Map rowData using columnDefs headerName
+  //   const formattedRowData = filteredRowData.map(row => {
+  //     const newRow = {};
+  //     columnDefs.forEach(col => {
+  //       if (!col.hide && col.field !== 'delete' && col.headerName) {
+  //         newRow[col.headerName] = row[col.field];
+  //       }
+  //     });
+  //     return newRow;
+  //   });
+  
+  //   // Map rowDataTax using columnDefsTax headerName
+  //   const formattedRowDataTax = filteredRowDataTax.map(row => {
+  //     const newRow = {};
+  //     columnDefsTax.forEach(col => {
+  //       if (!col.hide) {
+  //         newRow[col.headerName] = row[col.field];
+  //       }
+  //     });
+  //     return newRow;
+  //   });
+  
+  //   const headerSheet = XLSX.utils.json_to_sheet(headerData);
+  //   const rowDataSheet = XLSX.utils.json_to_sheet(formattedRowData);
+  //   const rowDataTaxSheet = XLSX.utils.json_to_sheet(formattedRowDataTax);
+  
+  //   const workbook = XLSX.utils.book_new();
+  //   XLSX.utils.book_append_sheet(workbook, headerSheet, "Header Data");
+  //   XLSX.utils.book_append_sheet(workbook, rowDataSheet, "Item Details");
+  //   XLSX.utils.book_append_sheet(workbook, rowDataTaxSheet, "Tax Details");
+  
+  //   XLSX.writeFile(workbook, "Sales_Return_data.xlsx");
+  // };
+
+  const companyName = sessionStorage.getItem('selectedCompanyName');
+
   const handleExcelDownload = () => {
     const filteredRowData = rowData.filter(row => row.returnQty > 0 && row.totalReturnAmt > 0 && row.itemAmt > 0);
     const filteredRowDataTax = rowDataTax.filter(taxRow => taxRow.TaxAmount > 0 && taxRow.TaxPercentage > 0);
-  
+
     const headerData = [{
       "Company Code": sessionStorage.getItem('selectedCompanyCode'),
       "Customer Name": customerName,
@@ -1530,7 +1587,7 @@ const VendorProductTable = () => {
       "Bill Amount": totalAmount,
       "Total Tax": TotalTax,
     }];
-  
+
     // Map rowData using columnDefs headerName
     const formattedRowData = filteredRowData.map(row => {
       const newRow = {};
@@ -1541,30 +1598,50 @@ const VendorProductTable = () => {
       });
       return newRow;
     });
-  
+
     // Map rowDataTax using columnDefsTax headerName
     const formattedRowDataTax = filteredRowDataTax.map(row => {
       const newRow = {};
       columnDefsTax.forEach(col => {
-        if (!col.hide) {
+        if (!col.hide && col.headerName) {
           newRow[col.headerName] = row[col.field];
         }
       });
       return newRow;
     });
-  
-    const headerSheet = XLSX.utils.json_to_sheet(headerData);
+
+    // =========================
+    // Header Sheet with Top Section
+    // =========================
+    const headerSheet = XLSX.utils.aoa_to_sheet([
+      ["Sales Return"],
+      [`Company Name: ${companyName}`],
+      []
+    ]);
+
+    // Append headerData JSON starting from Row 4 (A4)
+    XLSX.utils.sheet_add_json(
+      headerSheet,
+      headerData,
+      { origin: "A4", skipHeader: false }
+    );
+
+    // =========================
+    // Item Details & Tax Sheets
+    // =========================
     const rowDataSheet = XLSX.utils.json_to_sheet(formattedRowData);
     const rowDataTaxSheet = XLSX.utils.json_to_sheet(formattedRowDataTax);
-  
+
+    // =========================
+    // Create Workbook
+    // =========================
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, headerSheet, "Header Data");
     XLSX.utils.book_append_sheet(workbook, rowDataSheet, "Item Details");
     XLSX.utils.book_append_sheet(workbook, rowDataTaxSheet, "Tax Details");
-  
+
     XLSX.writeFile(workbook, "Sales_Return_data.xlsx");
   };
-
 
   const handleKeyDown = async (e, nextFieldRef, value, hasValueChanged, setHasValueChanged) => {
     if (e.key === 'Enter') {
