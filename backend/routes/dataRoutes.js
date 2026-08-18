@@ -428,6 +428,8 @@ router.post("/getVendorData",dataController.getVendorData)
 router.post("/getTaxData",dataController.getTaxData)
 router.post("/getWarehouseData",dataController.getWarehouseData)
 router.post("/getItemData",dataController.getItemData)
+router.post("/getCategoryData",dataController.getCategoryData)
+router.post("/getNumberSeriesData",dataController.getNumberSeriesData)
 
 
 

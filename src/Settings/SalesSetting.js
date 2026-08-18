@@ -4,7 +4,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useNavigate } from "react-router-dom";
 import './Settings.css';
-import secureLocalStorage from "react-secure-storage"; 
+import secureLocalStorage from "react-secure-storage";
 const config = require('../ApiConfig');
 
 const SalesSettings = () => {
@@ -369,7 +369,7 @@ const SalesSettings = () => {
   }, []);
 
   const handleSaveButtonClick = async () => {
-    if (!payType || !salesType ||!Stock || !orderType || !customerCode || !salesMode || !warehouse) {
+    if (!payType || !salesType || !orderType || !customerCode || !salesMode || !warehouse) {
       setError(" ");
       toast.warning('Error: Missing required fields');
       return;
@@ -591,7 +591,7 @@ const SalesSettings = () => {
             </div>
             <div className="col-md-3 form-group mb-2" >
               <div className="exp-form-floating">
-                <label className={`fw-bold ${error && !selectedStock ? 'text-danger' : ''}`}> Negative Stock<span className="text-danger">*</span></label>
+                <label className={`fw-bold`}> Negative Stock</label>
                 <Select
                   className="exp-input-field "
                   id="customername"
@@ -677,47 +677,47 @@ const SalesSettings = () => {
                 Template {PrintTemplate.length > 0 ? currentIndex + 1 : 0} of {PrintTemplate.length}
               </div>
             </div> */}
-              <div className="col-md-3 d-flex flex-column justify-content-between align-items-center h-100">
-  {/* Preview + Navigation */}
-  <div className="position-relative d-flex justify-content-center my-4">
-    {/* Left Arrow */}
-    <button
-      className="nav-arrow btn btn-light rounded-1 position-absolute start-0 top-50 translate-middle-y"
-      onClick={handlePrev}
-      disabled={PrintTemplate.length === 0}
-    >
-      ❮
-    </button>
+            <div className="col-md-3 d-flex flex-column justify-content-between align-items-center h-100">
+              {/* Preview + Navigation */}
+              <div className="position-relative d-flex justify-content-center my-4">
+                {/* Left Arrow */}
+                <button
+                  className="nav-arrow btn btn-light rounded-1 position-absolute start-0 top-50 translate-middle-y"
+                  onClick={handlePrev}
+                  disabled={PrintTemplate.length === 0}
+                >
+                  ❮
+                </button>
 
-    {/* Preview Box */}
-    <div className="template-preview-box border rounded shadow-sm py-2">
-      {PrintTemplate.length > 0 ? (
-        <img
-          src={PrintTemplate[currentIndex].image}
-          alt="Template"
-          className="preview-image"
-          style={{ maxWidth: "100%", maxHeight: "200px" }}
-        />
-      ) : (
-        <div className="placeholder-text">No Preview Available</div>
-      )}
-    </div>
+                {/* Preview Box */}
+                <div className="template-preview-box border rounded shadow-sm py-2">
+                  {PrintTemplate.length > 0 ? (
+                    <img
+                      src={PrintTemplate[currentIndex].image}
+                      alt="Template"
+                      className="preview-image"
+                      style={{ maxWidth: "100%", maxHeight: "200px" }}
+                    />
+                  ) : (
+                    <div className="placeholder-text">No Preview Available</div>
+                  )}
+                </div>
 
-    {/* Right Arrow */}
-    <button
-      className="nav-arrow btn btn-light rounded-1  position-absolute end-0 top-50 translate-middle-y"
-      onClick={handleNext}
-      disabled={PrintTemplate.length === 0}
-    >
-      ❯
-    </button>
-  </div>
+                {/* Right Arrow */}
+                <button
+                  className="nav-arrow btn btn-light rounded-1  position-absolute end-0 top-50 translate-middle-y"
+                  onClick={handleNext}
+                  disabled={PrintTemplate.length === 0}
+                >
+                  ❯
+                </button>
+              </div>
 
-  {/* Template Info Text at Bottom */}
-  <div className="mt-auto text-center small text-muted mb-2">
-    Template {PrintTemplate.length > 0 ? currentIndex + 1 : 0} of {PrintTemplate.length}
-  </div>
-</div>
+              {/* Template Info Text at Bottom */}
+              <div className="mt-auto text-center small text-muted mb-2">
+                Template {PrintTemplate.length > 0 ? currentIndex + 1 : 0} of {PrintTemplate.length}
+              </div>
+            </div>
             <div class="col-md-3 form-group  mt-4 mb-4">
               <button className="btn btn-primary" onClick={handleSaveButtonClick} title="Save">
                 Save

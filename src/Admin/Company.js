@@ -1010,7 +1010,7 @@ const VendorProductTable = () => {
           <div className="col-md-3 mb-2">
             <label className='fw-bold'>Pin Code</label>
             <input
-              type="text"
+              type="number"
               className="form-control"
               placeholder=""
               title="Please fill the Pin Code here"
