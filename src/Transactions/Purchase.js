@@ -3162,19 +3162,26 @@ const VendorProductTable = () => {
     }
   };
 
+  const companyName = sessionStorage.getItem('selectedCompanyName');
   const handleExcelDownload = () => {
-    // Filter rows with meaningful data
-    const filteredRowData = rowData.filter(row =>
-      row.purchaseQty > 0 && row.TotalItemAmount > 0 && row.purchaseAmt > 0
-    );
+  // Filter rows with meaningful data
+  const filteredRowData = rowData.filter(
+    row =>
+      row.purchaseQty > 0 &&
+      row.TotalItemAmount > 0 &&
+      row.purchaseAmt > 0
+  );
 
-    const filteredRowDataTax = rowDataTax.filter(taxRow =>
-      taxRow.TaxAmount > 0 && taxRow.TaxPercentage > 0
-    );
+  const filteredRowDataTax = rowDataTax.filter(
+    taxRow =>
+      taxRow.TaxAmount > 0 &&
+      taxRow.TaxPercentage > 0
+  );
 
-    // Prepare header data
-    const headerData = [{
-      "Company Code": sessionStorage.getItem('selectedCompanyCode'),
+  // Header information
+  const headerData = [
+    {
+      "Company Code": sessionStorage.getItem("selectedCompanyCode"),
       "Vendor Code": vendor_code,
       "Pay Type": payType,
       "Purchase Type": purchaseType,
@@ -3185,42 +3192,69 @@ const VendorProductTable = () => {
       "Tax Amount": TotalTax,
       "Total Amount": TotalBill,
       "Rounded Off": round_difference
-    }];
+    }
+  ];
 
-    // Format purchase row data using columnDefs
-    const formattedRowData = filteredRowData.map(row => {
-      const newRow = {};
-      columnDefs.forEach(col => {
-        if (!col.hide && col.field !== 'delete' && col.headerName) {
-          newRow[col.headerName] = row[col.field];
-        }
-      });
-      return newRow;
+  // Format purchase row data using columnDefs
+  const formattedRowData = filteredRowData.map(row => {
+    const newRow = {};
+
+    columnDefs.forEach(col => {
+      if (
+        !col.hide &&
+        col.field !== "delete" &&
+        col.headerName
+      ) {
+        newRow[col.headerName] = row[col.field];
+      }
     });
+    return newRow;
+  });
 
-    // Format tax data using columnDefsTax
-    const formattedRowDataTax = filteredRowDataTax.map(row => {
-      const newRow = {};
-      columnDefsTax.forEach(col => {
-        if (!col.hide && col.headerName) {
-          newRow[col.headerName] = row[col.field];
-        }
-      });
-      return newRow;
+  // Format tax data using columnDefsTax
+  const formattedRowDataTax = filteredRowDataTax.map(row => {
+    const newRow = {};
+    columnDefsTax.forEach(col => {
+      if (!col.hide && col.headerName) {
+        newRow[col.headerName] = row[col.field];
+      }
     });
+    return newRow;
+  });
 
-    // Create sheets
-    const headerSheet = XLSX.utils.json_to_sheet(headerData);
-    const rowDataSheet = XLSX.utils.json_to_sheet(formattedRowData);
-    const rowDataTaxSheet = XLSX.utils.json_to_sheet(formattedRowDataTax);
+  // Create workbook
+  const workbook = XLSX.utils.book_new();
 
-    // Build and export workbook
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, headerSheet, "Header Data");
-    XLSX.utils.book_append_sheet(workbook, rowDataSheet, "Purchase Details");
-    XLSX.utils.book_append_sheet(workbook, rowDataTaxSheet, "Tax Details");
+  // =========================
+  // Header Sheet
+  // =========================
 
-    XLSX.writeFile(workbook, "purchase_data.xlsx");
+  const headerSheet = XLSX.utils.aoa_to_sheet([
+    ["Purchase"],
+    [`Company Name: ${companyName}`],
+    []
+  ]);
+
+  // Add headerData below title/company name
+  XLSX.utils.sheet_add_json(
+    headerSheet,
+    headerData,
+    {origin: "A4",skipHeader: false}
+  );
+  // =========================
+  // Purchase Details Sheet
+  // =========================
+  const rowDataSheet = XLSX.utils.json_to_sheet(formattedRowData);
+  // =========================
+  // Tax Details Sheet
+  // =========================
+  const rowDataTaxSheet = XLSX.utils.json_to_sheet(formattedRowDataTax);
+  // Add sheets
+  XLSX.utils.book_append_sheet(workbook,headerSheet,"Header Data");
+  XLSX.utils.book_append_sheet(workbook,rowDataSheet,"Purchase Details");
+  XLSX.utils.book_append_sheet(workbook,rowDataTaxSheet,"Tax Details");
+  // Export
+  XLSX.writeFile(workbook, "purchase_data.xlsx");
   };
 
 
