@@ -52,6 +52,7 @@ const VendorProductTable = () => {
   const [purchaseType, setPurchaseType] = useState("");
   const [entryDate, setEntryDate] = useState("");
   const [transactionNumber, setTransactionNumber] = useState("");
+  const [printButtonVisible, setprintButtonVisible] = useState("");
 
   const [bill_qty, setbill_qty] = useState("");
   const [TotalBill, setTotalBill] = useState('');
@@ -272,6 +273,70 @@ const VendorProductTable = () => {
       })
       .catch((error) => console.error("Error fetching purchase types:", error));
   }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // 1. Ensure keys only trigger on F-keys
+      if (!['F1','F3', 'F4', 'F6'].includes(e.key)) {
+        return;
+      }
+
+      // 2. Prevent default browser shortcut actions (e.g., F1 Help, F5 Refresh)
+      e.preventDefault();
+      e.stopPropagation();
+
+      // 3. Prevent execution if screen is currently loading
+      if (loading) return;
+
+      switch (e.key) {
+        case 'F1':
+          // Open Item Search Popup
+          setOpen2(true); 
+          break;
+
+
+        case 'F3':
+          // New / Reset Sales Invoice Form
+          if (window.confirm("Start a new sales invoice? Unsaved changes will be lost.")) {
+            handleReload(); 
+          }
+          break;  
+
+        case 'F4':
+          // Save / Complete Invoice (Same logic as Save Button)
+          handleSaveButtonClick(); 
+          break;
+          
+        case 'F5':
+          // Search Existing Invoices to Edit
+          setOpen3(true); 
+          break;
+
+
+        case 'F6':
+          // Delete selected line item in AG Grid
+          if (transactionNumber) {
+            handleDeleteButtonClick();
+          } else {
+            alert("Please save the invoice before deleting.");
+          }
+          break;
+
+
+        default:
+          break;
+      }
+    };
+
+    // Attach listener
+    window.addEventListener('keydown', handleKeyDown);
+
+    // Clean up listener on unmount
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [loading, printButtonVisible, transactionNumber, rowData]);
+
 
   const filteredOptionScreens = screensDrop.map((option) => ({
     value: option.attributedetails_name,
