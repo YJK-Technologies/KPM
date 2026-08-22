@@ -99,7 +99,7 @@ const VendorProductTable = () => {
   const [hasValueChanged, setHasValueChanged] = useState(false);
   const [barcodeValue, setBarcodeValue] = useState('');
   const [barcode, setBarcode] = useState("");
-  const [MRPprice, setMRPPrice] = useState(0);
+  const [MRPprice, setMRPPrice] = useState("");
   const [Discount, setDiscount] = useState(0);
   const created_by = sessionStorage.getItem('selectedUserCode')
   const modified_by = sessionStorage.getItem("selectedUserCode");
