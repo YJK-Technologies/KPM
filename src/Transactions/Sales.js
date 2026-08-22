@@ -4119,6 +4119,7 @@ const VendorProductTable = () => {
                       <Select
                         id="salesMode"
                         className="exp-input-field"
+                        classNamePrefix="react-select"
                         placeholder=""
                         required
                         title="Please select the item code"
