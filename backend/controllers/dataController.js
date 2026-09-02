@@ -940,9 +940,13 @@ const userAddData = async (req, res) => {
         @email_id,@dob,@gender,@role_id,@user_img,@super_admin,@created_by,@modified_by,@tempstr1, @tempstr2, @tempstr3, @tempstr4,@datetime1, @datetime2, @datetime3, @datetime4`
       );
     // Return success response
-    if (result.rowsAffected && result.rowsAffected[0] > 0) {
-      return res.status(200).json({ success: true, message: 'Data inserted successfully' });
-    }
+    // if (result.rowsAffected && result.rowsAffected[0] > 0) {
+    //   return res.status(200).json({ success: true, message: 'Data inserted successfully' });
+    // }
+    return res.status(200).json({
+      success: true,
+      message: "Data inserted successfully"
+    });
   } catch (err) {
     if (err.class === 16 && err.number === 50000) {
       // Custom error from the stored procedure

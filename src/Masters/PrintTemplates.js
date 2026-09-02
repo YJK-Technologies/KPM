@@ -15,7 +15,7 @@ function PrintTemplate({ }) {
     const [Academic, setAcademic] = useState([{ relation: 'Screens', members: [{ screenName: '', templatename: '', Templates: null, documentUrl: '' }] }]);
     const [Screens, setScreens] = useState("");
     const [templatename, settemplatename] = useState("");
-    const [error, setError] = useState("");
+    const [error, setError] = useState(false);
     const [deleteError, setDeleteError] = useState("");
     const [documentUrl, setDocumentUrl] = useState({});
     const navigate = useNavigate();
@@ -81,21 +81,21 @@ function PrintTemplate({ }) {
     };
 
     const handleSave = async () => {
-    const hasMissingFields = Academic.some((relationGroup) =>
-        relationGroup.members.some(
-            (member) =>
-                !member.screenName?.trim() ||
-                !member.templatename?.trim()
-        )
-    );
+        const hasMissingFields = Academic.some((relationGroup) =>
+            relationGroup.members.some(
+                (member) =>
+                    !member.screenName?.trim() ||
+                    !member.templatename?.trim()
+            )
+        );
 
-    if (hasMissingFields) {
-        setError(" ");
-        toast.warning("Please fill all required fields");
-        return;
-    }
+        if (hasMissingFields) {
+            setError(true);
+            toast.warning("Please fill all required fields");
+            return;
+        }
 
-    setError("");
+        setError(false);
 
         const employeeData = await Promise.all(
 
@@ -511,7 +511,11 @@ function PrintTemplate({ }) {
                                             )}
                                         </div>
                                         <div className="col-md-2 form-group mb-2">
-                                            <label className={`${error && !member.screenName ? 'red' : ''}`}>Screens{showAsterisk && <span className="text-danger">*</span>}</label>
+                                            {/* <label className={`${error && !member.screenName ? 'red' : ''}`}>Screens{showAsterisk && <span className="text-danger">*</span>}</label> */}
+                                            <label className={`${error && !member.screenName?.trim() ? 'text-danger' : ''}`}>
+                                                Screens
+                                                {showAsterisk && <span className="text-danger">*</span>}
+                                            </label>
                                             <input
                                                 type="text"
                                                 className="exp-input-field form-control"
@@ -522,7 +526,11 @@ function PrintTemplate({ }) {
                                             />
                                         </div>
                                         <div className="col-md-2 form-group mb-2">
-                                            <label className={`${error && !member.templatename ? 'red' : ''}`}>Template Name{showAsterisk && <span className="text-danger">*</span>}</label>
+                                            {/* <label className={`${error && !member.templatename ? 'red' : ''}`}>Template Name{showAsterisk && <span className="text-danger">*</span>}</label> */}
+                                            <label className={`${error && !member.templatename?.trim() ? 'text-danger' : ''}`}>
+                                                Template Name
+                                                {showAsterisk && <span className="text-danger">*</span>}
+                                            </label>
                                             <input
                                                 type="text"
                                                 className="exp-input-field form-control"

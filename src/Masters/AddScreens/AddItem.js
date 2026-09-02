@@ -1421,7 +1421,8 @@ const VendorProductTable = () => {
             )}
           </div> */}
           <div className="col-md-3 mb-2">
-            <label className={`fw-bold ${error && !Item_Description ? 'text-danger' : ''}`}>Item Description<span className="text-danger">*</span></label>
+            {/*<label className={`fw-bold ${error && !Item_Description ? 'text-danger' : ''}`}>Item Description<span className="text-danger">*</span></label>*/}
+            <label className={`fw-bold`}>Item Description</label>
             <input
               type="text"
               className="form-control"
@@ -1439,7 +1440,8 @@ const VendorProductTable = () => {
           </div>
 
           <div className="col-md-3 mb-2">
-            <label className={`fw-bold ${error && !Is_Default ? 'text-danger' : ''}`}>Is Default<span className="text-danger">*</span></label>
+            {/* <label className={`fw-bold ${error && !Is_Default ? 'text-danger' : ''}`}>Is Default<span className="text-danger">*</span></label> */}
+            <label className={`fw-bold`}>Is Default</label>
             <input
               type="number"
               className="exp-input-field form-control"
