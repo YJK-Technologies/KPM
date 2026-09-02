@@ -529,6 +529,7 @@ const VendorProductTable = () => {
 
       });
     } finally {
+      console.log("Before stopping loading");
       setLoading(false);
     }
   };
