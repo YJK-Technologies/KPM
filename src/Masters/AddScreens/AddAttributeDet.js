@@ -63,9 +63,11 @@ const VendorProductTable = () => {
   const company_code = sessionStorage.getItem('selectedCompanyCode');
   // const { mode, selectedRow } = location.state || {};
   const [isUpdated, setIsUpdated] = useState(false);
+  const [attributeheader_name, setAttributeheader_name] = useState("");
 
   const clearInputFields = () => {
     setSelectedHeader("");
+    setAttributeheader_name("");
     setAttributedetails_code("");
     setAttributedetails_name("");
     setDescriptions("");
@@ -117,6 +119,7 @@ const VendorProductTable = () => {
             label: attribute.attributeheader_code,
             value: attribute.attributeheader_code,
           });
+          setAttributeheader_name(attribute.attributeheader_name ||"")
           setAttributeheader_Code(attribute.attributeheader_code || "");
           setAttributedetails_code(attribute.attributedetails_code || "");
           setAttributedetails_name(attribute.attributedetails_name || "");
@@ -249,6 +252,7 @@ const VendorProductTable = () => {
           company_code: sessionStorage.getItem('selectedCompanyCode'),
           attributeheader_code: selectedHeader.value,
           attributedetails_code,
+          attributeheader_name,
           attributedetails_name,
           descriptions,
           created_by,
@@ -257,7 +261,6 @@ const VendorProductTable = () => {
       });
       if (response.status === 200) {
         console.log("Data Updated successfully");
-        setIsUpdated(true);
         clearInputFields();
         toast.success("Data Updated successfully!")
       } else {

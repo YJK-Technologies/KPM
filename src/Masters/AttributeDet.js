@@ -155,6 +155,15 @@ const VendorProductTable = () => {
       }
     },
     {
+      headerName: "Name",
+      editable: true,
+      field: "attributeheader_name",
+      cellStyle: { textAlign: "center" },
+      cellEditorParams: {
+        maxLength: 250,
+      },
+    },
+    {
       headerName: "Sub Code",
       field: "attributedetails_code",
       cellStyle: { textAlign: "center" },
@@ -203,6 +212,7 @@ const VendorProductTable = () => {
 
       return {
         "Code": safeValue(row.attributeheader_code),
+        "Name": safeValue(row.attributeheader_name),
         "Sub Code": safeValue(row.attributedetails_code),
         "Detail Name": safeValue(row.attributedetails_name),
         "Description": safeValue(row.descriptions),
