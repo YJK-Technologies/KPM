@@ -2004,47 +2004,158 @@ const VendorProductTable = () => {
     }
   };
 
+  // const generateReport = async () => {
+  //   try {
+  //     const headerData = await PrintHeaderData();
+  //     const detailData = await PrintDetailData();
+  //     const taxData = await PrintSumTax();
+
+  //     if (headerData && detailData && taxData) {
+
+  //       sessionStorage.setItem('SheaderData', JSON.stringify(headerData));
+  //       sessionStorage.setItem('SdetailData', JSON.stringify(detailData));
+  //       sessionStorage.setItem('StaxData', JSON.stringify(taxData));
+
+  //       if (!templateName) {
+  //         toast.error("Template name not set.");
+  //         return;
+  //       }
+
+  //       if (printOption === "Print Preview") {
+  //         window.open(`/${templateName}`, '_blank');
+  //       } else if (printOption === "Print") {
+  //         for (let i = 0; i < printCopies; i++) {
+  //           const printWindow = window.open(
+  //             `/${templateName}?print=true`,
+  //             '_blank',
+  //             'width=800,height=600'
+  //           );
+
+  //           printWindow.onload = () => {
+  //             printWindow.focus();
+  //             printWindow.print();
+  //           };
+  //         }
+  //       }
+  //     } else {
+  //       console.log("Failed to fetch some data");
+  //       toast.error("Reference Number Does Not Exist");
+  //     }
+  //   } catch (error) {
+  //     console.error("Error executing API calls:", error);
+  //     toast.error('Error inserting data: ' + error.message);
+  //   }
+  // };
+
   const generateReport = async () => {
-    try {
-      const headerData = await PrintHeaderData();
-      const detailData = await PrintDetailData();
-      const taxData = await PrintSumTax();
+  let printWindow = null;
 
-      if (headerData && detailData && taxData) {
+  try {
+    // Open window immediately on button click
+    if (printOption === "Print") {
+      printWindow = window.open( "", "_blank", "width=800,height=600");
 
-        sessionStorage.setItem('SheaderData', JSON.stringify(headerData));
-        sessionStorage.setItem('SdetailData', JSON.stringify(detailData));
-        sessionStorage.setItem('StaxData', JSON.stringify(taxData));
-
-        if (!templateName) {
-          toast.error("Template name not set.");
-          return;
-        }
-
-        if (printOption === "Print Preview") {
-          window.open(`/${templateName}`, '_blank');
-        } else if (printOption === "Print") {
-          for (let i = 0; i < printCopies; i++) {
-            const printWindow = window.open(
-              `/${templateName}?print=true`,
-              '_blank',
-              'width=800,height=600'
-            );
-
-            printWindow.onload = () => {
-              printWindow.focus();
-              printWindow.print();
-            };
-          }
-        }
-      } else {
-        console.log("Failed to fetch some data");
-        toast.error("Reference Number Does Not Exist");
+      if (!printWindow) {
+        toast.error("Popup blocked. Please allow popups for this site.");
+        return;
       }
-    } catch (error) {
-      console.error("Error executing API calls:", error);
-      toast.error('Error inserting data: ' + error.message);
+
+      // Optional loading message
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Preparing Print...</title>
+          </head>
+          <body>
+            <p style="font-family: Arial; text-align: center;">
+              Preparing print...
+            </p>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
     }
+
+    // Fetch required data
+    const headerData = await PrintHeaderData();
+    const detailData = await PrintDetailData();
+    const taxData = await PrintSumTax();
+
+    // Validate API response
+    if (!headerData || !detailData || !taxData) {
+      console.log("Failed to fetch some data");
+
+      toast.error("Reference Number Does Not Exist");
+
+      if (printWindow && !printWindow.closed) {
+        printWindow.close();
+      }
+
+      return;
+    }
+
+    // Store data in sessionStorage
+    sessionStorage.setItem( "SheaderData", JSON.stringify(headerData) ) 
+    sessionStorage.setItem( "SdetailData", JSON.stringify(detailData) );
+    sessionStorage.setItem( "StaxData", JSON.stringify(taxData) );
+
+    // Validate template name
+    if (!templateName) {
+      toast.error("Template name not set.");
+
+      if (printWindow && !printWindow.closed) {
+        printWindow.close();
+      }
+
+      return;
+    }
+
+    // =========================
+    // PRINT PREVIEW
+    // =========================
+    if (printOption === "Print Preview") {
+      const previewWindow = window.open(
+        `/${templateName}`,
+        "_blank"
+      );
+
+      if (!previewWindow) {
+        toast.error(
+          "Popup blocked. Please allow popups for this site."
+        );
+      }
+
+      return;
+    }
+
+    // =========================
+    // PRINT
+    // =========================
+    if (printOption === "Print") {
+      printWindow.location.href = `/${templateName}?print=true`;
+
+      printWindow.onload = () => {
+        printWindow.focus();
+
+        setTimeout(() => {
+          printWindow.print();
+        }, 300);
+      };
+
+      return;
+    }
+
+  } catch (error) {
+    console.error("Error executing API calls:", error);
+
+    toast.error(
+      "Error inserting data: " + error.message
+    );
+
+    if (printWindow && !printWindow.closed) {
+      printWindow.close();
+    }
+  }
   };
 
   const handleDeleteHeader = async () => {
@@ -4083,6 +4194,7 @@ const VendorProductTable = () => {
                       <Select
                         id="salesMode"
                         className="exp-input-field"
+                        classNamePrefix="react-select"
                         placeholder=""
                         required
                         title="Please select the item code"
