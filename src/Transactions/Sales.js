@@ -112,6 +112,8 @@ const VendorProductTable = () => {
   const [Screen, setScreen] = useState('Sales');
   const [SelectedScreen, setSelectedscreen] = useState(null);
   const [isChecked, setIsChecked] = useState(false);
+
+  const returnAmountAbortController = useRef(null);
   const [printButtonVisible, setPrintButtonVisible] = useState(false);
   const permissions = JSON.parse(sessionStorage.getItem('permissions')) || {};
   const sales = permissions
@@ -240,6 +242,29 @@ const VendorProductTable = () => {
     setSelectedscreen(selectedScreen);
     setScreen(selectedScreen ? selectedScreen.value : '');
   };
+
+  // For default warehouse
+    useEffect(() => {
+    if (!selectedWarehouse) {
+      return;
+    }
+  
+    setRowData(prevRowData =>
+      prevRowData.map(row => {
+        // Only set default warehouse if the row has no warehouse
+        if (!row.warehouse || row.warehouse.trim() === '') {
+          return {
+            ...row,
+            warehouse: selectedWarehouse.value,
+           
+          };
+        }
+  
+        // Keep existing warehouse value
+        return row;
+      })
+    );
+  }, [selectedWarehouse]);
 
   useEffect(() => {
     const currentPath = location.pathname;
@@ -1435,8 +1460,12 @@ const VendorProductTable = () => {
         roff_amt: round_difference,
         dely_chlno: delvychellanno,
         sales_mode: salesMode,
-        paid_amount: paidAmount,
-        return_amount: returnAmount,
+        paid_amount: paidAmount === "" || paidAmount == null
+  ? 0
+  : parseFloat(paidAmount),
+        return_amount: returnAmount === "" || returnAmount == null
+  ? 0
+  : parseFloat(returnAmount),
         sales_order_no: billNo,
         created_by: sessionStorage.getItem('selectedUserCode')
       };
@@ -3133,7 +3162,7 @@ const VendorProductTable = () => {
     );
 
     const headerData = [{
-      "Company Code": sessionStorage.getItem("selectedCompanyCode"),
+      //"Company Code": sessionStorage.getItem("selectedCompanyCode"),
       "Customer Code": customerCode,
       "Customer Name": customerName,
       "Pay Type": payType,
@@ -3361,33 +3390,134 @@ const VendorProductTable = () => {
     navigate('/SalesSettings'); // Adjust the path as per your route setup
   };
 
-  const ReturnAmountCalculation = async () => {
-    try {
-      const response = await fetch(`${config.apiBaseUrl}/getSalesReturnAmountCalculation`, {
+  // const ReturnAmountCalculation = async () => {
+  //   if (!paidAmount || paidAmount.trim() === "") {
+  //   setReturnAmount("");
+  //   return;
+  // }
+  //   try {
+  //     const response = await fetch(`${config.apiBaseUrl}/getSalesReturnAmountCalculation`, {
+  //       method: "POST",
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //       },
+  //       body: JSON.stringify({ sale_amt: TotalBill, paid_amt: parseFloat(paidAmount) }),
+  //     });
+  //     if (response.ok) {
+  //       const data = await response.json();
+  //       const [{ ReturnAmount }] = data;
+  //       setReturnAmount(formatToTwoDecimalPoints(ReturnAmount))
+  //     } else {
+  //       const errorMessage = await response.text();
+  //       console.error(`Server responded with error: ${errorMessage}`);
+  //     }
+  //   } catch (error) {
+  //     console.error("Error fetching data:", error);
+  //   }
+  // };
+
+//   useEffect(() => {
+//   if (updated) {
+//     return;
+//   }
+
+//   // If Paid Amount is cleared, clear Return Amount
+//   if (!paidAmount || paidAmount.trim() === "") {
+//     setReturnAmount("");
+//     return;
+//   }
+
+//   ReturnAmountCalculation();
+// }, [TotalBill, paidAmount, updated]);
+
+const ReturnAmountCalculation = async () => {
+
+  // Cancel the previous API request
+  if (returnAmountAbortController.current) {
+    returnAmountAbortController.current.abort();
+  }
+
+  // If Paid Amount is empty, clear Return Amount
+  if (!paidAmount || paidAmount.trim() === "") {
+    setReturnAmount("");
+    return;
+  }
+
+  // Create new AbortController for this request
+  const controller = new AbortController();
+  returnAmountAbortController.current = controller;
+
+  try {
+    const response = await fetch(
+      `${config.apiBaseUrl}/getSalesReturnAmountCalculation`,
+      {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ sale_amt: TotalBill, paid_amt: parseFloat(paidAmount) }),
-      });
-      if (response.ok) {
-        const data = await response.json();
-        const [{ ReturnAmount }] = data;
-        setReturnAmount(formatToTwoDecimalPoints(ReturnAmount))
-      } else {
-        const errorMessage = await response.text();
-        console.error(`Server responded with error: ${errorMessage}`);
+        body: JSON.stringify({
+          sale_amt: TotalBill,
+          paid_amt: parseFloat(paidAmount),
+        }),
+        signal: controller.signal,
       }
-    } catch (error) {
-      console.error("Error fetching data:", error);
-    }
-  };
+    );
 
-  useEffect(() => {
-    if (!updated && paidAmount) {
-      ReturnAmountCalculation();
+    if (response.ok) {
+      const data = await response.json();
+
+      // Make sure this request wasn't cancelled
+      if (controller.signal.aborted) {
+        return;
+      }
+
+      // Make sure Paid Amount is still available
+      if (!paidAmount || paidAmount.trim() === "") {
+        setReturnAmount("");
+        return;
+      }
+
+      const [{ ReturnAmount }] = data;
+
+      setReturnAmount(formatToTwoDecimalPoints(ReturnAmount));
+
+    } else {
+      const errorMessage = await response.text();
+      console.error(`Server responded with error: ${errorMessage}`);
     }
-  }, [TotalBill, paidAmount, updated]);
+
+  } catch (error) {
+
+    // Ignore AbortController cancellation errors
+    if (error.name === "AbortError") {
+      return;
+    }
+
+    console.error("Error fetching data:", error);
+  }
+};
+
+useEffect(() => {
+
+  if (updated) {
+    return;
+  }
+
+  // Paid Amount is completely cleared
+  if (!paidAmount || paidAmount.trim() === "") {
+
+    // Cancel any previous calculation request
+    if (returnAmountAbortController.current) {
+      returnAmountAbortController.current.abort();
+    }
+
+    setReturnAmount("");
+    return;
+  }
+
+  ReturnAmountCalculation();
+
+}, [TotalBill, paidAmount, updated]);
 
   const handleClickOpen = (params) => {
     const GlobalSerialNumber = params.data.serialNumber

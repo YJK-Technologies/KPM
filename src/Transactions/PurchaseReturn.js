@@ -1808,7 +1808,7 @@ function PurchaseReturn() {
   );
 
   const headerData = [{
-    company_code: sessionStorage.getItem("selectedCompanyCode"),
+    //company_code: sessionStorage.getItem("selectedCompanyCode"),
     vendor_code: vendorcode,
     pay_type: payType,
     purchase_type: purchaseType,
