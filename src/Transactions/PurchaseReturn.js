@@ -50,9 +50,9 @@ function PurchaseReturn() {
   const [round_difference, setRoundDifference] = useState(0)
   const [error, setError] = useState("");
   const [vendor_name, setVendorName] = useState("");
-    const [showAsterisk, setShowAsterisk] = useState(false);
-      const [authError, setAuthError] = useState("");
-
+  const [showAsterisk, setShowAsterisk] = useState(false);
+  const [authError, setAuthError] = useState("");
+  const [printButtonVisible, setprintButtonVisible] = useState("");
   const [additionalData, setAdditionalData] = useState({
     modified_by: '',
     created_by: '',
@@ -72,6 +72,8 @@ function PurchaseReturn() {
   const [buttonsVisible, setButtonsVisible] = useState(true);
   const [deleteError, setDeleteError] = useState("");
   const [showReportButton, setshowReportButton] = useState(false);
+  const [transactionNumber, setTransactionNumber] = useState("");
+  
 
 
   //code added by Harish purpose of set user permisssion
@@ -103,6 +105,62 @@ function PurchaseReturn() {
     const clickedRowIndex = event.rowIndex;
     console.log(clickedRowIndex)
   };
+
+    useEffect(() => {
+      const handleKeyDown = (e) => {
+        // 1. Ensure keys only trigger on F-keys
+        if (!['F1', 'F3', 'F4', 'F5', 'F6', 'F8'].includes(e.key)) {
+          return;
+        }
+  
+        // 2. Prevent default browser shortcut actions (e.g., F1 Help, F5 Refresh)
+        e.preventDefault();
+        e.stopPropagation();
+  
+        // 3. Prevent execution if screen is currently loading
+        if (loading) return;
+  
+        switch (e.key) {
+
+         case 'F1':
+           // Open Item Search Popup
+          setOpen(true); 
+          break;
+
+  
+          case 'F3':
+            // New / Reset Sales Invoice Form
+            if (window.confirm("Start a new Purchase Retuen? Unsaved changes will be lost.")) {
+              handleReload(); 
+            }
+            break;  
+  
+          case 'F4':
+            // Save / Complete Invoice (Same logic as Save Button)
+            handleSaveButtonClick(); 
+            break;
+  
+          case 'F5':
+            // Search Existing Invoices to Edit
+            setReturNumber(true); 
+            break;
+
+
+  
+          default:
+            break;
+        }
+      };
+  
+      // Attach listener
+      window.addEventListener('keydown', handleKeyDown);
+  
+      // Clean up listener on unmount
+      return () => {
+        window.removeEventListener('keydown', handleKeyDown);
+      };
+    }, [loading, printButtonVisible, transactionNumber, rowData]);
+
 
   const PurreturnItemAmountCalculation = async (params) => {
     if (params.data.purchaseQty >= params.data.returnQty) {
@@ -1750,7 +1808,7 @@ function PurchaseReturn() {
   );
 
   const headerData = [{
-    company_code: sessionStorage.getItem("selectedCompanyCode"),
+    //company_code: sessionStorage.getItem("selectedCompanyCode"),
     vendor_code: vendorcode,
     pay_type: payType,
     purchase_type: purchaseType,
