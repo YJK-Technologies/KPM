@@ -3133,7 +3133,7 @@ const VendorProductTable = () => {
     );
 
     const headerData = [{
-      "Company Code": sessionStorage.getItem("selectedCompanyCode"),
+      //"Company Code": sessionStorage.getItem("selectedCompanyCode"),
       "Customer Code": customerCode,
       "Customer Name": customerName,
       "Pay Type": payType,

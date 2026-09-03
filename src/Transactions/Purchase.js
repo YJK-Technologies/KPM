@@ -3246,7 +3246,7 @@ const VendorProductTable = () => {
   // Header information
   const headerData = [
     {
-      "Company Code": sessionStorage.getItem("selectedCompanyCode"),
+      //"Company Code": sessionStorage.getItem("selectedCompanyCode"),
       "Vendor Code": vendor_code,
       "Pay Type": payType,
       "Purchase Type": purchaseType,
