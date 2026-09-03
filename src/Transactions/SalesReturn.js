@@ -80,6 +80,7 @@ const VendorProductTable = () => {
   const retreason = useRef();
   const [hasValueChanged, setHasValueChanged] = useState(false);
   const [showExcelButton, setShowExcelButton] = useState(false);
+  const [ExcelButton, setExcelButton] = useState(false);
   const [status, setStatus] = useState([]);
   const [selectedStatus, setSelectedStatus] = useState(null);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -1174,6 +1175,7 @@ const VendorProductTable = () => {
         return;
       }
       setShowExcelButton(true);
+      setExcelButton(true);
       setShowDropdown(true);
       setButtonsVisible(false);
       setShowAsterisk(true);
@@ -1276,6 +1278,7 @@ const VendorProductTable = () => {
     if (data && data.length > 0) {
 
       setShowExcelButton(true)
+      setExcelButton(true)
       setShowDropdown(true);
       setButtonsVisible(false);
       setShowAsterisk(true);
@@ -1572,7 +1575,7 @@ const VendorProductTable = () => {
     const filteredRowDataTax = rowDataTax.filter(taxRow => taxRow.TaxAmount > 0 && taxRow.TaxPercentage > 0);
 
     const headerData = [{
-      "Company Code": sessionStorage.getItem('selectedCompanyCode'),
+     // "Company Code": sessionStorage.getItem('selectedCompanyCode'),
       "Customer Name": customerName,
       "Customer Code": customerCode,
       "Return Date": return_date,
@@ -1815,7 +1818,7 @@ const VendorProductTable = () => {
                   </a>
                   </div>
                 )}
-                {showExcelButton && (
+                {ExcelButton && (
                   <div className='col-md-2 mt-1 me-3 mb-5 ' ><a className='border-none text-success p-1' style={{ cursor: "pointer" }} onClick={handleAuthorizedButtonClick} title="Authorization">
                     <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" className="bi bi-check" viewBox="0 0 16 16">
                       <path d="M13.854 3.646a.5.5 0 0 1 0 .708L6.707 11.5l-3.5-3.5a.5.5 0 0 1 .708-.708L6.707 10.293l6.439-6.439a.5.5 0 0 1 .708 0z" />
@@ -1867,7 +1870,7 @@ const VendorProductTable = () => {
                         </a>
                         </div>
                       )}
-                       {showExcelButton && (
+                       {ExcelButton && (
                       <div className='col-md-2 mt-1 me-0 mb-3' ><a className='border-none text-success p-1' style={{ cursor: "pointer" }} onClick={handleAuthorizedButtonClick} title="Authorization">
                         <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" className="bi bi-check" viewBox="0 0 16 16">
                           <path d="M13.854 3.646a.5.5 0 0 1 0 .708L6.707 11.5l-3.5-3.5a.5.5 0 0 1 .708-.708L6.707 10.293l6.439-6.439a.5.5 0 0 1 .708 0z" />
