@@ -113,6 +113,8 @@ const VendorProductTable = () => {
   const [SelectedScreen, setSelectedscreen] = useState(null);
   const [isChecked, setIsChecked] = useState(false);
 
+  const returnAmountAbortController = useRef(null);
+  const [printButtonVisible, setPrintButtonVisible] = useState(false);
   const permissions = JSON.parse(sessionStorage.getItem('permissions')) || {};
   const sales = permissions
     .filter(permission => permission.screen_type === 'Sales')
@@ -241,6 +243,29 @@ const VendorProductTable = () => {
     setScreen(selectedScreen ? selectedScreen.value : '');
   };
 
+  // For default warehouse
+    useEffect(() => {
+    if (!selectedWarehouse) {
+      return;
+    }
+  
+    setRowData(prevRowData =>
+      prevRowData.map(row => {
+        // Only set default warehouse if the row has no warehouse
+        if (!row.warehouse || row.warehouse.trim() === '') {
+          return {
+            ...row,
+            warehouse: selectedWarehouse.value,
+           
+          };
+        }
+  
+        // Keep existing warehouse value
+        return row;
+      })
+    );
+  }, [selectedWarehouse]);
+
   useEffect(() => {
     const currentPath = location.pathname;
     console.log(`Current path: ${currentPath}`);
@@ -259,6 +284,81 @@ const VendorProductTable = () => {
       setScreens('Add');
     }
   }, []);
+
+    useEffect(() => {
+      const handleKeyDown = (e) => {
+        // 1. Ensure keys only trigger on F-keys
+        if (!['F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F8'].includes(e.key)) {
+          return;
+        }
+  
+        // 2. Prevent default browser shortcut actions (e.g., F1 Help, F5 Refresh)
+        e.preventDefault();
+        e.stopPropagation();
+  
+        // 3. Prevent execution if screen is currently loading
+        if (loading) return;
+  
+        switch (e.key) {
+          case 'F1':
+            // Open Item Search Popup
+            setOpen(true); 
+            break;
+  
+          case 'F2':
+            // Open Customer Search Popup
+            setOpen2(true); 
+            break;
+  
+          case 'F3':
+            // New / Reset Sales Invoice Form
+            if (window.confirm("Start a new sales invoice? Unsaved changes will be lost.")) {
+              handleReload(); 
+            }
+            break;  
+  
+          case 'F4':
+            // Save / Complete Invoice (Same logic as Save Button)
+            handleSaveButtonClick(); 
+            break;
+  
+          case 'F5':
+            // Search Existing Invoices to Edit
+            setOpen3(true); 
+            break;
+  
+          case 'F6':
+            // Delete selected line item in AG Grid
+            if ( billNo) {
+              handleDeleteButtonClick();
+            } else {
+              alert("Please save the invoice before deleting.");
+            }
+            break;
+  
+          case 'F8':
+            // Print Invoice
+            if (printButtonVisible && billNo) {
+              generateReport();
+            } else {
+              alert("Please save the invoice before printing.");
+            }
+            break;
+  
+          default:
+            break;
+        }
+      };
+  
+      // Attach listener
+      window.addEventListener('keydown', handleKeyDown);
+  
+      // Clean up listener on unmount
+      return () => {
+        window.removeEventListener('keydown', handleKeyDown);
+      };
+    }, [loading, printButtonVisible, billNo, rowData]);
+  
 
 
   // Save to sessionStorage and update state when user changes selection
@@ -1360,8 +1460,12 @@ const VendorProductTable = () => {
         roff_amt: round_difference,
         dely_chlno: delvychellanno,
         sales_mode: salesMode,
-        paid_amount: paidAmount,
-        return_amount: returnAmount,
+        paid_amount: paidAmount === "" || paidAmount == null
+  ? 0
+  : parseFloat(paidAmount),
+        return_amount: returnAmount === "" || returnAmount == null
+  ? 0
+  : parseFloat(returnAmount),
         sales_order_no: billNo,
         created_by: sessionStorage.getItem('selectedUserCode')
       };
@@ -3058,7 +3162,7 @@ const VendorProductTable = () => {
     );
 
     const headerData = [{
-      "Company Code": sessionStorage.getItem("selectedCompanyCode"),
+      //"Company Code": sessionStorage.getItem("selectedCompanyCode"),
       "Customer Code": customerCode,
       "Customer Name": customerName,
       "Pay Type": payType,
@@ -3286,33 +3390,134 @@ const VendorProductTable = () => {
     navigate('/SalesSettings'); // Adjust the path as per your route setup
   };
 
-  const ReturnAmountCalculation = async () => {
-    try {
-      const response = await fetch(`${config.apiBaseUrl}/getSalesReturnAmountCalculation`, {
+  // const ReturnAmountCalculation = async () => {
+  //   if (!paidAmount || paidAmount.trim() === "") {
+  //   setReturnAmount("");
+  //   return;
+  // }
+  //   try {
+  //     const response = await fetch(`${config.apiBaseUrl}/getSalesReturnAmountCalculation`, {
+  //       method: "POST",
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //       },
+  //       body: JSON.stringify({ sale_amt: TotalBill, paid_amt: parseFloat(paidAmount) }),
+  //     });
+  //     if (response.ok) {
+  //       const data = await response.json();
+  //       const [{ ReturnAmount }] = data;
+  //       setReturnAmount(formatToTwoDecimalPoints(ReturnAmount))
+  //     } else {
+  //       const errorMessage = await response.text();
+  //       console.error(`Server responded with error: ${errorMessage}`);
+  //     }
+  //   } catch (error) {
+  //     console.error("Error fetching data:", error);
+  //   }
+  // };
+
+//   useEffect(() => {
+//   if (updated) {
+//     return;
+//   }
+
+//   // If Paid Amount is cleared, clear Return Amount
+//   if (!paidAmount || paidAmount.trim() === "") {
+//     setReturnAmount("");
+//     return;
+//   }
+
+//   ReturnAmountCalculation();
+// }, [TotalBill, paidAmount, updated]);
+
+const ReturnAmountCalculation = async () => {
+
+  // Cancel the previous API request
+  if (returnAmountAbortController.current) {
+    returnAmountAbortController.current.abort();
+  }
+
+  // If Paid Amount is empty, clear Return Amount
+  if (!paidAmount || paidAmount.trim() === "") {
+    setReturnAmount("");
+    return;
+  }
+
+  // Create new AbortController for this request
+  const controller = new AbortController();
+  returnAmountAbortController.current = controller;
+
+  try {
+    const response = await fetch(
+      `${config.apiBaseUrl}/getSalesReturnAmountCalculation`,
+      {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ sale_amt: TotalBill, paid_amt: parseFloat(paidAmount) }),
-      });
-      if (response.ok) {
-        const data = await response.json();
-        const [{ ReturnAmount }] = data;
-        setReturnAmount(formatToTwoDecimalPoints(ReturnAmount))
-      } else {
-        const errorMessage = await response.text();
-        console.error(`Server responded with error: ${errorMessage}`);
+        body: JSON.stringify({
+          sale_amt: TotalBill,
+          paid_amt: parseFloat(paidAmount),
+        }),
+        signal: controller.signal,
       }
-    } catch (error) {
-      console.error("Error fetching data:", error);
-    }
-  };
+    );
 
-  useEffect(() => {
-    if (!updated && paidAmount) {
-      ReturnAmountCalculation();
+    if (response.ok) {
+      const data = await response.json();
+
+      // Make sure this request wasn't cancelled
+      if (controller.signal.aborted) {
+        return;
+      }
+
+      // Make sure Paid Amount is still available
+      if (!paidAmount || paidAmount.trim() === "") {
+        setReturnAmount("");
+        return;
+      }
+
+      const [{ ReturnAmount }] = data;
+
+      setReturnAmount(formatToTwoDecimalPoints(ReturnAmount));
+
+    } else {
+      const errorMessage = await response.text();
+      console.error(`Server responded with error: ${errorMessage}`);
     }
-  }, [TotalBill, paidAmount, updated]);
+
+  } catch (error) {
+
+    // Ignore AbortController cancellation errors
+    if (error.name === "AbortError") {
+      return;
+    }
+
+    console.error("Error fetching data:", error);
+  }
+};
+
+useEffect(() => {
+
+  if (updated) {
+    return;
+  }
+
+  // Paid Amount is completely cleared
+  if (!paidAmount || paidAmount.trim() === "") {
+
+    // Cancel any previous calculation request
+    if (returnAmountAbortController.current) {
+      returnAmountAbortController.current.abort();
+    }
+
+    setReturnAmount("");
+    return;
+  }
+
+  ReturnAmountCalculation();
+
+}, [TotalBill, paidAmount, updated]);
 
   const handleClickOpen = (params) => {
     const GlobalSerialNumber = params.data.serialNumber
