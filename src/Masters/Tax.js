@@ -246,6 +246,17 @@ const VendorProductTable = () => {
       },
     },
     {
+      headerName: "Tax Header Name",
+      field: "tax_name",
+      editable: true,
+      cellStyle: {
+        textAlign: "center",
+      },
+      cellEditorParams: {
+        maxLength: 250,
+      },
+    },
+    {
       headerName: "Tax Name Details",
       field: "tax_name_details",
       editable: false,
@@ -326,6 +337,7 @@ const VendorProductTable = () => {
 
       return {
         "Tax Type Header": safeValue(row.tax_type_header),
+        "Tax Header Name": safeValue(row.tax_name),
         "Tax Name Details": safeValue(row.tax_name_details),
         "Tax Percentage": safeValue(row.tax_percentage),
         "Tax Short Name": safeValue(row.tax_shortname),

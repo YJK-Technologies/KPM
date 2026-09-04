@@ -64,6 +64,8 @@ const VendorProductTable = () => {
   const tax_accountcodes = location.state?.tax_accountcode;
   const company_code = sessionStorage.getItem('selectedCompanyCode');
 
+  const [tax_name, settax_name] = useState("");
+
   useEffect(() => {
     if (!location.state) {
       clearInputFields(); // ensure fresh create mode
@@ -102,6 +104,7 @@ const VendorProductTable = () => {
           label: Tax.tax_type_header,
           value: Tax.tax_type_header,
         });
+        settax_name(Tax.tax_name || "")
         settax_type_header(Tax.tax_type_header || "")
         setSelectedTransaction({
           label: Tax.transaction_type,
@@ -129,6 +132,7 @@ const VendorProductTable = () => {
 
   const clearInputFields = () => {
     setSelectedTax("");
+    settax_name("");
     setSelectedTransaction("");
     setSelectedStatus("");
     settax_name_details("");
@@ -360,6 +364,7 @@ const VendorProductTable = () => {
           tax_type_header: selectedTax.value,
           company_code: sessionStorage.getItem("selectedCompanyCode"),
           tax_name_details,
+          tax_name,
           tax_percentage,
           tax_shortname,
           tax_accountcode,
