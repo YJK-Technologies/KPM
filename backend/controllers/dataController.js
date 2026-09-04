@@ -639,8 +639,7 @@ const gettypeperdata = async (req, res) => {
       .input("mode", sql.NVarChar, "TS")
       .input("company_code", sql.VarChar, company_code)
       .input("tax_type_header", sql.NVarChar, tax_type_header)
-      .query(`EXEC sp_tax_name_details @mode,@company_code,@tax_type_header,'',0,'','','','','','',
-        NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL `);
+      .query(`EXEC sp_tax_name_details_pavun @mode,@company_code,@tax_type_header,'','',0,'','','','','','',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL `);
 
     // Send response
     if (result.recordset.length > 0) {
@@ -1579,7 +1578,7 @@ const addTaxHdrData = async (req, res) => {
 const getAllTaxDetailsData = async (req, res) => {
   try {
     await connection.connectToDatabase();
-    const result = await sql.query(`EXEC sp_tax_name_details 'A','','',0,'','','','','','', NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL`);
+    const result = await sql.query(`EXEC sp_tax_name_details_pavun 'A','','','','',0,'','','','','','', NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL`);
 
     res.json(result.recordset);
   } catch (err) {
@@ -1634,9 +1633,8 @@ const addTaxDetailsData = async (req, res) => {
       .input("datetime2", sql.NVarChar, datetime2)
       .input("datetime3", sql.NVarChar, datetime3)
       .input("datetime4", sql.NVarChar, datetime4)
-      .query(
-        `EXEC sp_tax_name_details @mode,@company_code,@tax_type_header, @tax_name_details, @tax_percentage,@tax_shortname,@tax_accountcode,@transaction_type,@status,@created_by,@modified_by,
-        @tempstr1,@tempstr2,@tempstr3,@tempstr4,@datetime1,@datetime2,@datetime3,@datetime4`);
+      .query(`EXEC sp_tax_name_details_pavun @mode,@company_code,@tax_type_header,'', @tax_name_details, @tax_percentage,@tax_shortname,@tax_accountcode,@transaction_type,@status,@created_by,@modified_by,
+      @tempstr1,@tempstr2,@tempstr3,@tempstr4,@datetime1,@datetime2,@datetime3,@datetime4`);
 
     res.status(200).json("Data saved successfully");
   } catch (err) {
@@ -1662,6 +1660,7 @@ const updtaxdetaildata = async (req, res) => {
         .input("mode", sql.NVarChar, "U")
         .input("company_code", sql.VarChar, req.headers['company_code'])
         .input("tax_type_header", updatedRow.tax_type_header)
+        .input("tax_name", updatedRow.tax_name)
         .input("tax_name_details", updatedRow.tax_name_details)
         .input("tax_percentage", updatedRow.tax_percentage)
         .input("tax_shortname", updatedRow.tax_shortname)
@@ -1678,9 +1677,8 @@ const updtaxdetaildata = async (req, res) => {
         .input("datetime2", updatedRow.datetime2)
         .input("datetime3", updatedRow.datetime3)
         .input("datetime4", updatedRow.datetime4)
-        .query(`EXEC sp_tax_name_details @mode,@company_code,@tax_type_header, @tax_name_details, @tax_percentage, @tax_shortname, @tax_accountcode, @transaction_type, @status, @created_by, @modified_by,
-             @tempstr1, @tempstr2, @tempstr3, @tempstr4, 
-            @datetime1, @datetime2, @datetime3, @datetime4`);
+        .query(`EXEC sp_tax_name_details_pavun @mode,@company_code,@tax_type_header, @tax_name, @tax_name_details, @tax_percentage, @tax_shortname, @tax_accountcode, @transaction_type, @status, @created_by, @modified_by,
+        @tempstr1, @tempstr2, @tempstr3, @tempstr4, @datetime1, @datetime2, @datetime3, @datetime4`);
     }
 
     res.status(200).json("Edited data saved successfully");
@@ -3517,7 +3515,7 @@ const gettaxSearchdata = async (req, res) => {
       .input("tax_accountcode", sql.NVarChar, tax_accountcode)
       .input("transaction_type", sql.NVarChar, transaction_type)
       .input("status", sql.NVarChar, status)
-      .query(`EXEC sp_tax_name_details @mode,@company_code,@tax_type_header, @tax_name_details, @tax_percentage , @tax_shortname, @tax_accountcode, @transaction_type, @status,
+      .query(`EXEC sp_tax_name_details_pavun @mode,@company_code,@tax_type_header, '', @tax_name_details, @tax_percentage , @tax_shortname, @tax_accountcode, @transaction_type, @status,
       NULL, NULL, NULL, NULL,'','','','','',''`);
 
     // Send response
@@ -6091,8 +6089,7 @@ const deleteTaxData = async (req, res) => {
   try {
     const pool = await connection.connectToDatabase();
 
-    const deleteQuery = `EXEC [sp_tax_name_details] 'D',@company_code,@tax_type_header,@tax_name_details,0,'','','','','','',
-                          NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL`;
+    const deleteQuery = `EXEC sp_tax_name_details_pavun 'D',@company_code,@tax_type_header,'',@tax_name_details,0,'','','','','','',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL`;
     for (let i = 0; i < tax_type_headersToDelete.length; i++) {
       try {
         await pool.request()
@@ -6140,6 +6137,7 @@ const updTaxdetData = async (req, res) => {
         .input("company_code", sql.VarChar, req.headers['company_code'])
         .input("tax_type_header", tax_type_headersToUpdate[i])
         .input("tax_name_details", tax_name_detailssToUpdate[i])
+        .input("tax_name", sql.NVarChar, updatedRow.tax_name)
         .input("tax_accountcode", sql.NVarChar, updatedRow.tax_accountcode)
         .input("tax_percentage", sql.Decimal(14, 2), updatedRow.tax_percentage)
         .input("tax_shortname", sql.NVarChar, updatedRow.tax_shortname)
@@ -6155,7 +6153,7 @@ const updTaxdetData = async (req, res) => {
         .input("datetime2", sql.NVarChar, updatedRow.datetime2)
         .input("datetime3", sql.NVarChar, updatedRow.datetime3)
         .input("datetime4", sql.NVarChar, updatedRow.datetime4)
-        .query(`EXEC sp_tax_name_details @mode,@company_code,@tax_type_header, @tax_name_details, @tax_percentage, @tax_shortname, @tax_accountcode,
+        .query(`EXEC sp_tax_name_details_pavun @mode,@company_code,@tax_type_header,@tax_name, @tax_name_details, @tax_percentage, @tax_shortname, @tax_accountcode,
         @transaction_type, @status,@created_by,@modified_by, @tempstr1, @tempstr2, @tempstr3, @tempstr4, @datetime1, @datetime2,@datetime3, @datetime4`);
     }
 
@@ -7860,7 +7858,7 @@ const ItemUpdate = async (req, res) => {
 };
 
 const TaxUpdate = async (req, res) => {
-  const { company_code, tax_type_header, tax_name_details, tax_accountcode, tax_percentage, tax_shortname, transaction_type, status, created_by, modified_by } = req.body;
+  const { company_code, tax_type_header, tax_name, tax_name_details, tax_accountcode, tax_percentage, tax_shortname, transaction_type, status, created_by, modified_by } = req.body;
 
   let pool;
   try {
@@ -7870,6 +7868,7 @@ const TaxUpdate = async (req, res) => {
       .input("mode", sql.NVarChar, "U")
       .input("company_code", sql.VarChar, company_code)
       .input("tax_type_header", sql.NVarChar, tax_type_header)
+      .input("tax_name", sql.NVarChar, tax_name)
       .input("tax_name_details", sql.NVarChar, tax_name_details)
       .input("tax_accountcode", sql.NVarChar, tax_accountcode)
       .input("tax_percentage", sql.Decimal(14, 2), tax_percentage)
@@ -7878,7 +7877,7 @@ const TaxUpdate = async (req, res) => {
       .input("status", sql.NVarChar, status)
       .input("created_by", sql.NVarChar, created_by)
       .input("modified_by", sql.NVarChar, modified_by)
-      .query(`EXEC sp_tax_name_details @mode,@company_code,@tax_type_header, @tax_name_details, @tax_percentage, @tax_shortname, @tax_accountcode,
+      .query(`EXEC sp_tax_name_details_pavun @mode,@company_code,@tax_type_header,@tax_name, @tax_name_details, @tax_percentage, @tax_shortname, @tax_accountcode,
       @transaction_type, @status,@created_by,@modified_by, '', '', '', '', '', '','', ''`);
 
     res.status(200).json("Updated data successfully");
@@ -11461,7 +11460,7 @@ const getTaxData = async (req, res) => {
       .input("tax_type_header", sql.NVarChar, tax_type_header)
       .input("tax_name_details", sql.NVarChar, tax_name_details)
       .input("tax_accountcode", sql.NVarChar, tax_accountcode)
-      .query(`EXEC sp_tax_name_details @mode,@company_code,@tax_type_header,@tax_name_details,0,'',@tax_accountcode,'','','','',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL `);
+      .query(`EXEC sp_tax_name_details_pavun @mode,@company_code,@tax_type_header,'',@tax_name_details,0,'',@tax_accountcode,'','','','',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL `);
 
     if (result.recordset.length > 0) {
       res.status(200).json(result.recordset); 
