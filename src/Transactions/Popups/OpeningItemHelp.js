@@ -182,7 +182,7 @@ const VendorProductTable = ({ open, handleClose, handleOI }) => {
                     <div className="col-md-3 mb-2">
                       <label className="fw-bold">Transaction Date </label>
                       <input
-                        type="text"
+                        type="date"
                         className="form-control"
                         value={transaction_date}
                         onChange={(e) => settransaction_date(e.target.value)}
