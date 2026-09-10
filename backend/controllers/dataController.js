@@ -730,12 +730,9 @@ const addData = async (req, res) => {
       .input("datetime2", sql.NVarChar, datetime2)
       .input("datetime3", sql.NVarChar, datetime3)
       .input("datetime4", sql.NVarChar, datetime4)
-      .query(
-        `EXEC sp_company_info @mode, @company_no, @company_name, @short_name, @address1, @address2, @address3, @city, @state, @pincode, @country, @email_id, 
+      .query(`EXEC sp_company_info @mode, @company_no, @company_name, @short_name, @address1, @address2, @address3, @city, @state, @pincode, @country, @email_id, 
         @status, @foundedDate, @websiteURL, @company_logo, @contact_no, @annualReportURL,@location_no,@company_gst_no,@authorisedSignatur,@created_by,@modified_by,  
-         @tempstr1, @tempstr2, @tempstr3, @tempstr4, 
-        @datetime1, @datetime2, @datetime3, @datetime4`
-      );
+        @tempstr1, @tempstr2, @tempstr3, @tempstr4, @datetime1, @datetime2, @datetime3, @datetime4`);
 
     // Return success response
     if (result.rowsAffected && result.rowsAffected[0] > 0) {
@@ -1396,9 +1393,7 @@ const addattridetData = async (req, res) => {
       .query(`EXEC sp_attribute_Info_pavun @mode,@company_code,@attributeheader_code,'', @attributedetails_code,@attributedetails_name,@descriptions,@created_by,@modified_by,@tempstr1, @tempstr2, @tempstr3, @tempstr4, 
         @datetime1, @datetime2, @datetime3, @datetime4`);
     // Return success response
-    if (result.rowsAffected && result.rowsAffected[0] > 0) {
-      return res.status(200).json({ success: true, message: 'Data inserted successfully' });
-    }
+    res.status(200).json("Data Inserted Successfully");
   } catch (err) {
     if (err.class === 16 && err.number === 50000) {
       // Custom error from the stored procedure
