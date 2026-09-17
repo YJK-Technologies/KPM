@@ -686,127 +686,368 @@ const VendorProductTable = () => {
     },
   ];
 
-  const generateReport = () => {
-    if (selectedRows.length === 0) {
-      toast.warning("Please select at least one row to generate a report");
-      return
+  // const generateReport = () => {
+  //   if (selectedRows.length === 0) {
+  //     toast.warning("Please select at least one row to generate a report");
+  //     return
+  //   };
+
+  //   const reportData = selectedRows.map((row) => {
+  //     const safeValue = (val) => val !== undefined && val !== null ? val : '';
+
+  //     const addressParts = [
+  //       safeValue(row.address1),
+  //       safeValue(row.address2),
+  //       safeValue(row.address3),
+  //       `<br>${safeValue(row.city)}`,
+  //       `<br>${safeValue(row.pincode)}`,
+  //       `<br>${safeValue(row.state)}`,
+  //       `<br>${safeValue(row.country)}`
+  //     ];
+
+  //     const formattedAddress = addressParts.join(', ');
+
+  //     return {
+  //       "Location No": safeValue(row.location_no),
+  //       "Location Name": safeValue(row.location_name),
+  //       "Short Name": safeValue(row.short_name),
+  //       Address: formattedAddress,
+  //       "Email Id": safeValue(row.email_id),
+  //       "Status": safeValue(row.status),
+  //       "Contact No": safeValue(row.contact_no),
+  //     };
+  //   });
+  //   const reportWindow = window.open("", "_blank");
+  //   reportWindow.document.write("<html><head><title>Location</title>");
+  //   reportWindow.document.write("<style>");
+  //   reportWindow.document.write(`
+  //     body {
+  //         font-family: Arial, sans-serif;
+  //         margin: 20px;
+  //     }
+  //     h1 {
+  //         color: maroon;
+  //         text-align: center;
+  //         font-size: 24px;
+  //         margin-bottom: 30px;
+  //         text-decoration: underline;
+  //     }
+  //     table {
+  //         width: 100%;
+  //         border-collapse: collapse;
+  //         margin-bottom: 20px;
+  //     }
+  //     th, td {
+  //         padding: 10px;
+  //         text-align: left;
+  //         border: 1px solid #ddd;
+  //         vertical-align: top;
+  //     }
+  //     th {
+  //         background-color: maroon;
+  //         color: white;
+  //         font-weight: bold;
+  //     }
+  //     td {
+  //         background-color: #fdd9b5;
+  //     }
+  //     tr:nth-child(even) td {
+  //         background-color: #fff0e1;
+  //     }
+  //     .report-button {
+  //         display: block;
+  //         width: 150px;
+  //         margin: 20px auto;
+  //         padding: 10px;
+  //         background-color: maroon;
+  //         color: white;
+  //         border: none;
+  //         cursor: pointer;
+  //         font-size: 16px;
+  //         text-align: center;
+  //         border-radius: 5px;
+  //     }
+  //     .report-button:hover {
+  //         background-color: darkred;
+  //     }
+  //     @media print {
+  //         .report-button {
+  //             display: none;
+  //         }
+  //         body {
+  //             margin: 0;
+  //             padding: 0;
+  //         }
+  //     }
+  //   `);
+  //   reportWindow.document.write("</style></head><body>");
+  //   reportWindow.document.write("<h1><u>Location Information</u></h1>");
+
+  //   // Create table with headers
+  //   reportWindow.document.write("<table><thead><tr>");
+  //   Object.keys(reportData[0]).forEach((key) => {
+  //     reportWindow.document.write(`<th>${key}</th>`);
+  //   });
+  //   reportWindow.document.write("</tr></thead><tbody>");
+
+  //   // Populate the rows
+  //   reportData.forEach((row) => {
+  //     reportWindow.document.write("<tr>");
+  //     Object.values(row).forEach((value) => {
+  //       reportWindow.document.write(`<td>${value}</td>`);
+  //     });
+  //     reportWindow.document.write("</tr>");
+  //   });
+
+  //   reportWindow.document.write("</tbody></table>");
+
+  //   reportWindow.document.write(
+  //     '<button class="report-button" title="Print" onclick="window.print()">Print</button>'
+  //   );
+  //   reportWindow.document.write("</body></html>");
+  //   reportWindow.document.close();
+  // };
+
+
+const generateReport = () => {
+  if (selectedRows.length === 0) {
+    toast.warning("Please select at least one row to generate a report");
+    return;
+  }
+
+  const reportData = selectedRows.map((row) => {
+    const safeValue = (val) =>
+      val !== undefined && val !== null ? val : "";
+
+    const addressParts = [
+      safeValue(row.address1),
+      safeValue(row.address2),
+      safeValue(row.address3),
+      `<br>${safeValue(row.city)}`,
+      `<br>${safeValue(row.pincode)}`,
+      `<br>${safeValue(row.state)}`,
+      `<br>${safeValue(row.country)}`,
+    ];
+
+    const formattedAddress = addressParts.join(", ");
+
+    return {
+      "Location No": safeValue(row.location_no),
+      "Location Name": safeValue(row.location_name),
+      "Short Name": safeValue(row.short_name),
+      Address: formattedAddress,
+      "Email Id": safeValue(row.email_id),
+      Status: safeValue(row.status),
+      "Contact No": safeValue(row.contact_no),
     };
+  });
 
-    const reportData = selectedRows.map((row) => {
-      const safeValue = (val) => val !== undefined && val !== null ? val : '';
+  const reportWindow = window.open("", "_blank");
 
-      const addressParts = [
-        safeValue(row.address1),
-        safeValue(row.address2),
-        safeValue(row.address3),
-        `<br>${safeValue(row.city)}`,
-        `<br>${safeValue(row.pincode)}`,
-        `<br>${safeValue(row.state)}`,
-        `<br>${safeValue(row.country)}`
-      ];
+  reportWindow.document.write(`
+    <html>
+      <head>
+        <title>Location</title>
 
-      const formattedAddress = addressParts.join(', ');
-
-      return {
-        "Location No": safeValue(row.location_no),
-        "Location Name": safeValue(row.location_name),
-        "Short Name": safeValue(row.short_name),
-        Address: formattedAddress,
-        "Email Id": safeValue(row.email_id),
-        "Status": safeValue(row.status),
-        "Contact No": safeValue(row.contact_no),
-      };
-    });
-    const reportWindow = window.open("", "_blank");
-    reportWindow.document.write("<html><head><title>Location</title>");
-    reportWindow.document.write("<style>");
-    reportWindow.document.write(`
-      body {
-          font-family: Arial, sans-serif;
-          margin: 20px;
-      }
-      h1 {
-          color: maroon;
-          text-align: center;
-          font-size: 24px;
-          margin-bottom: 30px;
-          text-decoration: underline;
-      }
-      table {
-          width: 100%;
-          border-collapse: collapse;
-          margin-bottom: 20px;
-      }
-      th, td {
-          padding: 10px;
-          text-align: left;
-          border: 1px solid #ddd;
-          vertical-align: top;
-      }
-      th {
-          background-color: maroon;
-          color: white;
-          font-weight: bold;
-      }
-      td {
-          background-color: #fdd9b5;
-      }
-      tr:nth-child(even) td {
-          background-color: #fff0e1;
-      }
-      .report-button {
-          display: block;
-          width: 150px;
-          margin: 20px auto;
-          padding: 10px;
-          background-color: maroon;
-          color: white;
-          border: none;
-          cursor: pointer;
-          font-size: 16px;
-          text-align: center;
-          border-radius: 5px;
-      }
-      .report-button:hover {
-          background-color: darkred;
-      }
-      @media print {
-          .report-button {
-              display: none;
+        <style>
+          * {
+            box-sizing: border-box;
           }
+
           body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 0;
+            background-color: white;
+            color: black;
+          }
+
+          h1 {
+            color: maroon;
+            text-align: center;
+            font-size: 24px;
+            margin-bottom: 30px;
+            text-decoration: underline;
+          }
+
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+          }
+
+          th,
+          td {
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #ddd;
+            vertical-align: top;
+          }
+
+          th {
+            background-color: maroon !important;
+            color: white !important;
+            font-weight: bold;
+
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+
+          td {
+            background-color: #fdd9b5 !important;
+
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+
+          tr:nth-child(even) td {
+            background-color: #fff0e1 !important;
+
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+
+          .report-button {
+            display: block;
+            width: 150px;
+            margin: 20px auto;
+            padding: 10px;
+            background-color: maroon;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            text-align: center;
+            border-radius: 5px;
+          }
+
+          .report-button:hover {
+            background-color: darkred;
+          }
+
+          @media print {
+
+            @page {
+              size: A4 landscape;
+              margin: 10mm;
+            }
+
+            body {
               margin: 0;
               padding: 0;
+              background-color: white;
+            }
+
+            h1 {
+              color: maroon !important;
+              text-align: center;
+              font-size: 24px;
+              margin-bottom: 25px;
+
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              page-break-inside: auto;
+            }
+
+            thead {
+              display: table-header-group;
+            }
+
+            tr {
+              page-break-inside: avoid;
+              page-break-after: auto;
+            }
+
+            th {
+              background-color: maroon !important;
+              color: white !important;
+
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+
+            td {
+              background-color: #fdd9b5 !important;
+
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+
+            tr:nth-child(even) td {
+              background-color: #fff0e1 !important;
+
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+
+            .report-button {
+              display: none !important;
+            }
           }
-      }
-    `);
-    reportWindow.document.write("</style></head><body>");
-    reportWindow.document.write("<h1><u>Location Information</u></h1>");
+        </style>
+      </head>
 
-    // Create table with headers
-    reportWindow.document.write("<table><thead><tr>");
-    Object.keys(reportData[0]).forEach((key) => {
-      reportWindow.document.write(`<th>${key}</th>`);
+      <body>
+
+        <h1>Location Information</h1>
+
+        <table>
+          <thead>
+            <tr>
+  `);
+
+  // Create table headers
+  Object.keys(reportData[0]).forEach((key) => {
+    reportWindow.document.write(`<th>${key}</th>`);
+  });
+
+  reportWindow.document.write(`
+            </tr>
+          </thead>
+
+          <tbody>
+  `);
+
+  // Populate the rows
+  reportData.forEach((row) => {
+    reportWindow.document.write("<tr>");
+
+    Object.values(row).forEach((value) => {
+      reportWindow.document.write(`
+        <td>${value || ""}</td>
+      `);
     });
-    reportWindow.document.write("</tr></thead><tbody>");
 
-    // Populate the rows
-    reportData.forEach((row) => {
-      reportWindow.document.write("<tr>");
-      Object.values(row).forEach((value) => {
-        reportWindow.document.write(`<td>${value}</td>`);
-      });
-      reportWindow.document.write("</tr>");
-    });
+    reportWindow.document.write("</tr>");
+  });
 
-    reportWindow.document.write("</tbody></table>");
+  reportWindow.document.write(`
+          </tbody>
+        </table>
 
-    reportWindow.document.write(
-      '<button class="report-button" title="Print" onclick="window.print()">Print</button>'
-    );
-    reportWindow.document.write("</body></html>");
-    reportWindow.document.close();
+        <button
+          class="report-button"
+          title="Print"
+          onclick="window.print()"
+        >
+          Print
+        </button>
+
+      </body>
+    </html>
+  `);
+
+  reportWindow.document.close();
+
+  reportWindow.onload = () => {
+    reportWindow.focus();
   };
+};
 
   const formatDate = (dateString) => {
     if (!dateString) return ""; // Return 'N/A' if the date is missing
