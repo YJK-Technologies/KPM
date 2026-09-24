@@ -17,7 +17,7 @@ import {
   ValidationModule
 } from 'ag-grid-community';
 import LoadingScreen from '../../BookLoader';
-import secureLocalStorage from "react-secure-storage"; 
+import secureLocalStorage from "react-secure-storage";
 
 // Register necessary modules
 ModuleRegistry.registerModules([
@@ -48,7 +48,7 @@ const PurchaseItemPopup = ({ open, handleClose, handleItem }) => {
 
   useEffect(() => {
     const company_code = sessionStorage.getItem('selectedCompanyCode');
-    
+
     fetch(`${config.apiBaseUrl}/ourbrand`, {
       method: 'POST',
       headers: {
@@ -63,7 +63,7 @@ const PurchaseItemPopup = ({ open, handleClose, handleItem }) => {
 
   useEffect(() => {
     const company_code = sessionStorage.getItem('selectedCompanyCode');
-    
+
     fetch(`${config.apiBaseUrl}/status`, {
       method: 'POST',
       headers: {
@@ -76,7 +76,7 @@ const PurchaseItemPopup = ({ open, handleClose, handleItem }) => {
       .catch((error) => console.error('Error fetching data:', error));
   }, []);
 
-const filteredOptionBrand = ourbranddrop.map((option) => ({
+  const filteredOptionBrand = ourbranddrop.map((option) => ({
     value: option.attributedetails_name,
     label: option.attributedetails_name,
   }));
@@ -286,6 +286,27 @@ const filteredOptionBrand = ourbranddrop.map((option) => ({
     setSelectedRows([]);
   }
 
+  const handleRowDoubleClick = (params) => {
+    const row = params.data;
+
+    if (!row) return;
+
+    const selectedData = [{
+      itemCode: row.Item_code,
+      itemName: row.Item_name,
+      unitWeight: row.Item_wigh,
+      purchaseAmt: row.Item_std_purch_price,
+      taxType: row.Item_purch_tax_type,
+      taxDetails: row.combined_tax_details,
+      taxPer: row.combined_tax_percent,
+    }];
+    handleItem(selectedData);
+    handleClose();
+    clearInputs([]);
+    setRowData([]);
+    setSelectedRows([]);
+  };
+
   return (
     <div className="container-fluid mt-0  m-5">
       {loading && <LoadingScreen />}
@@ -347,35 +368,35 @@ const filteredOptionBrand = ourbranddrop.map((option) => ({
                 <div className="col-md-3 mb-2">
                   <label className="fw-bold">Our Brand </label>
                   <div title="Please select the our brand">
-                  <Select
-                    type="text"
-                    id='OurBrand'
-                    classNamePrefix="react-select"
-                    maxLength={30}
-                    value={selectedBrand}
-                    onChange={handleChangeBrand}
-                    // onKeyDown={(e) => e.key === 'Enter' && handleSearchItem()}
-                    options={filteredOptionBrand}
-                    autoComplete="off"
-                  />
-                </div>
+                    <Select
+                      type="text"
+                      id='OurBrand'
+                      classNamePrefix="react-select"
+                      maxLength={30}
+                      value={selectedBrand}
+                      onChange={handleChangeBrand}
+                      // onKeyDown={(e) => e.key === 'Enter' && handleSearchItem()}
+                      options={filteredOptionBrand}
+                      autoComplete="off"
+                    />
+                  </div>
                 </div>
                 <div className="col-md-3 mb-2">
                   <label className="fw-bold">Status </label>
                   <div title="Please select the status">
-                  <Select
-                    type="text"
-                    className=""
-                    classNamePrefix="react-select"
-                    id='Status'
-                    maxLength={18}
-                    value={selectedStatus}
-                    onChange={handleChangeStatus}
-                    // onKeyDown={(e) => e.key === 'Enter' && handleSearchItem()}
-                    options={filteredOptionStatus}
-                    autoComplete="off"
-                  />
-                </div>
+                    <Select
+                      type="text"
+                      className=""
+                      classNamePrefix="react-select"
+                      id='Status'
+                      maxLength={18}
+                      value={selectedStatus}
+                      onChange={handleChangeStatus}
+                      // onKeyDown={(e) => e.key === 'Enter' && handleSearchItem()}
+                      options={filteredOptionStatus}
+                      autoComplete="off"
+                    />
+                  </div>
                 </div>
                 <div className="col-md-3 mb-2 mt-4 ">
                   <button className="btn btn-primary pt-1" title="Search" onClick={handleSearchItem}> <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
@@ -392,8 +413,8 @@ const filteredOptionBrand = ourbranddrop.map((option) => ({
                   <button className="btn btn-primary pt-1 ms-2" onClick={handleConfirm} title="Confirm">
                     {/* Check Icon */}
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" className="bi bi-check" viewBox="0 0 16 16">
-                     <path d="M13.854 3.646a.5.5 0 0 1 0 .708L6.707 11.5l-3.5-3.5a.5.5 0 0 1 .708-.708L6.707 10.293l6.439-6.439a.5.5 0 0 1 .708 0z" />
-                      </svg>
+                      <path d="M13.854 3.646a.5.5 0 0 1 0 .708L6.707 11.5l-3.5-3.5a.5.5 0 0 1 .708-.708L6.707 10.293l6.439-6.439a.5.5 0 0 1 .708 0z" />
+                    </svg>
                   </button>
                 </div>
               </div>
@@ -406,6 +427,7 @@ const filteredOptionBrand = ourbranddrop.map((option) => ({
                   pagination={true}
                   paginationPageSize={5}
                   onSelectionChanged={handleRowSelected}
+                  onRowDoubleClicked={handleRowDoubleClick}
                 />
               </div>
             </div>

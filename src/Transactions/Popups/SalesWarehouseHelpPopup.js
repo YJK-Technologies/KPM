@@ -16,7 +16,7 @@ import {
     ValidationModule
 } from 'ag-grid-community';
 import LoadingScreen from '../../BookLoader';
-import secureLocalStorage from "react-secure-storage"; 
+import secureLocalStorage from "react-secure-storage";
 
 // Register necessary modules
 ModuleRegistry.registerModules([
@@ -146,6 +146,21 @@ const SalesWarehouseHelpPopup = ({ open, handleClose, handleWarehouse }) => {
         setSelectedRows([]);
     }
 
+    const handleRowDoubleClick = (params) => {
+        const row = params.data;
+
+        if (!row) return;
+
+        const selectedData = [{
+            warehouse: row.warehouse_code
+        }];
+        handleWarehouse(selectedData);
+        handleClose();
+        clearInputs([]);
+        setRowData([]);
+        setSelectedRows([]);
+    };
+
     const handleReload = () => {
         clearInputs([])
         setRowData([])
@@ -202,15 +217,15 @@ const SalesWarehouseHelpPopup = ({ open, handleClose, handleWarehouse }) => {
                                     <div className="col-md-3 mb-2">
                                         <label className="fw-bold">Status</label>
                                         <div title="Please select the status">
-                                        <Select
-                                            id="status"
-                                            value={selectedStatus}
-                                            onChange={handleChangeStatus}
-                                            options={filteredOptionStatus}
-                                            placeholder=""
-                                            classNamePrefix="react-select"
-                                        />
-                                    </div>
+                                            <Select
+                                                id="status"
+                                                value={selectedStatus}
+                                                onChange={handleChangeStatus}
+                                                options={filteredOptionStatus}
+                                                placeholder=""
+                                                classNamePrefix="react-select"
+                                            />
+                                        </div>
                                     </div>
                                     <div className="col-md-3 mb-2">
                                         <label className="fw-bold">Location No</label>
@@ -254,6 +269,7 @@ const SalesWarehouseHelpPopup = ({ open, handleClose, handleWarehouse }) => {
                                         rowSelection="single"
                                         pagination='true'
                                         onSelectionChanged={handleRowSelected}
+                                        onRowDoubleClicked={handleRowDoubleClick}
                                     />
                                 </div>
                             </div>

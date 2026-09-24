@@ -16,7 +16,7 @@ import {
   ValidationModule
 } from 'ag-grid-community';
 import LoadingScreen from '../../BookLoader';
-import secureLocalStorage from "react-secure-storage"; 
+import secureLocalStorage from "react-secure-storage";
 
 // Register necessary modules
 ModuleRegistry.registerModules([
@@ -302,6 +302,31 @@ const VendorProductTable = ({ open, handleClose, handleVendor }) => {
     setSelectedRows([]);
   }
 
+  const handleRowDoubleClick = (params) => {
+    const row = params.data;
+
+    if (!row) return;
+
+    const selectedData = [{
+      VendorCode: row.vendor_code,
+      VendorName: row.vendor_name,
+      Address1: row.vendor_addr_1,
+      Address2: row.vendor_addr_2,
+      Address3: row.vendor_addr_3,
+      Address4: row.vendor_addr_4,
+      State: row.vendor_state_code,
+      Country: row.vendor_country_code,
+      MobileNo: row.vendor_mobile_no,
+      ContactPerson: row.contact_person,
+      GSTNo: row.vendor_gst_no
+    }];
+    handleVendor(selectedData);
+    handleClose();
+    clearInputs([]);
+    setRowData([]);
+    setSelectedRows([]);
+  };
+
   return (
     <div>
       {loading && <LoadingScreen />}
@@ -343,16 +368,16 @@ const VendorProductTable = ({ open, handleClose, handleVendor }) => {
                     <div className="col-md-3 mb-2">
                       <label className="fw-bold">Status</label>
                       <div title="Please select the status">
-                      <Select
-                        type="text"
-                        id="status"
-                        value={selectedStatus}
-                        onChange={handleChangeStatus}
-                        options={filteredOptionStatus}
-                        classNamePrefix="react-select"
-                        placeholder=""
-                      />
-                    </div>
+                        <Select
+                          type="text"
+                          id="status"
+                          value={selectedStatus}
+                          onChange={handleChangeStatus}
+                          options={filteredOptionStatus}
+                          classNamePrefix="react-select"
+                          placeholder=""
+                        />
+                      </div>
                     </div>
                     <div className="col-md-3 mb-2">
                       <label className="fw-bold">Country</label>
@@ -376,7 +401,7 @@ const VendorProductTable = ({ open, handleClose, handleVendor }) => {
                         </svg>
                       </button>
                       <button className='btn btn-primary pt-1 ms-2' onClick={handleConfirm} title="Confirm">
-                       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" className="bi bi-check" viewBox="0 0 16 16">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" className="bi bi-check" viewBox="0 0 16 16">
                           <path d="M13.854 3.646a.5.5 0 0 1 0 .708L6.707 11.5l-3.5-3.5a.5.5 0 0 1 .708-.708L6.707 10.293l6.439-6.439a.5.5 0 0 1 .708 0z" />
                         </svg>
                       </button>
@@ -390,6 +415,7 @@ const VendorProductTable = ({ open, handleClose, handleVendor }) => {
                       rowSelection="multiple"
                       pagination
                       onSelectionChanged={handleRowSelected}
+                      onRowDoubleClicked={handleRowDoubleClick}
                       paginationPageSize={5}
                     />
                   </div>

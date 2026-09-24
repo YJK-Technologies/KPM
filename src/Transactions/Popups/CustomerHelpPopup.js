@@ -15,7 +15,7 @@ import {
 } from 'ag-grid-community';
 import Select from 'react-select';
 import LoadingScreen from '../../BookLoader';
-import secureLocalStorage from "react-secure-storage"; 
+import secureLocalStorage from "react-secure-storage";
 
 // Register necessary modules
 ModuleRegistry.registerModules([
@@ -139,6 +139,31 @@ const CustomerHelpPopup = ({ open, handleClose, handleVendor }) => {
     setRowData([]);
     setSelectedRows([]);
   }
+
+  const handleRowDoubleClick = (params) => {
+    const row = params.data;
+
+    if (!row) return;
+
+    const selectedData = [{
+      CustomerCode: row.customer_code,
+      CustomerName: row.customer_name,
+      Address1: row.customer_addr_1,
+      Address2: row.customer_addr_2,
+      Address3: row.customer_addr_3,
+      Address4: row.customer_addr_4,
+      State: row.customer_state,
+      Country: row.customer_country,
+      MobileNo: row.customer_mobile_no,
+      ContactPerson: row.contact_person,
+      GSTNo: row.customer_gst_no,
+    }];
+    handleVendor(selectedData);
+    handleClose();
+    clearInputs([]);
+    setRowData([]);
+    setSelectedRows([]);
+  };
 
   const columnDefs = [
     {
@@ -355,15 +380,15 @@ const CustomerHelpPopup = ({ open, handleClose, handleVendor }) => {
                   <div className="col-md-3 mb-2">
                     <label className="fw-bold">Status </label>
                     <div title="Please select the status">
-                    <Select
-                    type="text"
-                    value={selectedStatus}
-                    onChange={handleChangeStatus}
-                    options={filteredOptionStatus}
-                    classNamePrefix="react-select" 
-                    placeholder=""
-                  />
-                  </div>
+                      <Select
+                        type="text"
+                        value={selectedStatus}
+                        onChange={handleChangeStatus}
+                        options={filteredOptionStatus}
+                        classNamePrefix="react-select"
+                        placeholder=""
+                      />
+                    </div>
                   </div>
                   <div className="col-md-3 mb-2">
                     <label className="fw-bold">State</label>
@@ -379,9 +404,9 @@ const CustomerHelpPopup = ({ open, handleClose, handleVendor }) => {
                   </div>
                   <div className="col-md-3 mb-2 mt-4">
                     <button className="btn btn-primary pt-1" onClick={handleSearchItem} title="Search">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
-                    <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0"/>
-                    </svg>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
+                        <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0" />
+                      </svg>
                     </button>
                     <button className="btn btn-primary pt-1 ms-2" onClick={handleReload} title="Reload">
                       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" className="bi bi-arrow-clockwise" viewBox="0 0 16 16">
@@ -404,6 +429,7 @@ const CustomerHelpPopup = ({ open, handleClose, handleVendor }) => {
                     rowSelection="multiple"
                     pagination
                     onSelectionChanged={handleRowSelected}
+                    onRowDoubleClicked={handleRowDoubleClick}
                   />
                 </div>
               </div>

@@ -15,7 +15,7 @@ import 'react-toastify/dist/ReactToastify.css'; import {
   ValidationModule
 } from 'ag-grid-community';
 import LoadingScreen from '../../BookLoader';
-import secureLocalStorage from "react-secure-storage"; 
+import secureLocalStorage from "react-secure-storage";
 
 // Register necessary modules
 ModuleRegistry.registerModules([
@@ -151,6 +151,22 @@ const VendorProductTable = ({ open, handleClose, handleOI }) => {
     setSelectedRows([]);
   }
 
+  const handleRowDoubleClick = (params) => {
+    const row = params.data;
+
+    if (!row) return;
+
+    const selectedData = [{
+      transactionNo: row.transaction_no,
+      transactionDate: row.transaction_date
+    }];
+    handleOI(selectedData)
+    handleClose();
+    clearInputs([]);
+    setRowData([]);
+    setSelectedRows([]);
+  };
+
   return (
     <div>
       {loading && <LoadingScreen />}
@@ -214,7 +230,7 @@ const VendorProductTable = ({ open, handleClose, handleOI }) => {
                       />
                     </div>
                     <div className="col-md-3 mb-2 mt-4 ">
-                      <button className="btn btn-primary pt-1"title="Search" onClick={handleSearchItem}> <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
+                      <button className="btn btn-primary pt-1" title="Search" onClick={handleSearchItem}> <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
                         <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0" />
                       </svg></button>
                       <button className="btn btn-primary pt-1 ms-2" onClick={handleReload} title="Reload">
@@ -239,6 +255,7 @@ const VendorProductTable = ({ open, handleClose, handleOI }) => {
                       rowSelection="multiple"
                       paginationPageSize={5}
                       onSelectionChanged={handleRowSelected}
+                      onRowDoubleClicked={handleRowDoubleClick}
                     />
                   </div>
                 </div>
