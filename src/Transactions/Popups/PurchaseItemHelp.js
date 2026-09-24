@@ -16,7 +16,7 @@ import {
   ValidationModule
 } from 'ag-grid-community';
 import LoadingScreen from '../../BookLoader';
-import secureLocalStorage from "react-secure-storage"; 
+import secureLocalStorage from "react-secure-storage";
 
 // Register necessary modules
 ModuleRegistry.registerModules([
@@ -301,6 +301,27 @@ const PurchaseItemPopup = ({ open, handleClose, handleItem }) => {
     setSelectedRows([]);
   }
 
+  const handleRowDoubleClick = (params) => {
+    const row = params.data;
+
+    if (!row) return;
+
+    const selectedData = [{
+      itemCode: row.Item_code,
+      itemName: row.Item_name,
+      unitWeight: row.Item_wigh,
+      purchaseAmt: row.Item_std_purch_price,
+      taxType: row.Item_purch_tax_type,
+      taxDetails: row.combined_tax_details,
+      taxPer: row.combined_tax_percent,
+    }];
+    handleItem(selectedData);
+    handleClose();
+    clearInputs([]);
+    setRowData([]);
+    setSelectedRows([]);
+  };
+
   return (
     <div>
       {loading && <LoadingScreen />}
@@ -366,35 +387,35 @@ const PurchaseItemPopup = ({ open, handleClose, handleItem }) => {
                     <div className="col-md-3 mb-2">
                       <label className="fw-bold">Our Brand</label>
                       <div title="Please select the our brand">
-                      <Select
-                        type="text"
-                        id='OurBrand'
-                        classNamePrefix="react-select"
-                        maxLength={30}
-                        value={selectedBrand}
-                        onChange={handleChangeBrand}
-                        // onKeyDown={(e) => e.key === 'Enter' && handleSearchItem()}
-                        options={filteredOptionBrand}
-                        autoComplete="off"
-                      />
-                    </div>
+                        <Select
+                          type="text"
+                          id='OurBrand'
+                          classNamePrefix="react-select"
+                          maxLength={30}
+                          value={selectedBrand}
+                          onChange={handleChangeBrand}
+                          // onKeyDown={(e) => e.key === 'Enter' && handleSearchItem()}
+                          options={filteredOptionBrand}
+                          autoComplete="off"
+                        />
+                      </div>
                     </div>
                     <div className="col-md-3 mb-2">
                       <label className="fw-bold">Status</label>
                       <div title="Please select the status">
-                      <Select
-                        type="text"
-                        className=""
-                        classNamePrefix="react-select"
-                        id='Status'
-                        maxLength={18}
-                        value={selectedStatus}
-                        onChange={handleChangeStatus}
-                        // onKeyDown={(e) => e.key === 'Enter' && handleSearchItem()}
-                        options={filteredOptionStatus}
-                        autoComplete="off"
-                      />
-                    </div>
+                        <Select
+                          type="text"
+                          className=""
+                          classNamePrefix="react-select"
+                          id='Status'
+                          maxLength={18}
+                          value={selectedStatus}
+                          onChange={handleChangeStatus}
+                          // onKeyDown={(e) => e.key === 'Enter' && handleSearchItem()}
+                          options={filteredOptionStatus}
+                          autoComplete="off"
+                        />
+                      </div>
                     </div>
                     <div className="col-md-3 mb-2 mt-4 ">
                       <button onClick={handleSearchItem} title="Search" className="btn btn-primary pt-1"> <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
@@ -423,6 +444,7 @@ const PurchaseItemPopup = ({ open, handleClose, handleItem }) => {
                       rowSelection="multiple"
                       pagination
                       onSelectionChanged={handleRowSelected}
+                      onRowDoubleClicked={handleRowDoubleClick}
                       paginationPageSize={5}
                     />
                   </div>

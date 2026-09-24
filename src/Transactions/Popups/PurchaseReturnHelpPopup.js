@@ -18,7 +18,7 @@ import {
   ValidationModule
 } from 'ag-grid-community';
 import LoadingScreen from '../../BookLoader';
-import secureLocalStorage from "react-secure-storage"; 
+import secureLocalStorage from "react-secure-storage";
 
 // Register necessary modules
 ModuleRegistry.registerModules([
@@ -127,37 +127,37 @@ export default function RetunrHelpPopup({ open, handleClose, ReturnHelp }) {
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState('');
 
-      useEffect(() => {
-        const companyCode = sessionStorage.getItem('selectedCompanyCode');
-    
-        fetch(`${config.apiBaseUrl}/paytype`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            company_code: companyCode,
-          }),
-        })
-          .then((response) => response.json())
-          .then((data) => setPaydrop(data))
-          .catch((error) => console.error("Error fetching payment types:", error));
-    
-          fetch(`${config.apiBaseUrl}/purchasetype`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              company_code: companyCode,
-            }),
-          })
-    
-          .then((response) => response.json())
-          .then((data) => setPurchasedrop(data))
-          .catch((error) => console.error("Error fetching purchase types:", error));
-    
-      }, []);
+  useEffect(() => {
+    const companyCode = sessionStorage.getItem('selectedCompanyCode');
+
+    fetch(`${config.apiBaseUrl}/paytype`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        company_code: companyCode,
+      }),
+    })
+      .then((response) => response.json())
+      .then((data) => setPaydrop(data))
+      .catch((error) => console.error("Error fetching payment types:", error));
+
+    fetch(`${config.apiBaseUrl}/purchasetype`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        company_code: companyCode,
+      }),
+    })
+
+      .then((response) => response.json())
+      .then((data) => setPurchasedrop(data))
+      .catch((error) => console.error("Error fetching purchase types:", error));
+
+  }, []);
 
   const handleChangePay = (selectedPay) => {
     setselectedPay(selectedPay);
@@ -250,6 +250,30 @@ export default function RetunrHelpPopup({ open, handleClose, ReturnHelp }) {
     setSelectedRows([]);
   }
 
+  const handleRowDoubleClick = (params) => {
+    const row = params.data;
+
+    if (!row) return;
+
+    const selectedData = [{
+      TransactionNo: row.transaction_no,
+      TransactionDate: row.transaction_date,
+      PurchaseType: row.purchase_type,
+      PayType: row.pay_type,
+      TotalTax: row.tax_amount,
+      TotalAmount: row.total_amount,
+      VendorName: row.vendor_name,
+      Amount: row.purchase_amount,
+      Vendorcode: row.vendor_code,
+      Entrydate: row.Entry_date
+    }];
+    ReturnHelp(selectedData);
+    handleClose();
+    clearInputs([]);
+    setRowData([]);
+    setSelectedRows([]);
+  };
+
   return (
     <div>
       {loading && <LoadingScreen />}
@@ -315,30 +339,30 @@ export default function RetunrHelpPopup({ open, handleClose, ReturnHelp }) {
                     <div className="col-md-3 mb-2">
                       <label className="fw-bold">Purchase Type </label>
                       <div title="Please select the purchase type">
-                      <Select
-                        id="purchaseType"
-                        value={selected}
-                        onChange={handleChangePurchase}
-                        options={filteredOptionPurchase}
-                        classNamePrefix="react-select"
-                        placeholder=""
-                      />
-                    </div>
+                        <Select
+                          id="purchaseType"
+                          value={selected}
+                          onChange={handleChangePurchase}
+                          options={filteredOptionPurchase}
+                          classNamePrefix="react-select"
+                          placeholder=""
+                        />
+                      </div>
                     </div>
                     <div className="col-md-3 mb-2">
                       <label className="fw-bold">Pay type </label>
                       <div title="Please select the pay type">
-                      <Select
-                        id="paytype"
-                        value={selectedPay}
-                        onChange={handleChangePay}
-                        options={filteredOptionPay}
-                        classNamePrefix="react-select"
-                        placeholder=""
-                        required
-                        data-tip="Please select a payment type"
-                      />
-                    </div>
+                        <Select
+                          id="paytype"
+                          value={selectedPay}
+                          onChange={handleChangePay}
+                          options={filteredOptionPay}
+                          classNamePrefix="react-select"
+                          placeholder=""
+                          required
+                          data-tip="Please select a payment type"
+                        />
+                      </div>
                     </div>
                     <div className="col-md-3 mb-2 mt-4 ">
                       <button onClick={handleSearch} title="Search" className="btn btn-primary pt-1"> <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
@@ -367,6 +391,7 @@ export default function RetunrHelpPopup({ open, handleClose, ReturnHelp }) {
                       rowSelection="single"
                       pagination='true'
                       onSelectionChanged={handleRowSelected}
+                      onRowDoubleClicked={handleRowDoubleClick}
                       paginationPageSize={5}
                     />
                   </div>
