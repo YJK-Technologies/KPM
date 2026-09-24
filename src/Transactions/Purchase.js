@@ -2024,7 +2024,7 @@ const VendorProductTable = () => {
   };
 
   const handleVendor = async (data) => {
-    setLoading(true);
+
     if (data && data.length > 0) {
       const [{ VendorCode, VendorName }] = data;
       const upperVendorCode = upperCase(VendorCode);
@@ -2033,7 +2033,7 @@ const VendorProductTable = () => {
       setVendorName(upperVendorName);
     } else {
       console.error('Data is empty or undefined');
-      setLoading(false);
+
     }
   };
 

@@ -170,7 +170,29 @@ const PurchaseDeletePopup = ({ open, handleClose, handlePurchaseDeleteData, apiP
     setRowData([])
   }
 
+  const handleRowDoubleClick = (params) => {
+    const row = params.data;
 
+    if (!row) return;
+
+    const selectedData = [{
+      TransactionNo: row.transaction_no,
+      TransactionDate: row.transaction_date,
+      PurchaseType: row.purchase_type,
+      PayType: row.pay_type,
+      TotalTax: row.tax_amount,
+      TotalAmount: row.total_amount,
+      VendorName: row.vendor_name,
+      Amount: row.purchase_amount,
+      Vendorcode: row.vendor_code,
+      Entrydate: row.Entry_date,
+      RoundOff: row.rounded_off
+    }];
+    handlePurchaseDeleteData(selectedData);
+    handleClose();
+    clearInputs([])
+    setRowData([])
+  };
 
   const columnDefs = [
     {
@@ -409,6 +431,7 @@ const PurchaseDeletePopup = ({ open, handleClose, handlePurchaseDeleteData, apiP
                     rowSelection="single"
                     pagination
                     onSelectionChanged={handleRowSelected}
+                    onRowDoubleClicked={handleRowDoubleClick}
                   />
                 </div>
               </div>

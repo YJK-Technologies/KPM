@@ -17,7 +17,7 @@ import { toast } from 'react-toastify';
 import Select from 'react-select';
 import { format } from 'date-fns';
 import LoadingScreen from '../../BookLoader';
-import secureLocalStorage from "react-secure-storage"; 
+import secureLocalStorage from "react-secure-storage";
 
 // Register necessary modules
 ModuleRegistry.registerModules([
@@ -277,6 +277,34 @@ const SalesReturnPopup = ({ open, handleClose, handleDataView }) => {
         setRowData([])
     }
 
+    const handleRowDoubleClick = (params) => {
+        const row = params.data;
+
+        if (!row) return;
+
+        const selectedData = [{
+            BillNo: row.bill_no,
+            Retper: row.return_person,
+            RetReason: row.return_reason,
+            BillDate: row.bill_date,
+            SalesType: row.sales_type,
+            PayType: row.pay_type,
+            TotalTax: row.tax_amount,
+            TotalAmount: row.bill_amt,
+            CustomerName: row.customer_name,
+            SaleAmount: row.sale_amt,
+            CustomerCode: row.customer_code,
+            RoundOff: row.roff_amt,
+            TotalSales: row.sale_amt,
+            ReturnNo: row.return_no,
+            ReturnDate: row.return_date,
+        }];
+        handleDataView(selectedData);
+        handleClose();
+        clearInputs([])
+        setRowData([])
+    };
+
     return (
         <div className="container-fluid mt-0">
             {loading && <LoadingScreen />}
@@ -368,34 +396,34 @@ const SalesReturnPopup = ({ open, handleClose, handleDataView }) => {
                                     <div className="col-md-3 mb-2">
                                         <label className="fw-bold">Sales Type </label>
                                         <div title="Please select the sales type">
-                                        <Select
-                                            id="salesType"
-                                            value={selectedSales}
-                                            onChange={handleChangeSales}
-                                            options={filteredOptionSales}
-                                            classNamePrefix="react-select"
-                                            placeholder=""
-                                            title="Please select the sales type"
-                                            data-tip="Please select a payment type"
-                                            autoComplete="off"
-                                        />
-                                    </div>
+                                            <Select
+                                                id="salesType"
+                                                value={selectedSales}
+                                                onChange={handleChangeSales}
+                                                options={filteredOptionSales}
+                                                classNamePrefix="react-select"
+                                                placeholder=""
+                                                title="Please select the sales type"
+                                                data-tip="Please select a payment type"
+                                                autoComplete="off"
+                                            />
+                                        </div>
                                     </div>
                                     <div className="col-md-3 mb-2">
                                         <label className="fw-bold">Pay Type</label>
                                         <div title="Please select the pay type">
-                                        <Select
-                                            id="payType"
-                                            value={selectedPay}
-                                            onChange={handleChangePay}
-                                            options={filteredOptionPay}
-                                            classNamePrefix="react-select"
-                                            placeholder=""
-                                            title="Please select the pay type"
-                                            data-tip="Please select a payment type"
-                                            autoComplete="off"
-                                        />
-                                    </div>
+                                            <Select
+                                                id="payType"
+                                                value={selectedPay}
+                                                onChange={handleChangePay}
+                                                options={filteredOptionPay}
+                                                classNamePrefix="react-select"
+                                                placeholder=""
+                                                title="Please select the pay type"
+                                                data-tip="Please select a payment type"
+                                                autoComplete="off"
+                                            />
+                                        </div>
                                     </div>
                                     <div className="col-md-3 mb-2 mt-4">
                                         <button className="btn btn-primary pt-1" onClick={handleSearchItem} title="Search">
@@ -424,6 +452,7 @@ const SalesReturnPopup = ({ open, handleClose, handleDataView }) => {
                                         rowSelection="multiple"
                                         pagination
                                         onSelectionChanged={handleRowSelected}
+                                        onRowDoubleClicked={handleRowDoubleClick}
                                     />
                                 </div>
                             </div>

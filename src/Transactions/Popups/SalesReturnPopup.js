@@ -15,7 +15,7 @@ import {
 } from 'ag-grid-community';
 import { toast } from 'react-toastify';
 import LoadingScreen from '../../BookLoader';
-import secureLocalStorage from "react-secure-storage"; 
+import secureLocalStorage from "react-secure-storage";
 
 // Register necessary modules
 ModuleRegistry.registerModules([
@@ -291,6 +291,31 @@ const SalesPopup = ({ open, handleClose, handleData }) => {
     setSelectedRows([]);
   }
 
+  const handleRowDoubleClick = (params) => {
+    const row = params.data;
+
+    if (!row) return;
+
+    const selectedData = [{
+      BillNo: row.bill_no,
+      BillDate: row.bill_date,
+      SalesType: row.sales_type,
+      PayType: row.pay_type,
+      InventoryAutoNo: row.inventry_autono,
+      TotalTax: row.tax_amount,
+      TotalAmount: row.bill_amt,
+      CustomerName: row.customer_name,
+      SaleAmount: row.sale_amt,
+      CustomerCode: row.customer_code,
+      RoundOff: row.roff_amt
+    }];
+    handleData(selectedData);
+    handleClose();
+    clearInputs([]);
+    setRowData([]);
+    setSelectedRows([]);
+  };
+
   return (
     <div className="container-fluid mt-0">
       {loading && <LoadingScreen />}
@@ -367,50 +392,50 @@ const SalesPopup = ({ open, handleClose, handleData }) => {
                   <div className="col-md-3 mb-2">
                     <label className="fw-bold">Sales Type </label>
                     <div title="Please select the sales type">
-                    <Select
-                      id="salesType"
-                      value={selectedSales}
-                      onChange={handleChangeSales}
-                      options={filteredOptionSales}
-                      className=""
-                      placeholder=""
-                      title="Please select the sales type"
-                      data-tip="Please select a payment type"
-                      autoComplete="off"
-                    />
-                  </div>
+                      <Select
+                        id="salesType"
+                        value={selectedSales}
+                        onChange={handleChangeSales}
+                        options={filteredOptionSales}
+                        className=""
+                        placeholder=""
+                        title="Please select the sales type"
+                        data-tip="Please select a payment type"
+                        autoComplete="off"
+                      />
+                    </div>
                   </div>
                   <div className="col-md-3 mb-2">
                     <label className="fw-bold">Order Type </label>
                     <div title="Please select the order type">
-                    <Select
-                      id="ordertype"
-                      value={selectedOrder}
-                      onChange={handleChangeOrder}
-                      options={filteredOptionOrder}
-                      className=""
-                      placeholder=""
-                      title="Please select the order type"
-                      data-tip="Please select a payment type"
-                      autoComplete="off"
-                    />
-                  </div>
+                      <Select
+                        id="ordertype"
+                        value={selectedOrder}
+                        onChange={handleChangeOrder}
+                        options={filteredOptionOrder}
+                        className=""
+                        placeholder=""
+                        title="Please select the order type"
+                        data-tip="Please select a payment type"
+                        autoComplete="off"
+                      />
+                    </div>
                   </div>
                   <div className="col-md-3 mb-2">
                     <label className="fw-bold">Pay Type</label>
                     <div title="Please select the pay type">
-                    <Select
-                      id="payType"
-                      value={selectedPay}
-                      onChange={handleChangePay}
-                      options={filteredOptionPay}
-                      className=""
-                      placeholder=""
-                      title="Please select the pay type"
-                      data-tip="Please select a payment type"
-                      autoComplete="off"
-                    />
-                  </div>
+                      <Select
+                        id="payType"
+                        value={selectedPay}
+                        onChange={handleChangePay}
+                        options={filteredOptionPay}
+                        className=""
+                        placeholder=""
+                        title="Please select the pay type"
+                        data-tip="Please select a payment type"
+                        autoComplete="off"
+                      />
+                    </div>
                   </div>
                   <div className="col-md-3 mb-2 mt-4">
                     <button className="btn btn-primary pt-1" onClick={handleSearchItem} title="Search">
@@ -439,6 +464,7 @@ const SalesPopup = ({ open, handleClose, handleData }) => {
                     rowSelection="multiple"
                     pagination
                     onSelectionChanged={handleRowSelected}
+                    onRowDoubleClicked={handleRowDoubleClick}
                   />
                 </div>
               </div>

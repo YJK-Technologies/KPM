@@ -17,7 +17,7 @@ import {
   ValidationModule
 } from 'ag-grid-community';
 import LoadingScreen from '../../BookLoader';
-import secureLocalStorage from "react-secure-storage"; 
+import secureLocalStorage from "react-secure-storage";
 
 // Register necessary modules
 ModuleRegistry.registerModules([
@@ -249,6 +249,31 @@ const VendorProductTable = ({ open, handleClose, handlePurchaseData, apiPath }) 
     setSelectedRows([]);
   }
 
+  const handleRowDoubleClick = (params) => {
+    const row = params.data;
+
+    if (!row) return;
+
+    const selectedData = [{
+      TransactionNo: row.transaction_no,
+      TransactionDate: row.transaction_date,
+      PurchaseType: row.purchase_type,
+      PayType: row.pay_type,
+      TotalTax: row.tax_amount,
+      TotalAmount: row.total_amount,
+      VendorName: row.vendor_name,
+      Amount: row.purchase_amount,
+      Vendorcode: row.vendor_code,
+      Entrydate: row.Entry_date,
+      RoundOff: row.rounded_off
+    }];
+    handlePurchaseData(selectedData);
+    handleClose();
+    clearInputs([]);
+    setRowData([]);
+    setSelectedRows([]);
+  };
+
   return (
     <div>
       {loading && <LoadingScreen />}
@@ -312,36 +337,36 @@ const VendorProductTable = ({ open, handleClose, handlePurchaseData, apiPath }) 
                     <div className="col-md-3 mb-2">
                       <label className="fw-bold">Purchase Type </label>
                       <div title="Please select the purchase type">
-                      <Select
-                        id="paytype"
-                        value={selectedPay}
-                        onChange={handleChangePay}
-                        options={filteredOptionPay}
-                        classNamePrefix="react-select"
-                        placeholder=""
-                        required
-                        data-tip="Please select a payment type"
-                      />
-                    </div>
+                        <Select
+                          id="paytype"
+                          value={selectedPay}
+                          onChange={handleChangePay}
+                          options={filteredOptionPay}
+                          classNamePrefix="react-select"
+                          placeholder=""
+                          required
+                          data-tip="Please select a payment type"
+                        />
+                      </div>
                     </div>
                     <div className="col-md-3 mb-2">
                       <label className="fw-bold">Pay Type </label>
                       <div title="Please select the pay type">
-                      <Select
-                        id="purchaseType"
-                        value={selected}
-                        onChange={handleChangePurchase}
-                        options={filteredOptionPurchase}
-                        classNamePrefix="react-select"
-                        placeholder=""
-                      />
-                    </div>
+                        <Select
+                          id="purchaseType"
+                          value={selected}
+                          onChange={handleChangePurchase}
+                          options={filteredOptionPurchase}
+                          classNamePrefix="react-select"
+                          placeholder=""
+                        />
+                      </div>
                     </div>
                     <div className="col-md-3 mb-2 mt-4 ">
-                      <button onClick={handleSearch} title="Search" className="btn btn-primary pt-1"> 
+                      <button onClick={handleSearch} title="Search" className="btn btn-primary pt-1">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
-                        <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0" />
-                      </svg>
+                          <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0" />
+                        </svg>
                       </button>
                       <button className="btn btn-primary pt-1 ms-2" onClick={handleReload} title="Reload">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" className="bi bi-arrow-clockwise" viewBox="0 0 16 16">
@@ -350,7 +375,7 @@ const VendorProductTable = ({ open, handleClose, handlePurchaseData, apiPath }) 
                         </svg>
                       </button>
                       <button className='btn btn-primary pt-1 ms-2' onClick={handleConfirm} title="Confirm">
-                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" className="bi bi-check" viewBox="0 0 16 16">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" className="bi bi-check" viewBox="0 0 16 16">
                           <path d="M13.854 3.646a.5.5 0 0 1 0 .708L6.707 11.5l-3.5-3.5a.5.5 0 0 1 .708-.708L6.707 10.293l6.439-6.439a.5.5 0 0 1 .708 0z" />
                         </svg>
                       </button>
@@ -364,6 +389,7 @@ const VendorProductTable = ({ open, handleClose, handlePurchaseData, apiPath }) 
                       rowSelection="single"
                       pagination='true'
                       onSelectionChanged={handleRowSelected}
+                      onRowDoubleClicked={handleRowDoubleClick}
                       paginationPageSize={5}
                     />
                   </div>

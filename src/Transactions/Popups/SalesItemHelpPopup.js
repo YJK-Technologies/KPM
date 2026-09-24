@@ -16,7 +16,7 @@ import {
     ValidationModule
 } from 'ag-grid-community';
 import LoadingScreen from '../../BookLoader';
-import secureLocalStorage from "react-secure-storage"; 
+import secureLocalStorage from "react-secure-storage";
 
 // Register necessary modules
 ModuleRegistry.registerModules([
@@ -48,53 +48,53 @@ const SalesItemHelp = ({ open, handleClose, handleItem, type }) => {
 
     useEffect(() => {
         const company_code = sessionStorage.getItem('selectedCompanyCode');
-        
+
         fetch(`${config.apiBaseUrl}/ourbrand`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ company_code })
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ company_code })
         })
-          .then((data) => data.json())
-          .then((val) => setourbranddrop(val))
-          .catch((error) => console.error('Error fetching data:', error));
-      }, []);
-    
-      useEffect(() => {
+            .then((data) => data.json())
+            .then((val) => setourbranddrop(val))
+            .catch((error) => console.error('Error fetching data:', error));
+    }, []);
+
+    useEffect(() => {
         const company_code = sessionStorage.getItem('selectedCompanyCode');
-        
+
         fetch(`${config.apiBaseUrl}/status`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ company_code })
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ company_code })
         })
-          .then((data) => data.json())
-          .then((val) => setStatusdrop(val))
-          .catch((error) => console.error('Error fetching data:', error));
-      }, []);
+            .then((data) => data.json())
+            .then((val) => setStatusdrop(val))
+            .catch((error) => console.error('Error fetching data:', error));
+    }, []);
 
     const filteredOptionBrand = ourbranddrop.map((option) => ({
         value: option.attributedetails_name,
         label: option.attributedetails_name,
-      }));
-    
-      const filteredOptionStatus = statusdrop.map((option) => ({
+    }));
+
+    const filteredOptionStatus = statusdrop.map((option) => ({
         value: option.attributedetails_name,
         label: option.attributedetails_name,
-      }));
+    }));
 
-      const handleChangeBrand = (selectedBrand) => {
+    const handleChangeBrand = (selectedBrand) => {
         setSelectedBrand(selectedBrand);
         setItem_Our_Brand(selectedBrand ? selectedBrand.value : '');
-      };
+    };
 
-      const handleChangeStatus = (selectedStatus) => {
+    const handleChangeStatus = (selectedStatus) => {
         setSelectedStatus(selectedStatus);
         setstatus(selectedStatus ? selectedStatus.value : '');
-      };
+    };
 
     const columnDefs = [
         {
@@ -234,7 +234,7 @@ const SalesItemHelp = ({ open, handleClose, handleItem, type }) => {
             } else if (response.status === 404) {
                 toast.warning("Data Not Found");
                 setRowData([]);
-                clearInputs([]);            
+                clearInputs([]);
             } else {
                 const errorResponse = await response.json();
                 console.error(errorResponse.error);
@@ -287,6 +287,28 @@ const SalesItemHelp = ({ open, handleClose, handleItem, type }) => {
         setRowData([]);
         setSelectedRows([]);
     }
+
+    const handleRowDoubleClick = (params) => {
+        const row = params.data;
+
+        if (!row) return;
+
+        const selectedData = [{
+            itemCode: row.Item_code,
+            itemName: row.Item_name,
+            unitWeight: row.Item_wigh,
+            purchaseAmt: row.Item_std_sales_price,
+            taxType: row.Item_sales_tax_type,
+            taxDetails: row.combined_tax_details,
+            taxPer: row.combined_tax_percent,
+            discount: row.discount_Percentage
+        }];
+        handleItem(selectedData);
+        handleClose();
+        clearInputs([]);
+        setRowData([]);
+        setSelectedRows([]);
+    };
 
     return (
         <div className="container-fluid mt-0  m-5">
@@ -358,18 +380,18 @@ const SalesItemHelp = ({ open, handleClose, handleItem, type }) => {
                                     <div className="col-md-3 mb-2">
                                         <label className="fw-bold">Our Brand</label>
                                         <div title="Please select the our brand">
-                                        <Select
-                                            type="text"
-                                            id='OurBrand'
-                                            classNamePrefix="react-select"
-                                            maxLength={30}
-                                            value={selectedBrand}
-                                            onChange={handleChangeBrand}
-                                            // onKeyDown={(e) => e.key === 'Enter' && handleSearchItem()}
-                                            options={filteredOptionBrand}
-                                            autoComplete="off"
-                                        />
-                                    </div>
+                                            <Select
+                                                type="text"
+                                                id='OurBrand'
+                                                classNamePrefix="react-select"
+                                                maxLength={30}
+                                                value={selectedBrand}
+                                                onChange={handleChangeBrand}
+                                                // onKeyDown={(e) => e.key === 'Enter' && handleSearchItem()}
+                                                options={filteredOptionBrand}
+                                                autoComplete="off"
+                                            />
+                                        </div>
                                     </div>
                                     {/* <div className="col-md-3 mb-2">
                                         <label className="fw-bold">Status</label>
@@ -417,6 +439,7 @@ const SalesItemHelp = ({ open, handleClose, handleItem, type }) => {
                                         rowSelection="multiple"
                                         pagination
                                         onSelectionChanged={handleRowSelected}
+                                        onRowDoubleClicked={handleRowDoubleClick}
                                     />
                                 </div>
                             </div>
