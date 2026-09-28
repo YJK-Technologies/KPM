@@ -115,15 +115,45 @@ const VendorProductTable = () => {
 
   const returnAmountAbortController = useRef(null);
   const [printButtonVisible, setPrintButtonVisible] = useState(false);
+
   const permissions = JSON.parse(sessionStorage.getItem('permissions')) || {};
   const sales = permissions
     .filter(permission => permission.screen_type === 'Sales')
     .map(permission => permission.permission_type.toLowerCase());
 
+  const redirectLoadedRef = useRef(false);
+
+  useEffect(() => {
+    const redirectTransactionNo = location.state?.transactionNo;
+    const redirectType = location.state?.Type;
+
+    if (redirectType) {
+      setScreen(redirectType);
+
+      setSelectedscreen({
+        value: redirectType,
+        label: redirectType
+      });
+    }
+
+    if (!redirectTransactionNo || redirectLoadedRef.current) {
+      return;
+    }
+
+    redirectLoadedRef.current = true;
+
+    setBillNo(redirectTransactionNo);
+    handleRefNo(
+      redirectTransactionNo,
+      redirectType
+    );
+
+  }, [location.state]);
+
   useEffect(() => {
     const today = new Date();
     const currentYear = today.getFullYear();
-    const currentMonth = today.getMonth() + 1; // 0-indexed
+    const currentMonth = today.getMonth() + 1;
 
     let startYear, endYear;
 
@@ -216,14 +246,31 @@ const VendorProductTable = () => {
       .then((response) => response.json())
       .then((data) => {
         setScreenDrop(data);
-        const defaultScreen = data.find((item) => item.attributedetails_name === "Sales") || data[0];
-        if (defaultScreen) {
-          setSelectedscreen({
-            value: defaultScreen.attributedetails_name,
-            label: defaultScreen.attributedetails_name,
-          });
-          setScreen(defaultScreen.attributedetails_name);
+        const redirectType = location.state?.Type;
+
+        let typeToSelect;
+        if (redirectType) {
+          typeToSelect = data.find((item) => item.attributedetails_name === redirectType);
         }
+
+        if (!typeToSelect) { 
+          typeToSelect = data.find((item) => item.attributedetails_name === "Sales") || data[0]; 
+        }
+
+        if (typeToSelect) { 
+          const TypeValue = typeToSelect.attributedetails_name; 
+          setSelectedscreen({ value: TypeValue, label: TypeValue, }); 
+          setScreen(TypeValue); 
+        }
+
+        // const defaultScreen = data.find((item) => item.attributedetails_name === "Sales") || data[0];
+        // if (defaultScreen) {
+        //   setSelectedscreen({
+        //     value: defaultScreen.attributedetails_name,
+        //     label: defaultScreen.attributedetails_name,
+        //   });
+        //   setScreen(defaultScreen.attributedetails_name);
+        // }
       })
       .catch((error) => console.error("Error fetching purchase types:", error));
   }, []);
@@ -244,11 +291,11 @@ const VendorProductTable = () => {
   };
 
   // For default warehouse
-    useEffect(() => {
+  useEffect(() => {
     if (!selectedWarehouse) {
       return;
     }
-  
+
     setRowData(prevRowData =>
       prevRowData.map(row => {
         // Only set default warehouse if the row has no warehouse
@@ -256,10 +303,10 @@ const VendorProductTable = () => {
           return {
             ...row,
             warehouse: selectedWarehouse.value,
-           
+
           };
         }
-  
+
         // Keep existing warehouse value
         return row;
       })
@@ -285,80 +332,80 @@ const VendorProductTable = () => {
     }
   }, []);
 
-    useEffect(() => {
-      const handleKeyDown = (e) => {
-        // 1. Ensure keys only trigger on F-keys
-        if (!['F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F8'].includes(e.key)) {
-          return;
-        }
-  
-        // 2. Prevent default browser shortcut actions (e.g., F1 Help, F5 Refresh)
-        e.preventDefault();
-        e.stopPropagation();
-  
-        // 3. Prevent execution if screen is currently loading
-        if (loading) return;
-  
-        switch (e.key) {
-          case 'F1':
-            // Open Item Search Popup
-            setOpen(true); 
-            break;
-  
-          case 'F2':
-            // Open Customer Search Popup
-            setOpen2(true); 
-            break;
-  
-          case 'F3':
-            // New / Reset Sales Invoice Form
-            if (window.confirm("Start a new sales invoice? Unsaved changes will be lost.")) {
-              handleReload(); 
-            }
-            break;  
-  
-          case 'F4':
-            // Save / Complete Invoice (Same logic as Save Button)
-            handleSaveButtonClick(); 
-            break;
-  
-          case 'F5':
-            // Search Existing Invoices to Edit
-            setOpen3(true); 
-            break;
-  
-          case 'F6':
-            // Delete selected line item in AG Grid
-            if ( billNo) {
-              handleDeleteButtonClick();
-            } else {
-              alert("Please save the invoice before deleting.");
-            }
-            break;
-  
-          case 'F8':
-            // Print Invoice
-            if (printButtonVisible && billNo) {
-              generateReport();
-            } else {
-              alert("Please save the invoice before printing.");
-            }
-            break;
-  
-          default:
-            break;
-        }
-      };
-  
-      // Attach listener
-      window.addEventListener('keydown', handleKeyDown);
-  
-      // Clean up listener on unmount
-      return () => {
-        window.removeEventListener('keydown', handleKeyDown);
-      };
-    }, [loading, printButtonVisible, billNo, rowData]);
-  
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // 1. Ensure keys only trigger on F-keys
+      if (!['F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F8'].includes(e.key)) {
+        return;
+      }
+
+      // 2. Prevent default browser shortcut actions (e.g., F1 Help, F5 Refresh)
+      e.preventDefault();
+      e.stopPropagation();
+
+      // 3. Prevent execution if screen is currently loading
+      if (loading) return;
+
+      switch (e.key) {
+        case 'F1':
+          // Open Item Search Popup
+          setOpen(true);
+          break;
+
+        case 'F2':
+          // Open Customer Search Popup
+          setOpen2(true);
+          break;
+
+        case 'F3':
+          // New / Reset Sales Invoice Form
+          if (window.confirm("Start a new sales invoice? Unsaved changes will be lost.")) {
+            handleReload();
+          }
+          break;
+
+        case 'F4':
+          // Save / Complete Invoice (Same logic as Save Button)
+          handleSaveButtonClick();
+          break;
+
+        case 'F5':
+          // Search Existing Invoices to Edit
+          setOpen3(true);
+          break;
+
+        case 'F6':
+          // Delete selected line item in AG Grid
+          if (billNo) {
+            handleDeleteButtonClick();
+          } else {
+            alert("Please save the invoice before deleting.");
+          }
+          break;
+
+        case 'F8':
+          // Print Invoice
+          if (printButtonVisible && billNo) {
+            generateReport();
+          } else {
+            alert("Please save the invoice before printing.");
+          }
+          break;
+
+        default:
+          break;
+      }
+    };
+
+    // Attach listener
+    window.addEventListener('keydown', handleKeyDown);
+
+    // Clean up listener on unmount
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [loading, printButtonVisible, billNo, rowData]);
+
 
 
   // Save to sessionStorage and update state when user changes selection
@@ -1461,11 +1508,11 @@ const VendorProductTable = () => {
         dely_chlno: delvychellanno,
         sales_mode: salesMode,
         paid_amount: paidAmount === "" || paidAmount == null
-  ? 0
-  : parseFloat(paidAmount),
+          ? 0
+          : parseFloat(paidAmount),
         return_amount: returnAmount === "" || returnAmount == null
-  ? 0
-  : parseFloat(returnAmount),
+          ? 0
+          : parseFloat(returnAmount),
         sales_order_no: billNo,
         created_by: sessionStorage.getItem('selectedUserCode')
       };
@@ -2077,20 +2124,20 @@ const VendorProductTable = () => {
   // };
 
   const generateReport = async () => {
-  let printWindow = null;
+    let printWindow = null;
 
-  try {
-    // Open window immediately on button click
-    if (printOption === "Print") {
-      printWindow = window.open( "", "_blank", "width=800,height=600");
+    try {
+      // Open window immediately on button click
+      if (printOption === "Print") {
+        printWindow = window.open("", "_blank", "width=800,height=600");
 
-      if (!printWindow) {
-        toast.error("Popup blocked. Please allow popups for this site.");
-        return;
-      }
+        if (!printWindow) {
+          toast.error("Popup blocked. Please allow popups for this site.");
+          return;
+        }
 
-      // Optional loading message
-      printWindow.document.write(`
+        // Optional loading message
+        printWindow.document.write(`
         <html>
           <head>
             <title>Preparing Print...</title>
@@ -2102,89 +2149,89 @@ const VendorProductTable = () => {
           </body>
         </html>
       `);
-      printWindow.document.close();
-    }
-
-    // Fetch required data
-    const headerData = await PrintHeaderData();
-    const detailData = await PrintDetailData();
-    const taxData = await PrintSumTax();
-
-    // Validate API response
-    if (!headerData || !detailData || !taxData) {
-      console.log("Failed to fetch some data");
-
-      toast.error("Reference Number Does Not Exist");
-
-      if (printWindow && !printWindow.closed) {
-        printWindow.close();
+        printWindow.document.close();
       }
 
-      return;
-    }
+      // Fetch required data
+      const headerData = await PrintHeaderData();
+      const detailData = await PrintDetailData();
+      const taxData = await PrintSumTax();
 
-    // Store data in sessionStorage
-    sessionStorage.setItem( "SheaderData", JSON.stringify(headerData) ) 
-    sessionStorage.setItem( "SdetailData", JSON.stringify(detailData) );
-    sessionStorage.setItem( "StaxData", JSON.stringify(taxData) );
+      // Validate API response
+      if (!headerData || !detailData || !taxData) {
+        console.log("Failed to fetch some data");
 
-    // Validate template name
-    if (!templateName) {
-      toast.error("Template name not set.");
+        toast.error("Reference Number Does Not Exist");
 
-      if (printWindow && !printWindow.closed) {
-        printWindow.close();
+        if (printWindow && !printWindow.closed) {
+          printWindow.close();
+        }
+
+        return;
       }
 
-      return;
-    }
+      // Store data in sessionStorage
+      sessionStorage.setItem("SheaderData", JSON.stringify(headerData))
+      sessionStorage.setItem("SdetailData", JSON.stringify(detailData));
+      sessionStorage.setItem("StaxData", JSON.stringify(taxData));
 
-    // =========================
-    // PRINT PREVIEW
-    // =========================
-    if (printOption === "Print Preview") {
-      const previewWindow = window.open(
-        `/${templateName}`,
-        "_blank"
+      // Validate template name
+      if (!templateName) {
+        toast.error("Template name not set.");
+
+        if (printWindow && !printWindow.closed) {
+          printWindow.close();
+        }
+
+        return;
+      }
+
+      // =========================
+      // PRINT PREVIEW
+      // =========================
+      if (printOption === "Print Preview") {
+        const previewWindow = window.open(
+          `/${templateName}`,
+          "_blank"
+        );
+
+        if (!previewWindow) {
+          toast.error(
+            "Popup blocked. Please allow popups for this site."
+          );
+        }
+
+        return;
+      }
+
+      // =========================
+      // PRINT
+      // =========================
+      if (printOption === "Print") {
+        printWindow.location.href = `/${templateName}?print=true`;
+
+        printWindow.onload = () => {
+          printWindow.focus();
+
+          setTimeout(() => {
+            printWindow.print();
+          }, 300);
+        };
+
+        return;
+      }
+
+    } catch (error) {
+      console.error("Error executing API calls:", error);
+
+      toast.error(
+        "Error inserting data: " + error.message
       );
 
-      if (!previewWindow) {
-        toast.error(
-          "Popup blocked. Please allow popups for this site."
-        );
+      if (printWindow && !printWindow.closed) {
+        printWindow.close();
       }
-
-      return;
     }
-
-    // =========================
-    // PRINT
-    // =========================
-    if (printOption === "Print") {
-      printWindow.location.href = `/${templateName}?print=true`;
-
-      printWindow.onload = () => {
-        printWindow.focus();
-
-        setTimeout(() => {
-          printWindow.print();
-        }, 300);
-      };
-
-      return;
-    }
-
-  } catch (error) {
-    console.error("Error executing API calls:", error);
-
-    toast.error(
-      "Error inserting data: " + error.message
-    );
-
-    if (printWindow && !printWindow.closed) {
-      printWindow.close();
-    }
-  }
   };
 
   const handleDeleteHeader = async () => {
@@ -2349,12 +2396,15 @@ const VendorProductTable = () => {
     return parseFloat(number).toFixed(2);
   };
 
-  const handleRefNo = async (code) => {
+  const handleRefNo = async (code, screenOverride = "") => {
     setLoading(true);
     try {
-      const apiPath = isChecked || SelectedScreen?.value === "Sales Order"
-        ? "/getSalesOrder"
-        : "/getSalesData";
+      const currentScreen = screenOverride || Screen;
+
+        const apiPath =
+            isChecked || currentScreen === "Sales Order"
+                ? "/getSalesOrder"
+                : "/getSalesData";
 
       const response = await fetch(`${config.apiBaseUrl}${apiPath}`, {
         method: "POST",
@@ -3416,108 +3466,108 @@ const VendorProductTable = () => {
   //   }
   // };
 
-//   useEffect(() => {
-//   if (updated) {
-//     return;
-//   }
+  //   useEffect(() => {
+  //   if (updated) {
+  //     return;
+  //   }
 
-//   // If Paid Amount is cleared, clear Return Amount
-//   if (!paidAmount || paidAmount.trim() === "") {
-//     setReturnAmount("");
-//     return;
-//   }
+  //   // If Paid Amount is cleared, clear Return Amount
+  //   if (!paidAmount || paidAmount.trim() === "") {
+  //     setReturnAmount("");
+  //     return;
+  //   }
 
-//   ReturnAmountCalculation();
-// }, [TotalBill, paidAmount, updated]);
+  //   ReturnAmountCalculation();
+  // }, [TotalBill, paidAmount, updated]);
 
-const ReturnAmountCalculation = async () => {
+  const ReturnAmountCalculation = async () => {
 
-  // Cancel the previous API request
-  if (returnAmountAbortController.current) {
-    returnAmountAbortController.current.abort();
-  }
-
-  // If Paid Amount is empty, clear Return Amount
-  if (!paidAmount || paidAmount.trim() === "") {
-    setReturnAmount("");
-    return;
-  }
-
-  // Create new AbortController for this request
-  const controller = new AbortController();
-  returnAmountAbortController.current = controller;
-
-  try {
-    const response = await fetch(
-      `${config.apiBaseUrl}/getSalesReturnAmountCalculation`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          sale_amt: TotalBill,
-          paid_amt: parseFloat(paidAmount),
-        }),
-        signal: controller.signal,
-      }
-    );
-
-    if (response.ok) {
-      const data = await response.json();
-
-      // Make sure this request wasn't cancelled
-      if (controller.signal.aborted) {
-        return;
-      }
-
-      // Make sure Paid Amount is still available
-      if (!paidAmount || paidAmount.trim() === "") {
-        setReturnAmount("");
-        return;
-      }
-
-      const [{ ReturnAmount }] = data;
-
-      setReturnAmount(formatToTwoDecimalPoints(ReturnAmount));
-
-    } else {
-      const errorMessage = await response.text();
-      console.error(`Server responded with error: ${errorMessage}`);
-    }
-
-  } catch (error) {
-
-    // Ignore AbortController cancellation errors
-    if (error.name === "AbortError") {
-      return;
-    }
-
-    console.error("Error fetching data:", error);
-  }
-};
-
-useEffect(() => {
-
-  if (updated) {
-    return;
-  }
-
-  // Paid Amount is completely cleared
-  if (!paidAmount || paidAmount.trim() === "") {
-
-    // Cancel any previous calculation request
+    // Cancel the previous API request
     if (returnAmountAbortController.current) {
       returnAmountAbortController.current.abort();
     }
 
-    setReturnAmount("");
-    return;
-  }
+    // If Paid Amount is empty, clear Return Amount
+    if (!paidAmount || paidAmount.trim() === "") {
+      setReturnAmount("");
+      return;
+    }
 
-  ReturnAmountCalculation();
+    // Create new AbortController for this request
+    const controller = new AbortController();
+    returnAmountAbortController.current = controller;
 
-}, [TotalBill, paidAmount, updated]);
+    try {
+      const response = await fetch(
+        `${config.apiBaseUrl}/getSalesReturnAmountCalculation`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            sale_amt: TotalBill,
+            paid_amt: parseFloat(paidAmount),
+          }),
+          signal: controller.signal,
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+
+        // Make sure this request wasn't cancelled
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        // Make sure Paid Amount is still available
+        if (!paidAmount || paidAmount.trim() === "") {
+          setReturnAmount("");
+          return;
+        }
+
+        const [{ ReturnAmount }] = data;
+
+        setReturnAmount(formatToTwoDecimalPoints(ReturnAmount));
+
+      } else {
+        const errorMessage = await response.text();
+        console.error(`Server responded with error: ${errorMessage}`);
+      }
+
+    } catch (error) {
+
+      // Ignore AbortController cancellation errors
+      if (error.name === "AbortError") {
+        return;
+      }
+
+      console.error("Error fetching data:", error);
+    }
+  };
+
+  useEffect(() => {
+
+    if (updated) {
+      return;
+    }
+
+    // Paid Amount is completely cleared
+    if (!paidAmount || paidAmount.trim() === "") {
+
+      // Cancel any previous calculation request
+      if (returnAmountAbortController.current) {
+        returnAmountAbortController.current.abort();
+      }
+
+      setReturnAmount("");
+      return;
+    }
+
+    ReturnAmountCalculation();
+
+  }, [TotalBill, paidAmount, updated]);
 
   const handleClickOpen = (params) => {
     const GlobalSerialNumber = params.data.serialNumber
