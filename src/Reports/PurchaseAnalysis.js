@@ -1,6 +1,6 @@
 import { AgGridReact } from 'ag-grid-react';
 import Select from 'react-select';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import CustomerHelp from '../Transactions/Popups/VendorHelpPopup';
 import * as XLSX from 'xlsx';
 import '../App.css';
@@ -9,11 +9,13 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import LoadingScreen from '../BookLoader';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ModuleRegistry, ClientSideRowModelModule, PaginationModule, TextFilterModule, NumberFilterModule,
-  DateFilterModule, CustomFilterModule, CellStyleModule, ValidationModule} from 'ag-grid-community';
+import {
+  ModuleRegistry, ClientSideRowModelModule, PaginationModule, TextFilterModule, NumberFilterModule,
+  DateFilterModule, CustomFilterModule, CellStyleModule, ValidationModule
+} from 'ag-grid-community';
 import '../App.css';
 import { upperCase } from "upper-case";
-import secureLocalStorage from "react-secure-storage"; 
+import secureLocalStorage from "react-secure-storage";
 
 // Register necessary modules
 ModuleRegistry.registerModules([
@@ -52,13 +54,24 @@ const VendorProductTable = () => {
   const [start_Date, setStart_Date] = useState('');
   const [end_Date, setEnd_Date] = useState('');
   const [loading, setLoading] = useState(false);
-    const [editedData, setEditedData] = useState([]);
-    const [gridApi, setGridApi] = useState(null);
-      const [selectedRows, setSelectedRows] = useState([]);
-   const gridRef = useRef();
+  const [editedData, setEditedData] = useState([]);
+  const [gridApi, setGridApi] = useState(null);
+  const [selectedRows, setSelectedRows] = useState([]);
+  const gridRef = useRef();
   const navigate = useNavigate();
 
-  const [columnDefs] = useState([
+  const handleTransactionClick = (transactionNo) => {
+    const Type = selectedType?.value || Type;
+
+    navigate("/Purchase", {
+      state: {
+        transactionNo: transactionNo,
+        Type: Type
+      }
+    });
+  };
+
+  const columnDefs = useMemo(() => [
     {
       headerName: "Transaction Date",
       field: "transaction_date",
@@ -68,7 +81,23 @@ const VendorProductTable = () => {
     {
       headerName: "Transaction No",
       field: "transaction_no",
-      editable: false
+      editable: false,
+      cellRenderer: (params) => {
+        if (!params.value) return "";
+        return (
+          <span
+            style={{
+              color: "#1890ff",
+              cursor: "pointer",
+              textDecoration: "underline",
+              fontWeight: "500"
+            }}
+            onClick={() => handleTransactionClick(params.value)}
+          >
+            {params.value}
+          </span>
+        );
+      }
     },
     {
       headerName: "Vendor Code",
@@ -100,7 +129,7 @@ const VendorProductTable = () => {
       field: "hsn_code",
       editable: false
     },
-  ]);
+  ], [selectedType]);
 
   useEffect(() => {
     fetch(`${config.apiBaseUrl}/getDateRange`)
@@ -216,17 +245,17 @@ const VendorProductTable = () => {
         setRowData(newRows);
         setRowData(searchData)
         console.log(searchData);
-      }  else if (response.status === 404) {
-              console.log("Data not found");
-              toast.warning("Data not found")
-              setRowData([]);
-            } else {
-              const errorResponse = await response.json();
-              toast.warning(errorResponse.message );
-            }
+      } else if (response.status === 404) {
+        console.log("Data not found");
+        toast.warning("Data not found")
+        setRowData([]);
+      } else {
+        const errorResponse = await response.json();
+        toast.warning(errorResponse.message);
+      }
     } catch (error) {
       console.error("Error fetching search data:", error);
-    }finally {
+    } finally {
       setLoading(false);
     }
   };
@@ -331,7 +360,7 @@ const VendorProductTable = () => {
   };
   return (
     <div className="container-fluid ">
-            {loading && <LoadingScreen />}
+      {loading && <LoadingScreen />}
       <ToastContainer position="top-right" className="toast-design" theme="colored" />
       <div className="card shadow-lg border-0 p-3 rounded-5 " >
         <div className="d-flex justify-content-between">
@@ -352,10 +381,10 @@ const VendorProductTable = () => {
                 </a>
                 </div>
                 <div className='col-md-2 mt-1 me-0 mb-5' ><a className='border-none text-danger p-1' onClick={goBack} title="Close" style={{ cursor: "pointer" }}><svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-x-circle-fill" viewBox="0 0 16 16">
-              <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0M5.354 4.646a.5.5 0 1 0-.708.708L7.293 8l-2.647 2.646a.5.5 0 0 0 .708.708L8 8.707l2.646 2.647a.5.5 0 0 0 .708-.708L8.707 8l2.647-2.646a.5.5 0 0 0-.708-.708L8 7.293z" />
-            </svg>
-            </a>
-            </div>
+                  <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0M5.354 4.646a.5.5 0 1 0-.708.708L7.293 8l-2.647 2.646a.5.5 0 0 0 .708.708L8 8.707l2.646 2.647a.5.5 0 0 0 .708-.708L8.707 8l2.647-2.646a.5.5 0 0 0-.708-.708L8 7.293z" />
+                </svg>
+                </a>
+                </div>
               </div>
             </div>
             <div className="mobile_buttons">
@@ -405,11 +434,11 @@ const VendorProductTable = () => {
                 value={vendor_code}
                 onChange={(e) => setvendor_code(e.target.value)}
                 maxLength={18}
-                autoComplete='off' 
-                />
+                autoComplete='off'
+              />
               <a
                 className=" position-absolute bg-none border-none p-2 ps-3 pe-3 top-50 end-0 translate-middle-y"
-                style={{ zIndex: 2,cursor:'pointer' }}
+                style={{ zIndex: 2, cursor: 'pointer' }}
                 onClick={handleShowModal}
                 title='Vendor Help'
               >
@@ -422,17 +451,17 @@ const VendorProductTable = () => {
           <div className="col-md-3 mb-2">
             <label className="fw-bold">Select Period </label>
             <div title="Please select the period">
-            <Select
-              id="Speriod"
-              value={selectedPeriod}
-              onChange={handleChangePeriod}
-              options={filteredOptionPeriod}
-              classNamePrefix="react-select"
-              placeholder=""
-              maxLength={18}
-              title='Please select the period'
-            />
-          </div>
+              <Select
+                id="Speriod"
+                value={selectedPeriod}
+                onChange={handleChangePeriod}
+                options={filteredOptionPeriod}
+                classNamePrefix="react-select"
+                placeholder=""
+                maxLength={18}
+                title='Please select the period'
+              />
+            </div>
           </div>
           {selectedPeriod.label === "Custom Date" && (
             <div className="col-md-5 mb-3">
@@ -465,18 +494,18 @@ const VendorProductTable = () => {
           <div className='col-md-3 mb-2'>
             <label className='fw-bold'>Select Type</label>
             <div title="Please select the type">
-            <Select
-              id="Stype"
-              value={selectedType}
-              onChange={handleChangeType}
-              options={filteredOptionType}
-              classNamePrefix="react-select"
-              placeholder=""
-              title='Please select the type'
-              required
-              maxLength={18}
-            />
-          </div>
+              <Select
+                id="Stype"
+                value={selectedType}
+                onChange={handleChangeType}
+                options={filteredOptionType}
+                classNamePrefix="react-select"
+                placeholder=""
+                title='Please select the type'
+                required
+                maxLength={18}
+              />
+            </div>
           </div>
           <div className="col-md-2 mb-2 mt-4">
             <button className="button2 " onClick={fetchpurchaseData} title='Search'>

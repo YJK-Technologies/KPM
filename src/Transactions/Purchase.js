@@ -18,10 +18,12 @@ import PurchaseWarehousePopup from '../Transactions/Popups/PurchaseWarehousePopu
 import PurchaseDeletePopup from '../Transactions/Popups/PurchaseDeletePopup';
 import { faTrash, faSearch, faCamera } from '@fortawesome/free-solid-svg-icons';
 import LoadingScreen from '../BookLoader';
-import { ModuleRegistry, ClientSideRowModelModule, PaginationModule, TextFilterModule, NumberFilterModule,
-  DateFilterModule, CustomFilterModule, CellStyleModule, ValidationModule} from 'ag-grid-community';
+import {
+  ModuleRegistry, ClientSideRowModelModule, PaginationModule, TextFilterModule, NumberFilterModule,
+  DateFilterModule, CustomFilterModule, CellStyleModule, ValidationModule
+} from 'ag-grid-community';
 import secureLocalStorage from "react-secure-storage";
-import printDB from './printDB'; 
+import printDB from './printDB';
 
 // Register necessary modules
 ModuleRegistry.registerModules([
@@ -212,6 +214,35 @@ const VendorProductTable = () => {
     .filter(permission => permission.screen_type === 'Purchase')
     .map(permission => permission.permission_type.toLowerCase());
 
+  const redirectLoadedRef = useRef(false);
+
+  useEffect(() => {
+    const redirectTransactionNo = location.state?.transactionNo;
+    const redirectType = location.state?.Type;
+
+    if (redirectType) {
+      setScreen(redirectType);
+
+      setSelectedscreen({
+        value: redirectType,
+        label: redirectType
+      });
+    }
+
+    if (!redirectTransactionNo || redirectLoadedRef.current) {
+      return;
+    }
+
+    redirectLoadedRef.current = true;
+
+    setTransactionNumber(redirectTransactionNo);
+    handleRefNo(
+      redirectTransactionNo,
+      redirectType
+    );
+
+  }, [location.state]);
+
   useEffect(() => {
     fetch(`${config.apiBaseUrl}/getwarehousedrop`, {
       method: 'POST',
@@ -262,14 +293,31 @@ const VendorProductTable = () => {
       .then((response) => response.json())
       .then((data) => {
         setScreenDrop(data);
-        const defaultScreen = data.find((item) => item.attributedetails_name === "Purchase") || data[0];
-        if (defaultScreen) {
-          setSelectedscreen({
-            value: defaultScreen.attributedetails_name,
-            label: defaultScreen.attributedetails_name,
-          });
-          setScreen(defaultScreen.attributedetails_name);
+        const redirectType = location.state?.Type;
+
+        let typeToSelect;
+        if (redirectType) {
+          typeToSelect = data.find((item) => item.attributedetails_name === redirectType);
         }
+
+        if (!typeToSelect) { 
+          typeToSelect = data.find((item) => item.attributedetails_name === "Purchase") || data[0]; 
+        }
+
+        if (typeToSelect) { 
+          const TypeValue = typeToSelect.attributedetails_name; 
+          setSelectedscreen({ value: TypeValue, label: TypeValue, }); 
+          setScreen(TypeValue); 
+        }
+
+        // const defaultScreen = data.find((item) => item.attributedetails_name === "Purchase") || data[0];
+        // if (defaultScreen) {
+        //   setSelectedscreen({
+        //     value: defaultScreen.attributedetails_name,
+        //     label: defaultScreen.attributedetails_name,
+        //   });
+        //   setScreen(defaultScreen.attributedetails_name);
+        // }
       })
       .catch((error) => console.error("Error fetching purchase types:", error));
   }, []);
@@ -277,7 +325,7 @@ const VendorProductTable = () => {
   useEffect(() => {
     const handleKeyDown = (e) => {
       // 1. Ensure keys only trigger on F-keys
-      if (!['F1','F3', 'F4', 'F6'].includes(e.key)) {
+      if (!['F1', 'F3', 'F4', 'F6'].includes(e.key)) {
         return;
       }
 
@@ -291,25 +339,25 @@ const VendorProductTable = () => {
       switch (e.key) {
         case 'F1':
           // Open Item Search Popup
-          setOpen2(true); 
+          setOpen2(true);
           break;
 
 
         case 'F3':
           // New / Reset Sales Invoice Form
           if (window.confirm("Start a new sales invoice? Unsaved changes will be lost.")) {
-            handleReload(); 
+            handleReload();
           }
-          break;  
+          break;
 
         case 'F4':
           // Save / Complete Invoice (Same logic as Save Button)
-          handleSaveButtonClick(); 
+          handleSaveButtonClick();
           break;
-          
+
         case 'F5':
           // Search Existing Invoices to Edit
-          setOpen3(true); 
+          setOpen3(true);
           break;
 
 
@@ -1855,7 +1903,7 @@ const VendorProductTable = () => {
   const PrintSumTax = async () => {
     try {
       const screenType = SelectedScreen?.value;
-      
+
       const headerUrl =
         screenType === "Purchase Order"
           ? `${config.apiBaseUrl}/printPOTaxDetail`
@@ -2087,12 +2135,16 @@ const VendorProductTable = () => {
     return parseFloat(number).toFixed(2);
   };
 
-  const handleRefNo = async (code) => {
+  const handleRefNo = async (code, screenOverride = "") => {
     setLoading(true);
     try {
-      const apiPath = isChecked || SelectedScreen?.value === "Purchase Order"
+      const currentScreen = screenOverride || Screen;
+
+      const apiPath = isChecked || currentScreen === "Purchase Order"
         ? "/getPurchaseOrder"
         : "/getPurchaseData";
+
+      console.log(currentScreen)
 
       const response = await fetch(`${config.apiBaseUrl}${apiPath}`, {
         method: "POST",
@@ -2327,31 +2379,31 @@ const VendorProductTable = () => {
       }
 
       const purchasetype = document.getElementById('purchaseType');
-          
+
       if (purchasetype) {
-          const selectedPay = filteredOptionPurchase.find(
-              option => option.value?.toLowerCase() === PurchaseType?.toLowerCase()
-          );
-        
-          setSelected(selectedPay);
-          setPurchaseType(selectedPay?.value?.toLowerCase());
+        const selectedPay = filteredOptionPurchase.find(
+          option => option.value?.toLowerCase() === PurchaseType?.toLowerCase()
+        );
+
+        setSelected(selectedPay);
+        setPurchaseType(selectedPay?.value?.toLowerCase());
       } else {
-          console.error('entry element not found');
+        console.error('entry element not found');
       }
-      
+
       const paytype = document.getElementById('paytype');
-      
+
       if (paytype) {
-          const selectedPay = filteredOptionPay.find(
-              option => option.value?.toLowerCase() === PayType?.toLowerCase()
-          );
-        
-          console.log(selectedPay);
-        
-          setselectedPay(selectedPay);
-          setPayType(selectedPay?.value?.toLowerCase());
+        const selectedPay = filteredOptionPay.find(
+          option => option.value?.toLowerCase() === PayType?.toLowerCase()
+        );
+
+        console.log(selectedPay);
+
+        setselectedPay(selectedPay);
+        setPayType(selectedPay?.value?.toLowerCase());
       } else {
-          console.error('entry element not found');
+        console.error('entry element not found');
       }
 
       const totalPurchaseAmount = document.getElementById('totalPurchaseAmount');
@@ -3229,97 +3281,97 @@ const VendorProductTable = () => {
 
   const companyName = sessionStorage.getItem('selectedCompanyName');
   const handleExcelDownload = () => {
-  // Filter rows with meaningful data
-  const filteredRowData = rowData.filter(
-    row =>
-      row.purchaseQty > 0 &&
-      row.TotalItemAmount > 0 &&
-      row.purchaseAmt > 0
-  );
+    // Filter rows with meaningful data
+    const filteredRowData = rowData.filter(
+      row =>
+        row.purchaseQty > 0 &&
+        row.TotalItemAmount > 0 &&
+        row.purchaseAmt > 0
+    );
 
-  const filteredRowDataTax = rowDataTax.filter(
-    taxRow =>
-      taxRow.TaxAmount > 0 &&
-      taxRow.TaxPercentage > 0
-  );
+    const filteredRowDataTax = rowDataTax.filter(
+      taxRow =>
+        taxRow.TaxAmount > 0 &&
+        taxRow.TaxPercentage > 0
+    );
 
-  // Header information
-  const headerData = [
-    {
-      //"Company Code": sessionStorage.getItem("selectedCompanyCode"),
-      "Vendor Code": vendor_code,
-      "Pay Type": payType,
-      "Purchase Type": purchaseType,
-      "Entry Date": entryDate,
-      "Transaction No": transactionNumber,
-      "Transaction Date": transactionDate,
-      "Purchase Amount": TotalPurchase,
-      "Tax Amount": TotalTax,
-      "Total Amount": TotalBill,
-      "Rounded Off": round_difference
-    }
-  ];
-
-  // Format purchase row data using columnDefs
-  const formattedRowData = filteredRowData.map(row => {
-    const newRow = {};
-
-    columnDefs.forEach(col => {
-      if (
-        !col.hide &&
-        col.field !== "delete" &&
-        col.headerName
-      ) {
-        newRow[col.headerName] = row[col.field];
+    // Header information
+    const headerData = [
+      {
+        //"Company Code": sessionStorage.getItem("selectedCompanyCode"),
+        "Vendor Code": vendor_code,
+        "Pay Type": payType,
+        "Purchase Type": purchaseType,
+        "Entry Date": entryDate,
+        "Transaction No": transactionNumber,
+        "Transaction Date": transactionDate,
+        "Purchase Amount": TotalPurchase,
+        "Tax Amount": TotalTax,
+        "Total Amount": TotalBill,
+        "Rounded Off": round_difference
       }
+    ];
+
+    // Format purchase row data using columnDefs
+    const formattedRowData = filteredRowData.map(row => {
+      const newRow = {};
+
+      columnDefs.forEach(col => {
+        if (
+          !col.hide &&
+          col.field !== "delete" &&
+          col.headerName
+        ) {
+          newRow[col.headerName] = row[col.field];
+        }
+      });
+      return newRow;
     });
-    return newRow;
-  });
 
-  // Format tax data using columnDefsTax
-  const formattedRowDataTax = filteredRowDataTax.map(row => {
-    const newRow = {};
-    columnDefsTax.forEach(col => {
-      if (!col.hide && col.headerName) {
-        newRow[col.headerName] = row[col.field];
-      }
+    // Format tax data using columnDefsTax
+    const formattedRowDataTax = filteredRowDataTax.map(row => {
+      const newRow = {};
+      columnDefsTax.forEach(col => {
+        if (!col.hide && col.headerName) {
+          newRow[col.headerName] = row[col.field];
+        }
+      });
+      return newRow;
     });
-    return newRow;
-  });
 
-  // Create workbook
-  const workbook = XLSX.utils.book_new();
+    // Create workbook
+    const workbook = XLSX.utils.book_new();
 
-  // =========================
-  // Header Sheet
-  // =========================
+    // =========================
+    // Header Sheet
+    // =========================
 
-  const headerSheet = XLSX.utils.aoa_to_sheet([
-    ["Purchase"],
-    [`Company Name: ${companyName}`],
-    []
-  ]);
+    const headerSheet = XLSX.utils.aoa_to_sheet([
+      ["Purchase"],
+      [`Company Name: ${companyName}`],
+      []
+    ]);
 
-  // Add headerData below title/company name
-  XLSX.utils.sheet_add_json(
-    headerSheet,
-    headerData,
-    {origin: "A4",skipHeader: false}
-  );
-  // =========================
-  // Purchase Details Sheet
-  // =========================
-  const rowDataSheet = XLSX.utils.json_to_sheet(formattedRowData);
-  // =========================
-  // Tax Details Sheet
-  // =========================
-  const rowDataTaxSheet = XLSX.utils.json_to_sheet(formattedRowDataTax);
-  // Add sheets
-  XLSX.utils.book_append_sheet(workbook,headerSheet,"Header Data");
-  XLSX.utils.book_append_sheet(workbook,rowDataSheet,"Purchase Details");
-  XLSX.utils.book_append_sheet(workbook,rowDataTaxSheet,"Tax Details");
-  // Export
-  XLSX.writeFile(workbook, "purchase_data.xlsx");
+    // Add headerData below title/company name
+    XLSX.utils.sheet_add_json(
+      headerSheet,
+      headerData,
+      { origin: "A4", skipHeader: false }
+    );
+    // =========================
+    // Purchase Details Sheet
+    // =========================
+    const rowDataSheet = XLSX.utils.json_to_sheet(formattedRowData);
+    // =========================
+    // Tax Details Sheet
+    // =========================
+    const rowDataTaxSheet = XLSX.utils.json_to_sheet(formattedRowDataTax);
+    // Add sheets
+    XLSX.utils.book_append_sheet(workbook, headerSheet, "Header Data");
+    XLSX.utils.book_append_sheet(workbook, rowDataSheet, "Purchase Details");
+    XLSX.utils.book_append_sheet(workbook, rowDataTaxSheet, "Tax Details");
+    // Export
+    XLSX.writeFile(workbook, "purchase_data.xlsx");
   };
 
 
